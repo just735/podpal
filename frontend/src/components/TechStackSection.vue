@@ -1,14 +1,14 @@
-<script setup>
-// 技术底座区块
+﻿<script setup>
+// 技术底座区域
 </script>
 
 <template>
-  <section class="py-20 px-6 bg-[#384C65]/10">
+  <section class="py-20 px-6 bg-[#1a1f35]/10">
     <div class="container mx-auto">
       <h2
         class="text-3xl font-bold mb-16 text-center underline decoration-[#485F88] underline-offset-8"
       >
-        技术底座
+        技术底层
       </h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
         <div class="p-6 text-center">

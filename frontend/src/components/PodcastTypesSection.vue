@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 // 播客类型卡片区，使用翻页玻璃卡片效果
 </script>
 
@@ -12,7 +12,7 @@
             <div class="text-[#9DACCC] mb-4 font-mono">01 / KNOWLEDGE</div>
             <h3 class="text-3xl font-bold mb-4">知识类播客</h3>
             <p class="text-[#9DACCC] leading-relaxed">
-              追求“信噪比”。针对深度访谈与科普教学，通过高强度压缩逻辑重复与长停顿，确保每一分钟都是干货。
+              追求"信噪比"。针对深度访谈与科普教学，通过高强度压缩逻辑重复与长停顿，确保每一分钟都是干货。
             </p>
             <div class="mt-8 flex gap-2">
               <span
@@ -33,7 +33,7 @@
               <li>• 文本化编辑 (Text-based Editing)</li>
               <li>• 跨段落语义关联分析 (8192 Token)</li>
               <li>• 自动生成结构化思维导图</li>
-              <li>• 关键观点热图检索</li>
+              <li>• 关键观点热图检测</li>
             </ul>
           </div>
         </div>
@@ -46,7 +46,7 @@
             <div class="text-[#9DACCC] mb-4 font-mono">02 / COMPANION</div>
             <h3 class="text-3xl font-bold mb-4">陪伴类播客</h3>
             <p class="text-[#9DACCC] leading-relaxed">
-              追求“人味”。识别主播思考时的微妙停顿与笑声，利用自适应交叉淡化保持语速律动，拒绝“AI读稿感”。
+              追求"人味"。识别主播思考时的微妙停顿与笑声，利用自适应交叉淡化保持语速律动，拒绝"AI读稿感"。
             </p>
             <div class="mt-8 flex gap-2">
               <span

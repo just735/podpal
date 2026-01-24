@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 // 头图区域展示主视觉与文案
 </script>
 
@@ -15,7 +15,7 @@
         把流程交给<span class="text-[#9DACCC]">工具</span>
       </h1>
       <p class="max-w-2xl mx-auto text-[#9DACCC] text-lg mb-12">
-        首个针对播客设计的“语义-情感”双轨剪辑决策算法。在信息信噪比与人类情感流动之间，找到完美的平衡点。
+        首个针对播客设计的"语义+情感"双轨剪辑决策算法。在信息信噪比与人类情感流动之间，找到完美的平衡点。
       </p>
 
       <div class="flex items-center justify-center gap-1 h-12">
