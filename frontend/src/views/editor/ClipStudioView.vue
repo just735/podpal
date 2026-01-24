@@ -51,18 +51,40 @@
         </div>
 
         <!-- 素材列表 -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-3">
-          <div v-for="asset in assets" :key="asset.id" class="p-3 bg-[#1a1f35]/30 rounded border border-[#485F88]/20 hover:border-[#485F88]/50 cursor-pointer group transition">
+        <div class="flex-1 overflow-y-auto p-4 space-y-2">
+          <div 
+            v-for="asset in assets" 
+            :key="asset.id" 
+            class="p-3 bg-[#1a1f35]/40 rounded-lg border border-[#485F88]/20 hover:border-[#485F88]/50 hover:bg-[#1a1f35]/60 cursor-pointer group transition-all duration-200"
+            @click="selectAsset(asset)"
+          >
             <div class="flex items-start justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full" :class="asset.type === 'audio' ? 'bg-blue-500' : 'bg-orange-500'"></span>
-                <span class="text-sm text-white font-medium truncate w-40">{{ asset.name }}</span>
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" :class="asset.type === 'audio' ? 'bg-blue-500/20' : 'bg-orange-500/20'">
+                  <svg v-if="asset.type === 'audio'" class="w-4 h-4" :class="asset.type === 'audio' ? 'text-blue-400' : 'text-orange-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                  </svg>
+                  <svg v-else class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-white font-medium truncate">{{ asset.name }}</div>
+                  <div class="text-xs text-[#9DACCC]/70 mt-0.5">{{ asset.duration }}</div>
+                </div>
               </div>
-              <button class="text-[#9DACCC]/60 hover:text-white opacity-0 group-hover:opacity-100"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg></button>
+              <button 
+                class="p-1.5 text-[#9DACCC]/60 hover:text-white hover:bg-[#485F88]/30 rounded opacity-0 group-hover:opacity-100 transition"
+                @click.stop="showAssetMenu(asset)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+              </button>
             </div>
-            <div class="flex items-center justify-between text-xs text-[#9DACCC]/80">
-              <span>{{ asset.duration }}</span>
-              <span class="bg-[#1a1f35]/50 px-1.5 py-0.5 rounded text-[#9DACCC]">{{ asset.format }}</span>
+            <div class="flex items-center justify-between text-xs mt-2 pt-2 border-t border-[#485F88]/10">
+              <span class="text-[#9DACCC]/70">{{ asset.duration }}</span>
+              <span class="bg-[#485F88]/20 px-2 py-0.5 rounded text-[#9DACCC] border border-[#485F88]/30">{{ asset.format }}</span>
             </div>
           </div>
         </div>
@@ -71,52 +93,146 @@
       <!-- 3. 中间：工作区 (Feature 3, 9) -->
       <main class="flex-1 flex flex-col bg-[#0B0D14] overflow-hidden relative">
         <!-- 播放器预览 -->
-        <div class="h-1/2 border-b border-[#485F88]/30 p-8 flex items-center justify-center relative bg-gradient-to-b from-[#0B0D14] to-[#121524]">
-          <div class="text-center w-full max-w-2xl">
+        <div class="h-1/2 border-b border-[#485F88]/30 p-8 flex items-center justify-center relative bg-gradient-to-b from-[#0B0D14] via-[#121524] to-[#0B0D14]">
+          <div class="text-center w-full max-w-3xl">
              <!-- 可视化波形 (Mock) -->
-            <div class="h-32 flex items-center justify-center gap-1 mb-8 opacity-50">
-               <div v-for="i in 40" :key="i" class="w-1.5 bg-blue-500/50 rounded-full animate-pulse" :style="{ height: Math.random() * 100 + '%', animationDelay: i * 0.05 + 's' }"></div>
+            <div class="h-40 flex items-end justify-center gap-0.5 mb-6 px-4">
+               <div 
+                 v-for="i in 60" 
+                 :key="i" 
+                 class="w-1 bg-gradient-to-t from-[#485F88] via-[#9DACCC] to-[#485F88] rounded-t transition-all duration-300 hover:from-blue-400 hover:via-blue-300 hover:to-blue-400" 
+                 :style="{ 
+                   height: (Math.sin(i * 0.2) * 30 + 50) + '%',
+                   animationDelay: i * 0.03 + 's',
+                   animation: isPlaying ? `wave ${0.5 + Math.random() * 0.5}s ease-in-out infinite` : 'none'
+                 }"
+               ></div>
             </div>
             
-            <div class="text-3xl font-mono text-white mb-6 tracking-widest">{{ formatTime(currentTime) }}</div>
+            <!-- 时间显示和进度条 -->
+            <div class="mb-6">
+              <div class="flex items-center justify-between text-sm text-[#9DACCC] mb-2 px-2">
+                <span class="font-mono">{{ formatTime(currentTime) }}</span>
+                <span class="font-mono">{{ formatTime(audioDuration) }}</span>
+              </div>
+              <div class="relative h-2 bg-[#1a1f35]/50 rounded-full overflow-hidden cursor-pointer group" @click="seekTo">
+                <div 
+                  class="absolute inset-y-0 left-0 bg-gradient-to-r from-[#485F88] to-[#9DACCC] rounded-full transition-all duration-100"
+                  :style="{ width: (currentTime / audioDuration * 100) + '%' }"
+                ></div>
+                <div 
+                  class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  :style="{ left: `calc(${currentTime / audioDuration * 100}% - 8px)` }"
+                ></div>
+              </div>
+            </div>
             
-            <div class="flex items-center justify-center gap-8">
-               <button class="text-[#9DACCC] hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg></button>
-               <button @click="togglePlay" class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg shadow-blue-500/20">
-                 <svg v-if="!isPlaying" class="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
-                 <svg v-else class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+            <!-- 播放控制 -->
+            <div class="flex items-center justify-center gap-6">
+               <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded-lg transition" title="快退">
+                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+                 </svg>
                </button>
-               <button class="text-[#9DACCC] hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg></button>
+               <button 
+                 @click="togglePlay" 
+                 class="w-20 h-20 rounded-full bg-gradient-to-br from-[#485F88] to-[#9DACCC] text-white flex items-center justify-center hover:from-[#9DACCC] hover:to-[#485F88] transition-all duration-300 shadow-xl shadow-[#485F88]/30 hover:scale-110 hover:shadow-2xl hover:shadow-[#485F88]/50"
+               >
+                 <svg v-if="!isPlaying" class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                   <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                 </svg>
+                 <svg v-else class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                 </svg>
+               </button>
+               <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded-lg transition" title="快进">
+                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
+                 </svg>
+               </button>
             </div>
           </div>
         </div>
 
         <!-- 底部：轨道/编辑器 (Feature 7) -->
-        <div class="flex-1 bg-[#0F111A] p-4 overflow-x-auto border-t border-[#485F88]/30">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-4">
-              <button class="text-xs font-medium text-white bg-blue-600 px-3 py-1.5 rounded hover:bg-blue-700 transition flex items-center gap-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+        <div class="flex-1 bg-[#0F111A] flex flex-col border-t border-[#485F88]/30">
+          <!-- 工具栏 -->
+          <div class="flex items-center justify-between p-4 border-b border-[#485F88]/20 bg-[#121524]/50">
+            <div class="flex items-center gap-3">
+              <button class="text-xs font-medium text-white bg-gradient-to-r from-[#485F88] to-[#9DACCC] px-4 py-2 rounded-lg hover:from-[#9DACCC] hover:to-[#485F88] transition flex items-center gap-2 shadow-lg shadow-[#485F88]/20">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
                 添加轨道
               </button>
-              <div class="h-4 w-px bg-[#485F88]/30"></div>
-              <button class="text-[#9DACCC] hover:text-white" title="剪切"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" /></svg></button>
-            </div>
-          </div>
-          <!-- Mock Tracks -->
-          <div class="space-y-2">
-            <div class="h-16 bg-[#1a1f35]/50 rounded border border-[#485F88]/30 flex items-center px-4 relative group">
-              <div class="w-24 text-xs text-[#9DACCC] border-r border-[#485F88]/30 mr-4">主人声 A</div>
-              <div class="flex-1 h-8 bg-blue-900/40 rounded overflow-hidden relative">
-                 <div class="absolute inset-y-0 left-0 bg-blue-500/20 w-1/3 border-r border-blue-500"></div>
-                 <div class="absolute inset-y-0 left-1/3 bg-transparent w-10 border-l border-r border-dashed border-[#485F88]/50 flex items-center justify-center text-[10px] text-[#9DACCC]/60">Silence</div>
-                 <div class="absolute inset-y-0 left-[40%] right-0 bg-blue-500/20"></div>
+              <div class="h-5 w-px bg-[#485F88]/30"></div>
+              <div class="flex items-center gap-2">
+                <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded transition" title="剪切">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+                  </svg>
+                </button>
+                <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded transition" title="复制">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded transition" title="撤销">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                </button>
               </div>
             </div>
-             <div class="h-16 bg-[#1a1f35]/50 rounded border border-[#485F88]/30 flex items-center px-4 relative group">
-              <div class="w-24 text-xs text-[#9DACCC] border-r border-[#485F88]/30 mr-4">背景音乐</div>
-              <div class="flex-1 h-8 bg-orange-900/40 rounded overflow-hidden">
-                <div class="w-full h-full bg-orange-500/10"></div>
+            <div class="flex items-center gap-2 text-xs text-[#9DACCC]">
+              <span>缩放:</span>
+              <button class="px-2 py-1 bg-[#1a1f35]/50 rounded hover:bg-[#485F88]/30">-</button>
+              <span class="w-12 text-center">100%</span>
+              <button class="px-2 py-1 bg-[#1a1f35]/50 rounded hover:bg-[#485F88]/30">+</button>
+            </div>
+          </div>
+          
+          <!-- 时间轴和轨道 -->
+          <div class="flex-1 overflow-auto p-4">
+            <!-- 时间轴标尺 -->
+            <div class="h-8 mb-2 flex items-center border-b border-[#485F88]/30 relative">
+              <div class="absolute inset-0 flex">
+                <div v-for="i in 20" :key="i" class="flex-1 border-l border-[#485F88]/20 relative">
+                  <span class="absolute -top-5 left-0 text-[10px] text-[#9DACCC]/60 transform -translate-x-1/2">{{ i * 5 }}s</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 轨道列表 -->
+            <div class="space-y-3">
+              <div class="h-20 bg-[#1a1f35]/30 rounded-lg border border-[#485F88]/20 flex items-center px-4 relative group hover:border-[#485F88]/50 transition">
+                <div class="w-28 text-xs text-[#9DACCC] border-r border-[#485F88]/20 mr-4 flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span class="font-medium">主人声 A</span>
+                </div>
+                <div class="flex-1 h-12 rounded overflow-hidden relative cursor-pointer">
+                  <div class="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500/30 to-blue-400/20 w-1/3 border-r-2 border-blue-400 flex items-center justify-center">
+                    <div class="text-[10px] text-blue-300 font-mono">00:00-20:00</div>
+                  </div>
+                  <div class="absolute inset-y-0 left-1/3 bg-transparent w-12 border-l border-r border-dashed border-[#485F88]/40 flex items-center justify-center">
+                    <span class="text-[9px] text-[#9DACCC]/50">静音</span>
+                  </div>
+                  <div class="absolute inset-y-0 left-[calc(33.33%+3rem)] right-0 bg-gradient-to-r from-blue-500/30 to-blue-400/20 flex items-center justify-center">
+                    <div class="text-[10px] text-blue-300 font-mono">20:12-60:00</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="h-20 bg-[#1a1f35]/30 rounded-lg border border-[#485F88]/20 flex items-center px-4 relative group hover:border-[#485F88]/50 transition">
+                <div class="w-28 text-xs text-[#9DACCC] border-r border-[#485F88]/20 mr-4 flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                  <span class="font-medium">背景音乐</span>
+                </div>
+                <div class="flex-1 h-12 rounded overflow-hidden relative cursor-pointer">
+                  <div class="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-400/15 to-orange-500/20 flex items-center justify-center">
+                    <div class="text-[10px] text-orange-300 font-mono">00:00-60:00</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -351,6 +467,27 @@ const formatTime = (seconds) => {
 
 const togglePlay = () => {
   isPlaying.value = !isPlaying.value
+  if (isPlaying.value) {
+    simulatePlayback()
+  }
+}
+
+const simulatePlayback = () => {
+  if (isPlaying.value && currentTime.value < audioDuration.value) {
+    setTimeout(() => {
+      currentTime.value += 1
+      simulatePlayback()
+    }, 1000)
+  } else {
+    isPlaying.value = false
+  }
+}
+
+const seekTo = (event) => {
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const percentage = x / rect.width
+  currentTime.value = Math.floor(audioDuration.value * percentage)
 }
 
 const triggerFileUpload = () => {
@@ -368,6 +505,16 @@ const handleFileSelect = (event) => {
       format: file.name.split('.').pop().toUpperCase()
     })
   }
+}
+
+const selectAsset = (asset) => {
+  console.log('Selected asset:', asset)
+  // 可以在这里添加将素材添加到轨道的逻辑
+}
+
+const showAssetMenu = (asset) => {
+  console.log('Show menu for:', asset)
+  // 可以在这里显示右键菜单
 }
 
 onMounted(() => {
@@ -395,11 +542,21 @@ onMounted(() => {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2d3748;
+  background: #485F88;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a5568;
+  background: #9DACCC;
+}
+
+/* 波形动画 */
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 </style>
 
