@@ -1,36 +1,36 @@
 ﻿<template>
-  <div class="min-h-screen pt-20 pb-12">
+  <div class="min-h-screen pt-20 pb-12 bg-white">
     <div class="flex h-[calc(100vh-5rem)]">
       <!-- 左侧边栏 -->
-      <div class="w-64 bg-[#1a1f35] border-r border-[#485F88]/30 flex flex-col">
-        <div class="p-4 border-b border-[#485F88]/30">
-          <h2 class="text-lg font-semibold text-white mb-4">{{ project?.name || '未命名项目' }}</h2>
+      <div class="w-64 bg-gradient-to-b from-pink-50 to-purple-50 border-r border-pink-200 flex flex-col">
+        <div class="p-4 border-b border-pink-200">
+          <h2 class="text-lg font-semibold bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent mb-4">{{ project?.name || '未命名项目' }}</h2>
           <div class="space-y-2">
             <button
               @click="activeTab = 'transcript'"
               class="w-full text-left px-4 py-2 rounded-lg transition"
-              :class="activeTab === 'transcript' ? 'bg-[#485F88] text-white' : 'text-[#9DACCC] hover:bg-[#485F88]/30'"
+              :class="activeTab === 'transcript' ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
             >
               转写文本
             </button>
             <button
               @click="activeTab = 'clips'"
               class="w-full text-left px-4 py-2 rounded-lg transition"
-              :class="activeTab === 'clips' ? 'bg-[#485F88] text-white' : 'text-[#9DACCC] hover:bg-[#485F88]/30'"
+              :class="activeTab === 'clips' ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
             >
               智能剪辑
             </button>
             <button
               @click="activeTab = 'enhance'"
               class="w-full text-left px-4 py-2 rounded-lg transition"
-              :class="activeTab === 'enhance' ? 'bg-[#485F88] text-white' : 'text-[#9DACCC] hover:bg-[#485F88]/30'"
+              :class="activeTab === 'enhance' ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
             >
               内容增值
             </button>
             <button
               @click="activeTab = 'export'"
               class="w-full text-left px-4 py-2 rounded-lg transition"
-              :class="activeTab === 'export' ? 'bg-[#485F88] text-white' : 'text-[#9DACCC] hover:bg-[#485F88]/30'"
+              :class="activeTab === 'export' ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
             >
               导出分发
             </button>
@@ -40,8 +40,8 @@
         <!-- 项目信息 -->
         <div class="p-4 space-y-4 flex-1 overflow-y-auto">
           <div>
-            <h3 class="text-sm font-medium text-[#9DACCC] mb-2">项目信息</h3>
-            <div class="text-xs text-[#9DACCC] space-y-1">
+            <h3 class="text-sm font-medium text-gray-700 mb-2">项目信息</h3>
+            <div class="text-xs text-gray-600 space-y-1">
               <div>类型: {{ getPodcastTypeText(project?.podcastType) }}</div>
               <div v-if="project?.duration">时长: {{ formatDuration(project.duration) }}</div>
               <div>状态: {{ getStatusText(project?.status) }}</div>
@@ -50,25 +50,25 @@
 
           <!-- 快捷操作 -->
           <div>
-            <h3 class="text-sm font-medium text-[#9DACCC] mb-2">快捷操作</h3>
+            <h3 class="text-sm font-medium text-gray-700 mb-2">快捷操作</h3>
             <div class="space-y-2">
               <button
                 @click="startTranscription"
                 :disabled="transcribing"
-                class="w-full px-3 py-2 text-sm bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition disabled:opacity-50"
+                class="w-full px-3 py-2 text-sm bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition disabled:opacity-50"
               >
                 {{ transcribing ? '转写中...' : '开始转写' }}
               </button>
               <button
                 @click="startSmartClip"
                 :disabled="clipping"
-                class="w-full px-3 py-2 text-sm bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition disabled:opacity-50"
+                class="w-full px-3 py-2 text-sm bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition disabled:opacity-50"
               >
                 {{ clipping ? '剪辑中...' : '智能剪辑' }}
               </button>
               <button
                 @click="saveProject"
-                class="w-full px-3 py-2 text-sm border border-[#485F88] text-[#9DACCC] rounded-lg hover:bg-[#485F88]/30 transition"
+                class="w-full px-3 py-2 text-sm border border-pink-200 text-gray-600 rounded-lg hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600 transition"
               >
                 保存项目
               </button>

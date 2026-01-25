@@ -22,7 +22,7 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
   <nav 
     class="w-full z-50 px-8 py-4 flex justify-between items-center transition-all duration-300"
     :class="[
-      'backdrop-blur-sm bg-[#121524]/80 border-b border-[#485F88]/30',
+      'backdrop-blur-xl bg-white/90 border-b border-pink-200/60 shadow-sm',
       isClipStudio ? 'sticky top-0' : 'fixed'
     ]"
     :style="isClipStudio ? { paddingLeft: '5rem' } : {}"
@@ -30,27 +30,27 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
     <div class="flex items-center gap-4">
       <RouterLink 
         to="/" 
-        class="text-xl font-bold transition text-white hover:opacity-80"
+        class="text-xl font-black transition bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent hover:opacity-80"
       >
         PodPal
       </RouterLink>
       <div 
         v-if="isClipStudio"
-        class="h-4 w-px bg-[#485F88]"
+        class="h-4 w-px bg-pink-300/50"
       ></div>
       <div 
         v-if="isClipStudio"
-        class="text-sm text-[#9DACCC]"
+        class="text-sm text-gray-500 font-medium"
       >
         为播客创作者而生
       </div>
     </div>
     
-    <div class="hidden md:flex gap-8 text-sm font-medium transition text-[#9DACCC]">
+    <div class="hidden md:flex gap-8 text-sm font-medium transition text-gray-600">
       <RouterLink 
         to="/" 
         class="transition"
-        :class="$route.path === '/' ? 'text-white font-semibold' : 'hover:text-white'"
+        :class="$route.path === '/' ? 'text-pink-600 font-bold' : 'hover:text-pink-600'"
       >
         首页
       </RouterLink>
@@ -58,7 +58,7 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
         v-if="userStore.isAuthenticated"
         to="/clip-studio"
         class="transition"
-        :class="$route.path.startsWith('/clip-studio') ? 'text-white font-semibold' : 'hover:text-white'"
+        :class="$route.path.startsWith('/clip-studio') ? 'text-pink-600 font-bold' : 'hover:text-pink-600'"
       >
         🎬 剪辑工作台
       </RouterLink>
@@ -66,7 +66,7 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
         v-if="userStore.isAuthenticated"
         to="/projects"
         class="transition"
-        :class="$route.path.startsWith('/projects') ? 'text-white font-semibold' : 'hover:text-white'"
+        :class="$route.path.startsWith('/projects') ? 'text-pink-600 font-bold' : 'hover:text-pink-600'"
       >
         项目管理
       </RouterLink>
@@ -74,20 +74,20 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
         v-if="userStore.isAuthenticated"
         to="/materials"
         class="transition"
-        :class="$route.path.startsWith('/materials') ? 'text-white font-semibold' : 'hover:text-white'"
+        :class="$route.path.startsWith('/materials') ? 'text-pink-600 font-bold' : 'hover:text-pink-600'"
       >
         素材管理
       </RouterLink>
       <a 
         href="#" 
-        class="transition hover:text-white"
+        class="transition hover:text-pink-600"
       >
         解决方案
       </a>
       <RouterLink 
         to="/profile" 
         class="transition"
-        :class="$route.path === '/profile' ? 'text-white font-semibold' : 'hover:text-white'"
+        :class="$route.path === '/profile' ? 'text-pink-600 font-bold' : 'hover:text-pink-600'"
       >
         个人中心
       </RouterLink>
@@ -96,38 +96,35 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
       <RouterLink
         v-if="userStore.isAuthenticated"
         to="/profile"
-        class="px-4 py-2 text-sm transition text-[#9DACCC] hover:text-white"
+        class="px-4 py-2 text-sm transition text-gray-600 hover:text-pink-600 font-medium"
       >
         会员中心
       </RouterLink>
       <RouterLink
         v-if="!userStore.isAuthenticated"
         to="/login"
-        class="px-4 py-2 text-sm transition text-[#9DACCC] hover:text-white"
+        class="px-4 py-2 text-sm transition text-gray-600 hover:text-pink-600 font-medium"
       >
         登录/注册
       </RouterLink>
       <RouterLink
         v-if="userStore.isAuthenticated"
         to="/dashboard"
-        class="px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white hover:from-[#9DACCC] hover:to-[#9DACCC]"
+        class="px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white hover:shadow-lg hover:scale-105"
       >
         工作台
       </RouterLink>
       <RouterLink
         v-else-if="!isClipStudio"
         to="/login"
-        class="px-6 py-2 rounded-full text-sm font-bold transition-all duration-300"
-        :class="isHomePage 
-          ? 'bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white hover:from-[#9DACCC] hover:to-[#9DACCC]' 
-          : 'bg-[#485F88] text-white hover:bg-[#9DACCC]'"
+        class="px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white hover:shadow-lg hover:scale-105"
       >
         立即开始
       </RouterLink>
       <button
         v-if="userStore.isAuthenticated"
         @click="handleLogout"
-        class="px-4 py-2 text-sm text-[#9DACCC] hover:text-white transition"
+        class="px-4 py-2 text-sm text-gray-600 hover:text-pink-600 transition font-medium"
       >
         退出
       </button>

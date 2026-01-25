@@ -1,15 +1,15 @@
 ﻿<template>
-  <div class="min-h-screen bg-gradient-to-br from-[#121524] via-[#1a1f35] to-[#121524] pt-24 pb-12 px-6">
+  <div class="min-h-screen bg-white pt-24 pb-12 px-6">
     <div class="container mx-auto max-w-7xl">
       <!-- 头部 -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-3xl font-bold text-white mb-2">项目管理</h1>
-          <p class="text-[#9DACCC]">管理你的播客剪辑项目</p>
+          <h1 class="text-3xl font-bold bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent mb-2">项目管理</h1>
+          <p class="text-gray-600">管理你的播客剪辑项目</p>
         </div>
         <button
           @click="showCreateModal = true"
-          class="px-6 py-2 bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white rounded-lg hover:from-[#9DACCC] hover:to-[#9DACCC] transition flex items-center gap-2"
+          class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition flex items-center gap-2"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -19,17 +19,17 @@
       </div>
 
       <!-- 筛�?-->
-      <div class="glass-card rounded-xl p-4 mb-6">
+      <div class="glass-card rounded-xl p-4 mb-6 bg-gradient-to-br from-pink-50/50 to-purple-50/50 border-2 border-pink-200/60">
         <div class="flex flex-col md:flex-row gap-4">
           <input
             v-model="searchQuery"
             type="text"
             placeholder="搜索项目..."
-            class="flex-1 px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white placeholder-[#9DACCC] focus:outline-none focus:ring-2 focus:ring-[#485F88]"
+            class="flex-1 px-4 py-2 bg-white border border-pink-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
           />
           <select
             v-model="filterStatus"
-            class="px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#485F88]"
+            class="px-4 py-2 bg-white border border-pink-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
           >
             <option value="">全部状态</option>
             <option value="draft">草稿</option>
@@ -40,14 +40,14 @@
       </div>
 
       <!-- 项目列表 -->
-      <div v-if="projectStore.loading" class="text-center py-12 text-[#9DACCC]">
+      <div v-if="projectStore.loading" class="text-center py-12 text-gray-600">
         加载中...
       </div>
-      <div v-else-if="filteredProjects.length === 0" class="glass-card rounded-xl p-12 text-center">
-        <p class="text-[#9DACCC] mb-4">还没有项目</p>
+      <div v-else-if="filteredProjects.length === 0" class="glass-card rounded-xl p-12 text-center bg-gradient-to-br from-pink-50/50 to-purple-50/50 border-2 border-pink-200/60">
+        <p class="text-gray-600 mb-4">还没有项目</p>
         <button
           @click="showCreateModal = true"
-          class="px-6 py-2 bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white rounded-lg hover:from-[#9DACCC] hover:to-[#9DACCC] transition"
+          class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
         >
           创建第一个项目
         </button>
@@ -56,7 +56,7 @@
         <div
           v-for="project in filteredProjects"
           :key="project.id"
-          class="bg-white border border-gray-200 rounded-xl p-6 cursor-pointer hover:scale-105 transition-transform hover:shadow-lg"
+          class="bg-white border-2 border-pink-200/60 rounded-xl p-6 cursor-pointer hover:scale-105 transition-transform hover:shadow-lg"
           @click="router.push(`/projects/${project.id}`)"
         >
           <div class="flex items-start justify-between mb-4">
@@ -68,27 +68,27 @@
               {{ getStatusText(project.status) }}
             </span>
           </div>
-          <p class="text-sm text-[#9DACCC] mb-4 line-clamp-2">{{ project.description || '暂无描述' }}</p>
-          <div class="flex items-center justify-between text-xs text-[#9DACCC]">
+          <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ project.description || '暂无描述' }}</p>
+          <div class="flex items-center justify-between text-xs text-gray-500">
             <span>{{ formatDate(project.updatedAt) }}</span>
             <span v-if="project.duration">时长: {{ formatDuration(project.duration) }}</span>
           </div>
           <div class="mt-4 flex gap-2">
             <button
               @click.stop="router.push(`/clip-studio/${project.id}`)"
-              class="flex-1 px-4 py-2 bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white rounded-lg hover:from-[#9DACCC] hover:to-[#9DACCC] transition text-sm font-medium"
+              class="flex-1 px-4 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition text-sm font-medium"
             >
               🎬 开始剪辑
             </button>
             <button
               @click.stop="router.push(`/editor/${project.id}`)"
-              class="px-4 py-2 border border-[#485F88] text-[#9DACCC] rounded-lg hover:bg-[#485F88]/30 transition text-sm"
+              class="px-4 py-2 border border-pink-200 text-gray-600 rounded-lg hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600 transition text-sm"
             >
               编辑器
             </button>
             <button
               @click.stop="deleteProject(project.id)"
-              class="px-4 py-2 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm"
+              class="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition text-sm"
             >
               删除
             </button>
@@ -153,11 +153,11 @@ const formatDuration = (seconds) => {
 
 const getStatusClass = (status) => {
   const statusMap = {
-    completed: 'bg-emerald-500/20 text-emerald-300',
-    processing: 'bg-amber-500/20 text-amber-300',
-    draft: 'bg-blue-500/20 text-blue-300'
+    completed: 'bg-emerald-100 text-emerald-700',
+    processing: 'bg-amber-100 text-amber-700',
+    draft: 'bg-blue-100 text-blue-700'
   }
-  return statusMap[status] || 'bg-[#485F88]/20 text-[#9DACCC]'
+  return statusMap[status] || 'bg-gray-100 text-gray-600'
 }
 
 const getStatusText = (status) => {

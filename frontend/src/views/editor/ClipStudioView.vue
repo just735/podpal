@@ -1,30 +1,30 @@
 ﻿<template>
-  <div class="min-h-screen bg-[#0B0D14] flex flex-col">
+  <div class="min-h-screen bg-white flex flex-col">
     <!-- 1. 顶部导航 & 用户管理 (Feature 1, 6) -->
-    <header class="h-16 border-b border-[#485F88]/30 bg-[#121524] px-6 flex items-center justify-between sticky top-0 z-50">
+    <header class="h-16 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50 px-6 flex items-center justify-between sticky top-0 z-50">
       <div class="flex items-center gap-4">
-        <h1 class="text-xl font-bold text-white tracking-tight">PodPal Studio</h1>
-        <div class="h-6 w-px bg-[#485F88]/30 mx-2"></div>
-        <div class="flex items-center gap-2 text-sm text-[#9DACCC] hover:text-white cursor-pointer transition">
+        <h1 class="text-xl font-bold bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent tracking-tight">PodPal Studio</h1>
+        <div class="h-6 w-px bg-pink-200 mx-2"></div>
+        <div class="flex items-center gap-2 text-sm text-gray-600 hover:text-pink-600 cursor-pointer transition">
           <span>{{ currentProject.name || '未命名项目' }}</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
         </div>
-        <span class="text-xs px-2 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-800">自动保存</span>
+        <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-300">自动保存</span>
       </div>
       
       <div class="flex items-center gap-6">
         <!-- 团队协作 (Feature 6) -->
         <div class="flex -space-x-2">
-          <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white border-2 border-[#121524]" title="Team Member A">A</div>
-          <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs text-white border-2 border-[#121524]" title="Team Member B">B</div>
-          <button class="w-8 h-8 rounded-full bg-[#1a1f35]/50 flex items-center justify-center text-[#9DACCC] border-2 border-dashed border-[#485F88]/50 hover:text-white hover:border-[#9DACCC] transition">+</button>
+          <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white border-2 border-white" title="Team Member A">A</div>
+          <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs text-white border-2 border-white" title="Team Member B">B</div>
+          <button class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 border-2 border-dashed border-pink-200 hover:text-pink-600 hover:border-pink-400 transition">+</button>
         </div>
         
         <!-- 用户菜单 (Feature 1) -->
-        <div class="flex items-center gap-3 pl-6 border-l border-[#485F88]/30">
+        <div class="flex items-center gap-3 pl-6 border-l border-pink-200">
           <div class="text-right hidden md:block">
-            <div class="text-sm text-white">Alex (Pro)</div>
-            <div class="text-xs text-[#9DACCC]/80">Team Admin</div>
+            <div class="text-sm text-gray-900">Alex (Pro)</div>
+            <div class="text-xs text-gray-600">Team Admin</div>
           </div>
           <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600"></div>
         </div>
@@ -33,18 +33,18 @@
 
     <div class="flex-1 flex overflow-hidden">
       <!-- 2. 左侧：素材与资产管理 (Feature 2) -->
-      <aside class="w-80 bg-[#121524] border-r border-[#485F88]/30 flex flex-col">
-        <div class="p-4 border-b border-[#485F88]/30">
-          <h2 class="text-sm font-semibold text-[#9DACCC] uppercase tracking-wider mb-4">素材库</h2>
+      <aside class="w-80 bg-gradient-to-b from-pink-50 to-purple-50 border-r border-pink-200 flex flex-col">
+        <div class="p-4 border-b border-pink-200">
+          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">素材库</h2>
           <!-- 上传/导入 -->
           <div class="grid grid-cols-2 gap-2 mb-4">
-            <button @click="triggerFileUpload" class="flex flex-col items-center justify-center p-4 bg-[#1a1f35]/50 rounded-lg hover:bg-[#1a1f35]/70 transition border border-dashed border-[#485F88]/30 hover:border-blue-500 group">
-              <svg class="w-6 h-6 text-[#9DACCC] group-hover:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-              <span class="text-xs text-[#9DACCC] group-hover:text-white">本地上传</span>
+            <button @click="triggerFileUpload" class="flex flex-col items-center justify-center p-4 bg-white rounded-lg hover:bg-pink-50 transition border border-dashed border-pink-200 hover:border-blue-400 group">
+              <svg class="w-6 h-6 text-gray-600 group-hover:text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+              <span class="text-xs text-gray-600 group-hover:text-gray-900">本地上传</span>
             </button>
-            <button @click="showLinkModal = true" class="flex flex-col items-center justify-center p-4 bg-[#1a1f35]/50 rounded-lg hover:bg-[#1a1f35]/70 transition border border-dashed border-[#485F88]/30 hover:border-purple-500 group">
-              <svg class="w-6 h-6 text-[#9DACCC] group-hover:text-purple-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-              <span class="text-xs text-[#9DACCC] group-hover:text-white">链接导入</span>
+            <button @click="showLinkModal = true" class="flex flex-col items-center justify-center p-4 bg-white rounded-lg hover:bg-purple-50 transition border border-dashed border-pink-200 hover:border-purple-400 group">
+              <svg class="w-6 h-6 text-gray-600 group-hover:text-purple-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+              <span class="text-xs text-gray-600 group-hover:text-gray-900">链接导入</span>
             </button>
           </div>
           <input ref="fileInput" type="file" accept="audio/*,video/*" class="hidden" @change="handleFileSelect">
@@ -55,7 +55,7 @@
           <div 
             v-for="asset in assets" 
             :key="asset.id" 
-            class="p-3 bg-[#1a1f35]/40 rounded-lg border border-[#485F88]/20 hover:border-[#485F88]/50 hover:bg-[#1a1f35]/60 cursor-pointer group transition-all duration-200"
+            class="p-3 bg-white rounded-lg border border-pink-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer group transition-all duration-200"
             @click="selectAsset(asset)"
           >
             <div class="flex items-start justify-between mb-2">
@@ -69,12 +69,12 @@
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm text-white font-medium truncate">{{ asset.name }}</div>
-                  <div class="text-xs text-[#9DACCC]/70 mt-0.5">{{ asset.duration }}</div>
+                  <div class="text-sm text-gray-900 font-medium truncate">{{ asset.name }}</div>
+                  <div class="text-xs text-gray-600 mt-0.5">{{ asset.duration }}</div>
                 </div>
               </div>
               <button 
-                class="p-1.5 text-[#9DACCC]/60 hover:text-white hover:bg-[#485F88]/30 rounded opacity-0 group-hover:opacity-100 transition"
+                class="p-1.5 text-gray-600 hover:text-pink-600 hover:bg-pink-100 rounded opacity-0 group-hover:opacity-100 transition"
                 @click.stop="showAssetMenu(asset)"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,25 +82,25 @@
                 </svg>
               </button>
             </div>
-            <div class="flex items-center justify-between text-xs mt-2 pt-2 border-t border-[#485F88]/10">
-              <span class="text-[#9DACCC]/70">{{ asset.duration }}</span>
-              <span class="bg-[#485F88]/20 px-2 py-0.5 rounded text-[#9DACCC] border border-[#485F88]/30">{{ asset.format }}</span>
+            <div class="flex items-center justify-between text-xs mt-2 pt-2 border-t border-pink-100">
+              <span class="text-gray-600">{{ asset.duration }}</span>
+              <span class="bg-pink-100 px-2 py-0.5 rounded text-pink-700 border border-pink-200">{{ asset.format }}</span>
             </div>
           </div>
         </div>
       </aside>
 
       <!-- 3. 中间：工作区 (Feature 3, 9) -->
-      <main class="flex-1 flex flex-col bg-[#0B0D14] overflow-hidden relative">
+      <main class="flex-1 flex flex-col bg-gray-50 overflow-hidden relative">
         <!-- 播放器预览 -->
-        <div class="h-1/2 border-b border-[#485F88]/30 p-8 flex items-center justify-center relative bg-gradient-to-b from-[#0B0D14] via-[#121524] to-[#0B0D14]">
+        <div class="h-1/2 border-b border-pink-200 p-8 flex items-center justify-center relative bg-gradient-to-b from-white via-pink-50/30 to-white">
           <div class="text-center w-full max-w-3xl">
              <!-- 可视化波形 (Mock) -->
             <div class="h-40 flex items-end justify-center gap-0.5 mb-6 px-4">
                <div 
                  v-for="i in 60" 
                  :key="i" 
-                 class="w-1 bg-gradient-to-t from-[#485F88] via-[#9DACCC] to-[#485F88] rounded-t transition-all duration-300 hover:from-blue-400 hover:via-blue-300 hover:to-blue-400" 
+                 class="w-1 bg-gradient-to-t from-pink-400 via-purple-400 to-pink-400 rounded-t transition-all duration-300 hover:from-pink-500 hover:via-purple-500 hover:to-pink-500" 
                  :style="{ 
                    height: (Math.sin(i * 0.2) * 30 + 50) + '%',
                    animationDelay: i * 0.03 + 's',
@@ -111,13 +111,13 @@
             
             <!-- 时间显示和进度条 -->
             <div class="mb-6">
-              <div class="flex items-center justify-between text-sm text-[#9DACCC] mb-2 px-2">
+              <div class="flex items-center justify-between text-sm text-gray-600 mb-2 px-2">
                 <span class="font-mono">{{ formatTime(currentTime) }}</span>
                 <span class="font-mono">{{ formatTime(audioDuration) }}</span>
               </div>
-              <div class="relative h-2 bg-[#1a1f35]/50 rounded-full overflow-hidden cursor-pointer group" @click="seekTo">
+              <div class="relative h-2 bg-pink-100 rounded-full overflow-hidden cursor-pointer group" @click="seekTo">
                 <div 
-                  class="absolute inset-y-0 left-0 bg-gradient-to-r from-[#485F88] to-[#9DACCC] rounded-full transition-all duration-100"
+                  class="absolute inset-y-0 left-0 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] rounded-full transition-all duration-100"
                   :style="{ width: (currentTime / audioDuration * 100) + '%' }"
                 ></div>
                 <div 
@@ -129,14 +129,14 @@
             
             <!-- 播放控制 -->
             <div class="flex items-center justify-center gap-6">
-               <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded-lg transition" title="快退">
+               <button class="p-2 text-gray-600 hover:text-pink-600 hover:bg-pink-100 rounded-lg transition" title="快退">
                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
                  </svg>
                </button>
                <button 
                  @click="togglePlay" 
-                 class="w-20 h-20 rounded-full bg-gradient-to-br from-[#485F88] to-[#9DACCC] text-white flex items-center justify-center hover:from-[#9DACCC] hover:to-[#485F88] transition-all duration-300 shadow-xl shadow-[#485F88]/30 hover:scale-110 hover:shadow-2xl hover:shadow-[#485F88]/50"
+                 class="w-20 h-20 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#C084FC] text-white flex items-center justify-center hover:shadow-2xl hover:scale-110 transition-all duration-300"
                >
                  <svg v-if="!isPlaying" class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 20 20">
                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
@@ -145,7 +145,7 @@
                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                  </svg>
                </button>
-               <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded-lg transition" title="快进">
+               <button class="p-2 text-gray-600 hover:text-pink-600 hover:bg-pink-100 rounded-lg transition" title="快进">
                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
                  </svg>
@@ -155,19 +155,19 @@
         </div>
 
         <!-- 底部：轨道/编辑器 (Feature 7) -->
-        <div class="flex-1 bg-[#0F111A] flex flex-col border-t border-[#485F88]/30">
+        <div class="flex-1 bg-white flex flex-col border-t border-pink-200">
           <!-- 工具栏 -->
-          <div class="flex items-center justify-between p-4 border-b border-[#485F88]/20 bg-[#121524]/50">
+          <div class="flex items-center justify-between p-4 border-b border-pink-200 bg-pink-50/50">
             <div class="flex items-center gap-3">
-              <button class="text-xs font-medium text-white bg-gradient-to-r from-[#485F88] to-[#9DACCC] px-4 py-2 rounded-lg hover:from-[#9DACCC] hover:to-[#485F88] transition flex items-center gap-2 shadow-lg shadow-[#485F88]/20">
+              <button class="text-xs font-medium text-white bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] px-4 py-2 rounded-lg hover:shadow-lg hover:scale-105 transition flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 添加轨道
               </button>
-              <div class="h-5 w-px bg-[#485F88]/30"></div>
+              <div class="h-5 w-px bg-pink-200"></div>
               <div class="flex items-center gap-2">
-                <button class="p-2 text-[#9DACCC] hover:text-white hover:bg-[#485F88]/30 rounded transition" title="剪切">
+                <button class="p-2 text-gray-600 hover:text-pink-600 hover:bg-pink-100 rounded transition" title="剪切">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
                   </svg>
@@ -184,29 +184,29 @@
                 </button>
               </div>
             </div>
-            <div class="flex items-center gap-2 text-xs text-[#9DACCC]">
+            <div class="flex items-center gap-2 text-xs text-gray-600">
               <span>缩放:</span>
-              <button class="px-2 py-1 bg-[#1a1f35]/50 rounded hover:bg-[#485F88]/30">-</button>
+              <button class="px-2 py-1 bg-white border border-pink-200 rounded hover:bg-pink-50">-</button>
               <span class="w-12 text-center">100%</span>
-              <button class="px-2 py-1 bg-[#1a1f35]/50 rounded hover:bg-[#485F88]/30">+</button>
+              <button class="px-2 py-1 bg-white border border-pink-200 rounded hover:bg-pink-50">+</button>
             </div>
           </div>
           
           <!-- 时间轴和轨道 -->
           <div class="flex-1 overflow-auto p-4">
             <!-- 时间轴标尺 -->
-            <div class="h-8 mb-2 flex items-center border-b border-[#485F88]/30 relative">
+            <div class="h-8 mb-2 flex items-center border-b border-pink-200 relative">
               <div class="absolute inset-0 flex">
-                <div v-for="i in 20" :key="i" class="flex-1 border-l border-[#485F88]/20 relative">
-                  <span class="absolute -top-5 left-0 text-[10px] text-[#9DACCC]/60 transform -translate-x-1/2">{{ i * 5 }}s</span>
+                <div v-for="i in 20" :key="i" class="flex-1 border-l border-pink-100 relative">
+                  <span class="absolute -top-5 left-0 text-[10px] text-gray-500 transform -translate-x-1/2">{{ i * 5 }}s</span>
                 </div>
               </div>
             </div>
             
             <!-- 轨道列表 -->
             <div class="space-y-3">
-              <div class="h-20 bg-[#1a1f35]/30 rounded-lg border border-[#485F88]/20 flex items-center px-4 relative group hover:border-[#485F88]/50 transition">
-                <div class="w-28 text-xs text-[#9DACCC] border-r border-[#485F88]/20 mr-4 flex items-center gap-2">
+              <div class="h-20 bg-white rounded-lg border border-pink-200 flex items-center px-4 relative group hover:border-pink-300 transition">
+                <div class="w-28 text-xs text-gray-700 border-r border-pink-200 mr-4 flex items-center gap-2">
                   <div class="w-2 h-2 rounded-full bg-blue-500"></div>
                   <span class="font-medium">主人声 A</span>
                 </div>
@@ -214,8 +214,8 @@
                   <div class="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500/30 to-blue-400/20 w-1/3 border-r-2 border-blue-400 flex items-center justify-center">
                     <div class="text-[10px] text-blue-300 font-mono">00:00-20:00</div>
                   </div>
-                  <div class="absolute inset-y-0 left-1/3 bg-transparent w-12 border-l border-r border-dashed border-[#485F88]/40 flex items-center justify-center">
-                    <span class="text-[9px] text-[#9DACCC]/50">静音</span>
+                  <div class="absolute inset-y-0 left-1/3 bg-transparent w-12 border-l border-r border-dashed border-pink-200 flex items-center justify-center">
+                    <span class="text-[9px] text-gray-500">静音</span>
                   </div>
                   <div class="absolute inset-y-0 left-[calc(33.33%+3rem)] right-0 bg-gradient-to-r from-blue-500/30 to-blue-400/20 flex items-center justify-center">
                     <div class="text-[10px] text-blue-300 font-mono">20:12-60:00</div>
@@ -223,8 +223,8 @@
                 </div>
               </div>
               
-              <div class="h-20 bg-[#1a1f35]/30 rounded-lg border border-[#485F88]/20 flex items-center px-4 relative group hover:border-[#485F88]/50 transition">
-                <div class="w-28 text-xs text-[#9DACCC] border-r border-[#485F88]/20 mr-4 flex items-center gap-2">
+              <div class="h-20 bg-white rounded-lg border border-pink-200 flex items-center px-4 relative group hover:border-pink-300 transition">
+                <div class="w-28 text-xs text-gray-700 border-r border-pink-200 mr-4 flex items-center gap-2">
                   <div class="w-2 h-2 rounded-full bg-orange-500"></div>
                   <span class="font-medium">背景音乐</span>
                 </div>
@@ -240,18 +240,18 @@
       </main>
 
       <!-- 4. 右侧：AI 智能工具箱 (Feature 3, 4, 5) -->
-      <aside class="w-96 bg-[#121524] border-l border-[#485F88]/30 flex flex-col">
+      <aside class="w-96 bg-gradient-to-b from-pink-50 to-purple-50 border-l border-pink-200 flex flex-col">
         <!-- 工具导航 Tabs -->
-        <div class="flex border-b border-[#485F88]/30">
+        <div class="flex border-b border-pink-200">
           <button 
             v-for="tab in toolTabs" 
             :key="tab.id"
             @click="activeToolTab = tab.id"
             class="flex-1 py-3 text-sm font-medium transition relative"
-            :class="activeToolTab === tab.id ? 'text-white' : 'text-[#9DACCC] hover:text-white'"
+            :class="activeToolTab === tab.id ? 'text-gray-900 font-bold' : 'text-gray-600 hover:text-pink-600'"
           >
             {{ tab.name }}
-            <div v-if="activeToolTab === tab.id" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+            <div v-if="activeToolTab === tab.id" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC]"></div>
           </button>
         </div>
 
@@ -261,80 +261,80 @@
           <div v-if="activeToolTab === 'edit'" class="space-y-6 animate-fadeIn">
             <!-- 语音分析 -->
             <section>
-              <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
                 语音转写与分析
               </h3>
               <div class="space-y-3">
-                <div class="flex items-center justify-between p-3 bg-[#1a1f35]/50 rounded-lg">
-                  <span class="text-sm text-white">说话人分离</span>
+                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                  <span class="text-sm text-gray-900">说话人分离</span>
                   <button class="w-10 h-5 bg-blue-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute right-1 top-1"></div></button>
                 </div>
-                <div class="flex items-center justify-between p-3 bg-[#1a1f35]/50 rounded-lg">
-                  <span class="text-sm text-white">智能情绪提取</span>
+                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                  <span class="text-sm text-gray-900">智能情绪提取</span>
                   <button class="w-10 h-5 bg-gray-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute left-1 top-1"></div></button>
                 </div>
                 <!-- 新增：转写语言选择 -->
-                <div class="flex items-center justify-between p-3 bg-[#1a1f35]/50 rounded-lg">
-                  <span class="text-sm text-white">转写语言</span>
-                  <select class="bg-[#1a1f35] text-xs text-white rounded px-2 py-1 border border-[#485F88]/30 focus:ring-1 focus:ring-[#485F88]">
+                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                  <span class="text-sm text-gray-900">转写语言</span>
+                  <select class="bg-white text-xs text-gray-900 rounded px-2 py-1 border border-pink-200 focus:ring-2 focus:ring-pink-300">
                      <option>自动识别</option>
                      <option>中文</option>
                      <option>English</option>
                      <option>中英混合</option>
                   </select>
                 </div>
-                <button class="w-full py-2 bg-gradient-to-r from-[#485F88] to-[#9DACCC] hover:from-[#9DACCC] hover:to-[#9DACCC] text-sm text-white rounded transition">开始转写</button>
+                <button class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] hover:shadow-lg hover:scale-105 text-sm text-white rounded transition">开始转写</button>
               </div>
             </section>
 
             <!-- 脚本优化 -->
             <section>
-              <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
                 脚本优化
               </h3>
               <div class="grid grid-cols-2 gap-2">
-                <button class="p-2 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-xs text-white hover:border-[#9DACCC] hover:text-[#9DACCC] transition" title="自动修正错别字、剔除口语化冗余">去口语冗余</button>
-                <button class="p-2 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-xs text-white hover:border-[#9DACCC] hover:text-[#9DACCC] transition" title="检测逻辑断层，推荐衔接句">逻辑纠错</button>
-                <button class="p-2 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-xs text-white hover:border-[#9DACCC] hover:text-[#9DACCC] transition" title="提取核心片段生成精华版">一键精华提取</button>
-                <button class="p-2 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-xs text-white hover:border-[#9DACCC] hover:text-[#9DACCC] transition" title="根据内容推荐背景音乐">BGM智能匹配</button>
+                <button class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition" title="自动修正错别字、剔除口语化冗余">去口语冗余</button>
+                <button class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition" title="检测逻辑断层，推荐衔接句">逻辑纠错</button>
+                <button class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition" title="提取核心片段生成精华版">一键精华提取</button>
+                <button class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition" title="根据内容推荐背景音乐">BGM智能匹配</button>
               </div>
             </section>
 
              <!-- TTS 生成 (Feature 3.5) -->
              <section>
-              <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-pink-500 rounded-full"></span>
                 TTS 语音生成
               </h3>
                <div class="space-y-3">
                  <div class="grid grid-cols-2 gap-2">
-                    <button class="p-2 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-xs text-white hover:border-pink-500 hover:text-pink-400 transition flex items-center justify-center gap-1">
+                    <button class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition flex items-center justify-center gap-1">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                       声线克隆
                     </button>
-                     <button class="p-2 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-xs text-white hover:border-pink-500 hover:text-pink-400 transition">多角色生成</button>
+                     <button class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition">多角色生成</button>
                  </div>
                </div>
             </section>
             
             <!-- 音频优化 -->
              <section>
-              <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-green-500 rounded-full"></span>
                 音频画质增强
               </h3>
               <div class="space-y-4">
                 <div class="space-y-1">
-                  <div class="flex justify-between text-xs text-[#9DACCC]"><span>智能降噪</span><span>80%</span></div>
-                  <div class="h-1 bg-[#1a1f35]/50 rounded-full overflow-hidden"><div class="w-[80%] h-full bg-green-500"></div></div>
+                  <div class="flex justify-between text-xs text-gray-600"><span>智能降噪</span><span>80%</span></div>
+                  <div class="h-1 bg-pink-100 rounded-full overflow-hidden"><div class="w-[80%] h-full bg-green-500"></div></div>
                 </div>
                 <div class="space-y-1">
-                  <div class="flex justify-between text-xs text-[#9DACCC]"><span>音量均衡</span><span>On</span></div>
+                  <div class="flex justify-between text-xs text-gray-600"><span>音量均衡</span><span>On</span></div>
                    <div class="flex items-center gap-2">
-                      <button class="text-[10px] px-2 py-0.5 rounded bg-[#1a1f35]/50 text-white hover:bg-[#485F88]/30">人声增强</button>
-                      <button class="text-[10px] px-2 py-0.5 rounded bg-[#1a1f35]/50 text-white hover:bg-[#485F88]/30">去回声</button>
+                      <button class="text-[10px] px-2 py-0.5 rounded bg-white border border-pink-200 text-gray-900 hover:bg-pink-50">人声增强</button>
+                      <button class="text-[10px] px-2 py-0.5 rounded bg-white border border-pink-200 text-gray-900 hover:bg-pink-50">去回声</button>
                    </div>
                 </div>
               </div>

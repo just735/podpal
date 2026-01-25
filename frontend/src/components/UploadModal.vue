@@ -1,13 +1,13 @@
 ﻿<template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="$emit('close')">
-    <div class="glass-card rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div class="glass-card rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto bg-gradient-to-br from-pink-50/95 to-purple-50/95 border-2 border-pink-200/60 backdrop-blur-xl">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-white">上传素材</h2>
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent">上传素材</h2>
         <button
           @click="$emit('close')"
-          class="p-2 hover:bg-[#485F88]/30 rounded-lg transition"
+          class="p-2 hover:bg-pink-100 rounded-lg transition"
         >
-          <svg class="w-6 h-6 text-[#9DACCC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -18,8 +18,8 @@
         @drop="handleDrop"
         @dragover.prevent
         @dragenter.prevent
-        class="border-2 border-dashed border-[#485F88] rounded-xl p-12 text-center mb-6 hover:border-[#9DACCC] transition"
-        :class="{ 'border-[#9DACCC] bg-[#485F88]/10': isDragging }"
+        class="border-2 border-dashed border-pink-200 rounded-xl p-12 text-center mb-6 hover:border-pink-400 transition bg-white"
+        :class="{ 'border-pink-400 bg-pink-50': isDragging }"
       >
         <input
           ref="fileInput"
@@ -29,18 +29,18 @@
           @change="handleFileSelect"
           class="hidden"
         />
-        <svg class="w-16 h-16 text-[#485F88] mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-16 h-16 text-pink-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
-        <p class="text-white mb-2">拖拽文件到此处或</p>
+        <p class="text-gray-900 mb-2">拖拽文件到此处或</p>
         <button
           @click="fileInput?.click()"
-          class="px-6 py-2 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition"
+          class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
         >
           选择文件
         </button>
-        <p class="text-sm text-[#9DACCC] mt-4">支持 MP3, WAV, M4A, FLAC, MP4, MOV 等格式</p>
-        <p class="text-xs text-[#9DACCC] mt-2">最大文件大小 300MB</p>
+        <p class="text-sm text-gray-600 mt-4">支持 MP3, WAV, M4A, FLAC, MP4, MOV 等格式</p>
+        <p class="text-xs text-gray-600 mt-2">最大文件大小 300MB</p>
       </div>
 
       <!-- 文件列表 -->
@@ -48,21 +48,21 @@
         <div
           v-for="(file, index) in files"
           :key="index"
-          class="flex items-center justify-between p-4 bg-[#1a1f35] rounded-lg"
+          class="flex items-center justify-between p-4 bg-white border border-pink-200 rounded-lg"
         >
           <div class="flex-1">
-            <p class="text-white font-medium">{{ file.name }}</p>
-            <p class="text-sm text-[#9DACCC]">{{ formatFileSize(file.size) }}</p>
+            <p class="text-gray-900 font-medium">{{ file.name }}</p>
+            <p class="text-sm text-gray-600">{{ formatFileSize(file.size) }}</p>
           </div>
           <div class="flex items-center gap-4">
             <div v-if="uploadProgress[index] > 0" class="w-32">
-              <div class="h-2 bg-[#485F88]/30 rounded-full overflow-hidden">
+              <div class="h-2 bg-pink-100 rounded-full overflow-hidden">
                 <div
-                  class="h-full bg-[#485F88] transition-all"
+                  class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] transition-all"
                   :style="{ width: uploadProgress[index] + '%' }"
                 ></div>
               </div>
-              <p class="text-xs text-[#9DACCC] mt-1">{{ uploadProgress[index] }}%</p>
+              <p class="text-xs text-gray-600 mt-1">{{ uploadProgress[index] }}%</p>
             </div>
             <button
               @click="removeFile(index)"
@@ -80,14 +80,14 @@
       <div class="flex justify-end gap-4">
         <button
           @click="$emit('close')"
-          class="px-6 py-2 border border-[#485F88] text-[#9DACCC] rounded-lg hover:bg-[#485F88]/30 transition"
+          class="px-6 py-2 border border-pink-200 text-gray-600 rounded-lg hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600 transition"
         >
           取消
         </button>
         <button
           @click="handleUpload"
           :disabled="files.length === 0 || uploading"
-          class="px-6 py-2 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ uploading ? '上传中...' : '开始上传' }}
         </button>

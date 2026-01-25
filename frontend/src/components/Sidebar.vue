@@ -21,7 +21,7 @@ const isActive = (path) => {
 </script>
 
 <template>
-  <aside class="fixed left-0 top-0 h-full w-16 bg-[#1a1f35] border-r border-[#485F88]/30 flex flex-col items-center py-6 z-40">
+  <aside class="fixed left-0 top-0 h-full w-16 bg-gradient-to-b from-pink-50 to-purple-50 border-r border-pink-200 flex flex-col items-center py-6 z-40">
     <div class="flex flex-col gap-6">
       <RouterLink
         v-for="item in menuItems"
@@ -29,8 +29,8 @@ const isActive = (path) => {
         :to="item.path"
         class="w-12 h-12 flex items-center justify-center rounded-lg transition-all duration-200 group relative"
         :class="isActive(item.path) 
-          ? 'bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white' 
-          : 'text-[#9DACCC] hover:bg-[#485F88]/30 hover:text-white'"
+          ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' 
+          : 'text-gray-600 hover:bg-pink-100 hover:text-pink-600'"
         :title="item.label"
       >
         <!-- Home图标 -->
@@ -55,7 +55,7 @@ const isActive = (path) => {
         </svg>
         
         <!-- 工具提示 -->
-        <span class="absolute left-full ml-2 px-2 py-1 bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <span class="absolute left-full ml-2 px-2 py-1 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
           {{ item.label }}
         </span>
       </RouterLink>

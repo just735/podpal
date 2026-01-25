@@ -1,15 +1,15 @@
 ﻿<template>
-  <div class="min-h-screen bg-gradient-to-br from-[#121524] via-[#1a1f35] to-[#121524] pt-6 pb-12 px-6">
+  <div class="min-h-screen bg-white pt-24 pb-12 px-6">
     <div class="container mx-auto max-w-7xl">
       <!-- 头部 -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-3xl font-bold text-white mb-2">素材管理</h1>
-          <p class="text-[#9DACCC]">管理你的音频、视频素材</p>
+          <h1 class="text-3xl font-bold bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent mb-2">素材管理</h1>
+          <p class="text-gray-600">管理你的音频、视频素材</p>
         </div>
         <button
           @click="showUploadModal = true"
-          class="px-6 py-2 bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white rounded-lg hover:from-[#9DACCC] hover:to-[#9DACCC] transition flex items-center gap-2"
+          class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition flex items-center gap-2"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -19,17 +19,17 @@
       </div>
 
       <!-- 筛选和搜索 -->
-      <div class="glass-card rounded-xl p-4 mb-6">
+      <div class="glass-card rounded-xl p-4 mb-6 bg-gradient-to-br from-pink-50/50 to-purple-50/50 border-2 border-pink-200/60">
         <div class="flex flex-col md:flex-row gap-4">
           <input
             v-model="searchQuery"
             type="text"
             placeholder="搜索素材..."
-            class="flex-1 px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white placeholder-[#9DACCC]/60 focus:outline-none focus:ring-2 focus:ring-[#485F88]"
+            class="flex-1 px-4 py-2 bg-white border border-pink-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
           />
           <select
             v-model="filterType"
-            class="px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gray-900"
+            class="px-4 py-2 bg-white border border-pink-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
           >
             <option value="">全部类型</option>
             <option value="audio">音频</option>
@@ -37,7 +37,7 @@
           </select>
           <select
             v-model="sortBy"
-            class="px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gray-900"
+            class="px-4 py-2 bg-white border border-pink-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
           >
             <option value="createdAt">按时间排序</option>
             <option value="name">按名称排序</option>
@@ -47,14 +47,14 @@
       </div>
 
       <!-- 素材列表 -->
-      <div v-if="materialStore.loading" class="text-center py-12 text-[#9DACCC]">
+      <div v-if="materialStore.loading" class="text-center py-12 text-gray-600">
         加载中...
       </div>
-      <div v-else-if="filteredMaterials.length === 0" class="glass-card rounded-xl p-12 text-center">
-        <p class="text-[#9DACCC] mb-4">还没有素材</p>
+      <div v-else-if="filteredMaterials.length === 0" class="glass-card rounded-xl p-12 text-center bg-gradient-to-br from-pink-50/50 to-purple-50/50 border-2 border-pink-200/60">
+        <p class="text-gray-600 mb-4">还没有素材</p>
         <button
           @click="showUploadModal = true"
-          class="px-6 py-2 bg-gradient-to-r from-[#485F88] to-[#9DACCC] text-white rounded-lg hover:from-[#9DACCC] hover:to-[#9DACCC] transition"
+          class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
         >
           上传第一个素材
         </button>
@@ -63,17 +63,17 @@
         <div
           v-for="material in filteredMaterials"
           :key="material.id"
-          class="glass-card rounded-xl p-6 hover:scale-105 transition-transform hover:shadow-lg relative group"
+          class="glass-card rounded-xl p-6 hover:scale-105 transition-transform hover:shadow-lg relative group bg-white border-2 border-pink-200/60"
         >
           <div class="flex items-start justify-between mb-4">
             <div class="flex-1 min-w-0 pr-4">
-              <h3 class="text-lg font-semibold text-white mb-1 truncate" :title="material.name">{{ material.name }}</h3>
-              <p class="text-sm text-[#9DACCC]">{{ formatFileSize(material.size) }} · {{ formatDate(material.createdAt) }}</p>
+              <h3 class="text-lg font-semibold text-gray-900 mb-1 truncate" :title="material.name">{{ material.name }}</h3>
+              <p class="text-sm text-gray-600">{{ formatFileSize(material.size) }} · {{ formatDate(material.createdAt) }}</p>
             </div>
             <div class="flex gap-2">
               <button
                 @click="previewMaterial(material)"
-                class="p-2 hover:bg-[#1a1f35] rounded-lg transition text-[#9DACCC] hover:text-white"
+                class="p-2 hover:bg-pink-50 rounded-lg transition text-gray-600 hover:text-pink-600"
                 title="预览"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +83,7 @@
               </button>
               <button
                 @click="deleteMaterial(material.id)"
-                class="p-2 hover:bg-red-500/20 rounded-lg transition text-[#9DACCC] hover:text-red-400"
+                class="p-2 hover:bg-red-50 rounded-lg transition text-gray-600 hover:text-red-600"
                 title="删除"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,11 +95,11 @@
           <div class="flex items-center gap-2">
             <span
               class="px-2 py-1 rounded text-xs"
-              :class="material.type === 'audio' ? 'bg-blue-900/50 text-blue-300 border border-blue-800' : 'bg-purple-900/50 text-purple-300 border border-purple-800'"
+              :class="material.type === 'audio' ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-purple-100 text-purple-700 border border-purple-300'"
             >
               {{ material.type === 'audio' ? '音频' : '视频' }}
             </span>
-            <span v-if="material.duration" class="text-xs text-[#9DACCC]/80">
+            <span v-if="material.duration" class="text-xs text-gray-500">
               时长: {{ formatDuration(material.duration) }}
             </span>
           </div>

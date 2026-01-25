@@ -1,9 +1,16 @@
 :root {
-  --bg-deep: #121524;
-  --glass-base: #384C65;
-  --border-line: #485F88;
-  --text-sub: #9DACCC;
-  --text-main: #C0C9DB;
+  --bg-deep: #FFF5F7;
+  --bg-gradient-start: #FFE5EC;
+  --bg-gradient-end: #FFF0F5;
+  --glass-base: #FFFFFF;
+  --border-line: #FFB6D9;
+  --text-sub: #FF6B9D;
+  --text-main: #2D3748;
+  --accent-pink: #FF6B9D;
+  --accent-orange: #FFB347;
+  --accent-yellow: #FFE66D;
+  --accent-cyan: #4ECDC4;
+  --accent-purple: #A78BFA;
 
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', Avenir,
     Helvetica, Arial, sans-serif;
@@ -20,14 +27,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: var(--bg-deep);
+  background: linear-gradient(135deg, #FFE5EC 0%, #FFF0F5 50%, #E5F4FF 100%);
   color: var(--text-main);
   overflow-x: hidden;
 }
 
 #app {
   min-height: 100vh;
-  background-color: var(--bg-deep);
+  background: linear-gradient(135deg, #FFE5EC 0%, #FFF0F5 50%, #E5F4FF 100%);
 }
 
 a {
@@ -37,11 +44,10 @@ a {
 }
 
 .glass-card {
-  background: rgba(56, 76, 101, 0.2);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(72, 95, 136, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 8px 32px 0 rgba(255, 107, 157, 0.15);
 }
 
 .flip-container {
@@ -80,7 +86,7 @@ a {
 
 .wave-bar {
   width: 4px;
-  background: var(--text-main);
+  background: linear-gradient(180deg, var(--accent-pink) 0%, var(--accent-purple) 100%);
   border-radius: 2px;
   animation: pulse 1.5s ease-in-out infinite;
 }
