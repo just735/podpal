@@ -6,7 +6,7 @@ import Sidebar from './components/Sidebar.vue'
 
 const route = useRoute()
 const hideNavbar = computed(() => route.meta.hideNavbar)
-const showSidebar = computed(() => route.path.startsWith('/clip-studio') || route.path.startsWith('/materials'))
+const showSidebar = computed(() => route.path.startsWith('/clip-studio') || route.query.from === 'clip')
 const isHomePage = computed(() => route.path === '/')
 </script>
 

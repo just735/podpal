@@ -6,10 +6,10 @@ const route = useRoute()
 
 const menuItems = [
   { path: '/', icon: 'home', label: '首页' },
-  { path: '/projects?action=create', icon: 'plus', label: '新建' },
+  { path: '/projects?action=create&from=clip', icon: 'plus', label: '新建' },
   { path: '/clip-studio', icon: 'edit', label: '编辑' },
-  { path: '/materials', icon: 'audio', label: '素材' },
-  { path: '/tools', icon: 'refresh', label: '工具' }
+  { path: '/materials?from=clip', icon: 'audio', label: '素材' },
+  { path: '/tools?from=clip', icon: 'refresh', label: '工具' }
 ]
 
 const isActive = (path) => {

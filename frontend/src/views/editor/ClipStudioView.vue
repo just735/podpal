@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="min-h-screen bg-white flex flex-col">
     <!-- 1. 顶部导航 & 用户管理 (Feature 1, 6) -->
     <header class="h-16 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50 px-6 flex items-center justify-between sticky top-0 z-50">
@@ -91,7 +91,7 @@
       </aside>
 
       <!-- 3. 中间：工作区 (Feature 3, 9) -->
-      <main class="flex-1 flex flex-col bg-gray-50 overflow-hidden relative">
+      <main class="flex-1 flex flex-col bg-white overflow-hidden relative">
         <!-- 播放器预览 -->
         <div class="h-1/2 border-b border-pink-200 p-8 flex items-center justify-center relative bg-gradient-to-b from-white via-pink-50/30 to-white">
           <div class="text-center w-full max-w-3xl">
@@ -343,81 +343,89 @@
 
           <!-- Tab 2: 内容增值 (Feature 4) -->
           <div v-if="activeToolTab === 'enhance'" class="space-y-6 animate-fadeIn">
-            <div class="p-4 bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-lg">
-              <h4 class="text-sm font-bold text-white mb-2">AI 文案生成</h4>
+            <div class="p-4 bg-white border border-pink-200 rounded-lg">
+              <h4 class="text-sm font-bold text-gray-900 mb-2">AI 文案生成</h4>
                <div class="grid grid-cols-2 gap-2 mb-3">
-                  <label class="flex items-center gap-2 text-xs text-white cursor-pointer">
-                    <input type="checkbox" checked class="rounded bg-[#1a1f35] border-[#485F88]/30 text-purple-600 focus:ring-purple-500">
+                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                    <input type="checkbox" checked class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
                     Show Notes
                   </label>
-                  <label class="flex items-center gap-2 text-xs text-white cursor-pointer">
-                    <input type="checkbox" class="rounded bg-[#1a1f35] border-[#485F88]/30 text-purple-600 focus:ring-purple-500">
+                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                    <input type="checkbox" class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
                     小红书文案
                   </label>
-                   <label class="flex items-center gap-2 text-xs text-white cursor-pointer">
-                    <input type="checkbox" class="rounded bg-[#1a1f35] border-[#485F88]/30 text-purple-600 focus:ring-purple-500">
+                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                    <input type="checkbox" class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
                     公众号文章
                   </label>
-                   <label class="flex items-center gap-2 text-xs text-white cursor-pointer">
-                    <input type="checkbox" class="rounded bg-[#1a1f35] border-[#485F88]/30 text-purple-600 focus:ring-purple-500">
+                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                    <input type="checkbox" class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
                     视频字幕
                   </label>
                </div>
-              <button class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition shadow-lg shadow-purple-500/20">一键生成</button>
+              <button class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-xs rounded transition shadow-lg">一键生成</button>
             </div>
 
             <!-- 交互式播客 (Feature 4.3) -->
             <section>
-               <h4 class="text-sm font-bold text-white mb-2">交互式播客生成</h4>
-               <div class="space-y-2">
-                  <button class="w-full p-3 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-left hover:border-[#9DACCC] transition group">
-                     <div class="text-xs text-white group-hover:text-[#9DACCC] font-medium mb-1">实时问答配置</div>
-                     <div class="text-[10px] text-[#9DACCC]/80">集成大模型API，设置互动节点</div>
-                  </button>
-                   <button class="w-full p-3 bg-[#1a1f35]/50 border border-[#485F88]/30 rounded text-left hover:border-[#9DACCC] transition group">
-                     <div class="text-xs text-white group-hover:text-[#9DACCC] font-medium mb-1">分支剧情设计</div>
-                     <div class="text-[10px] text-[#9DACCC]/80">预设2-3个主题分支，听众选择后无缝衔接</div>
-                  </button>
-               </div>
-            </section>
+              <h4 class="text-sm font-bold text-gray-900 mb-2">交互式播客生成</h4>
+              <div class="space-y-2">
+                 <button class="w-full p-3 bg-white border border-pink-200 rounded text-left hover:bg-pink-50 transition group">
+                    <div class="text-xs text-gray-900 group-hover:text-pink-700 font-medium mb-1">实时问答配置</div>
+                    <div class="text-[10px] text-gray-600">集成大模型API，设置互动节点</div>
+                 </button>
+                 <button class="w-full p-3 bg-white border border-pink-200 rounded text-left hover:bg-pink-50 transition group">
+                    <div class="text-xs text-gray-900 group-hover:text-pink-700 font-medium mb-1">分支剧情设计</div>
+                    <div class="text-[10px] text-gray-600">预设2-3个主题分支，听众选择后无缝衔接</div>
+                 </button>
+              </div>
+           </section>
 
             <div class="space-y-2">
-              <h4 class="text-sm font-bold text-white">视频化转化</h4>
+              <h4 class="text-sm font-bold text-gray-900">视频化转化</h4>
               <div class="grid grid-cols-3 gap-2">
-                 <div class="aspect-[9/16] bg-[#1a1f35]/50 rounded border border-[#485F88]/30 hover:border-[#9DACCC] cursor-pointer flex items-center justify-center text-xs text-[#9DACCC] flex-col gap-1">
+                 <div class="aspect-[9/16] bg-white rounded border border-pink-200 hover:border-pink-300 cursor-pointer flex items-center justify-center text-xs text-gray-600 flex-col gap-1">
                     <span>9:16</span>
-                    <span class="text-[8px] text-[#9DACCC]/70">抖音/Shorts</span>
+                    <span class="text-[8px] text-gray-500">抖音/Shorts</span>
                  </div>
-                 <div class="aspect-[16/9] bg-[#1a1f35]/50 rounded border border-[#485F88]/30 hover:border-[#9DACCC] cursor-pointer flex items-center justify-center text-xs text-[#9DACCC] flex-col gap-1">
+                 <div class="aspect-[16/9] bg-white rounded border border-pink-200 hover:border-pink-300 cursor-pointer flex items-center justify-center text-xs text-gray-600 flex-col gap-1">
                     <span>16:9</span>
-                    <span class="text-[8px] text-[#9DACCC]/70">B站/YT</span>
+                    <span class="text-[8px] text-gray-500">B站/YT</span>
                  </div>
-                 <div class="aspect-square bg-[#1a1f35]/50 rounded border border-[#485F88]/30 hover:border-[#9DACCC] cursor-pointer flex items-center justify-center text-xs text-[#9DACCC]">1:1</div>
+                 <div class="aspect-square bg-white rounded border border-pink-200 hover:border-pink-300 cursor-pointer flex items-center justify-center text-xs text-gray-600">1:1</div>
               </div>
-              <button class="w-full py-2 mt-2 bg-[#1a1f35]/50 border border-[#485F88]/30 hover:border-[#9DACCC] hover:text-white text-[#9DACCC] text-xs rounded transition">添加可视化波形/字幕模板</button>
+              <button class="w-full py-2 mt-2 bg-white border border-pink-200 hover:bg-pink-50 text-gray-700 text-xs rounded transition">添加可视化波形/字幕模板</button>
             </div>
           </div>
 
           <!-- Tab 3: 导出分发 (Feature 5) -->
           <div v-if="activeToolTab === 'export'" class="space-y-6 animate-fadeIn">
             <div class="space-y-3">
-              <label class="block text-sm text-[#9DACCC]">导出格式</label>
-              <select class="w-full bg-[#1a1f35] border border-[#485F88]/30 text-white text-sm rounded p-2 focus:ring-2 focus:ring-[#485F88] outline-none">
+              <label class="block text-sm text-gray-700">导出格式</label>
+              <select class="w-full bg-white border border-pink-200 text-gray-900 text-sm rounded p-2 focus:ring-2 focus:ring-pink-300 outline-none">
                 <option>MP3 (320kbps)</option>
                 <option>WAV (无损)</option>
                 <option>MP4 (1080P)</option>
               </select>
             </div>
-             <div class="space-y-3">
-              <label class="block text-sm text-[#9DACCC]">分发平台</label>
+            <div class="space-y-3">
+              <label class="block text-sm text-gray-700">分发平台</label>
               <div class="grid grid-cols-4 gap-2">
-                <div class="w-10 h-10 rounded bg-white flex items-center justify-center cursor-pointer opacity-50 hover:opacity-100 transition" title="Apple Podcast">🍎</div>
-                <div class="w-10 h-10 rounded bg-green-500 flex items-center justify-center cursor-pointer opacity-50 hover:opacity-100 transition" title="Spotify">🟢</div>
-                <div class="w-10 h-10 rounded bg-red-500 flex items-center justify-center cursor-pointer opacity-50 hover:opacity-100 transition" title="YouTube">▶️</div>
-                <div class="w-10 h-10 rounded bg-orange-500 flex items-center justify-center cursor-pointer opacity-50 hover:opacity-100 transition" title="小宇宙">🪐</div>
+                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="微信">
+                  <img :src="weixinIcon" alt="微信" class="w-full h-full object-contain" />
+                </div>
+                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="抖音">
+                  <img :src="douyinIcon" alt="抖音" class="w-full h-full object-contain" />
+                </div>
+                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="QQ">
+                  <img :src="qqIcon" alt="QQ" class="w-full h-full object-contain" />
+                </div>
+                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="小红书">
+                  <img :src="xiaohongshuIcon" alt="小红书" class="w-full h-full object-contain" />
+                </div>
               </div>
             </div>
-            <button class="w-full py-3 bg-gradient-to-r from-[#485F88] to-[#9DACCC] hover:from-[#9DACCC] hover:to-[#9DACCC] text-white font-bold rounded-lg shadow-lg shadow-[#485F88]/30 transition transform hover:-translate-y-0.5">
+            <button class="w-full py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white font-bold rounded-lg shadow-lg transition transform hover:-translate-y-0.5">
               导出并分发
             </button>
           </div>
@@ -431,6 +439,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import weixinIcon from '../../static/weixin.png'
+import douyinIcon from '../../static/douyin.png'
+import qqIcon from '../../static/QQ.png'
+import xiaohongshuIcon from '../../static/xiaohongshu.png'
 
 const route = useRoute()
 

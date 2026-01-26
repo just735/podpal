@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/user'
 
 const routes = [
@@ -6,6 +6,12 @@ const routes = [
     path: '/',
     name: 'home',
     component: () => import('../views/HomeView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/solutions',
+    name: 'solutions',
+    component: () => import('../views/solutions/SolutionsView.vue'),
     meta: { requiresAuth: false }
   },
   {
