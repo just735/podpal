@@ -2376,7 +2376,8 @@ const generateCutSuggestions = async () => {
         { id: 3, t: '03:20-03:23', type: 'filler', preview: '然后呢...就是说...其实 -> 其实 (已自动优化)', tag: '口癖' },
         { id: 4, t: '05:41-05:44', type: 'stutter', preview: '那那 那个问题是关键 -> 那个问题是关键 (已自动优化)', tag: '口吃' },
         { id: 5, t: '07:15-07:18', type: 'filler', preview: '呃...你知道吧...就是 -> (已删除冗余)', tag: '口癖' },
-        { id: 6, t: '09:30-09:33', type: 'stutter', preview: '这这 这个项目非常重要 -> 这个项目非常重要 (已自动优化)', tag: '口吃' }
+        { id: 6, t: '08:12-08:15', type: 'filler', preview: '怎么说呢...基本上... -> (已精简表达)', tag: '口癖' },
+        { id: 7, t: '09:30-09:33', type: 'stutter', preview: '这这 这个项目非常重要 -> 这个项目非常重要 (已自动优化)', tag: '口吃' }
       ]
   
   let filtered = []
@@ -2420,7 +2421,9 @@ const buildSamplePreview = () => {
       description: '自动识别并标记无意义语气词（如：嗯、呃、这个、那个）',
       entries: [
         { id: 'e1', speaker: '说话人 1', time: '00:08-00:14', type: '口癖', content: '嗯...所以这个研究的路径吧，它聚焦在技术窗口... -> 所以这个研究的路径吧，它聚焦在技术窗口... (已删除“嗯”)', tags: [{ text: '嗯', type: '口癖' }, { text: '这个', type: '口癖' }] },
-        { id: 'e2', speaker: '说话人 2', time: '00:36-00:41', type: '口癖', content: '然后呢...这个第四点呢... -> 第四点是... (已精简冗余)', tags: [{ text: '然后呢', type: '口癖' }] }
+        { id: 'e2', speaker: '说话人 2', time: '00:36-00:41', type: '口癖', content: '然后呢...这个第四点呢... -> 第四点是... (已精简冗余“然后呢/这个”)', tags: [{ text: '然后呢', type: '口癖' }] },
+        { id: 'e2b', speaker: '说话人 1', time: '01:15-01:18', type: '口癖', content: '就是那个...怎么说呢...我觉得 -> 我觉得 (已移除无意义连接词)', tags: [{ text: '就是那个', type: '口癖' }, { text: '怎么说呢', type: '口癖' }] },
+        { id: 'e2c', speaker: '说话人 2', time: '01:45-01:50', type: '口癖', content: '基本上...呃...你知道吧... -> (已完全删除无效片段)', tags: [{ text: '基本上', type: '口癖' }, { text: '你知道吧', type: '口癖' }] }
       ]
     },
     {
@@ -2450,6 +2453,7 @@ const buildSamplePreview = () => {
       description: '一键深度清理，最大程度提升信息密度',
       entries: [
         { id: 'e7', speaker: '说话人 1', time: '03:03-03:10', type: '口癖', content: '其实就是那个...嗯...核心观点 -> 核心观点 (已删除严重冗余)', tags: [{ text: '那个', type: '口癖' }, { text: '嗯', type: '口癖' }] },
+        { id: 'e7b', speaker: '说话人 2', time: '04:15-04:20', type: '口癖', content: '怎么说呢...某种意义上...是吧 -> (已优化：删除无效废话)', tags: [{ text: '怎么说呢', type: '口癖' }] },
         { id: 'e8', speaker: '说话人 3', time: '03:25-03:31', type: '口吃', content: '我我...我们这期就到这里 -> 我们这期就到这里 (已修复)', tags: [{ text: '我我', type: '口吃' }] }
       ]
     }
