@@ -1,5 +1,5 @@
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import firstImage from '../assets/first.png'
 import secondImage from '../assets/second.png'
@@ -19,7 +19,6 @@ const handleEnterFeature = (route) => {
 
 <template>
   <div class="min-h-screen bg-white flex flex-col">
-
     <!-- 顶部横幅 -->
     <div class="container mx-auto max-w-7xl px-6 pt-24 mb-6">
       <div class="glass-card rounded-2xl p-8 md:p-12 bg-gradient-to-br from-pink-50/50 to-purple-50/50 border-2 border-pink-200/60">
@@ -61,8 +60,9 @@ const handleEnterFeature = (route) => {
 
     <!-- 主要内容区域 -->
     <div class="container mx-auto max-w-7xl px-6 flex-1 flex items-center">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 items-stretch">
-        <!-- 播客策划室 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-stretch justify-center">
+        <!-- 播客策划室 - 暂时注释掉 -->
+        <!-- 
         <div class="glass-card rounded-2xl p-8 md:p-10 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group border-2 border-pink-300/60 bg-gradient-to-br from-pink-50 to-pink-100 flex flex-col shadow-lg">
           <div class="mb-6">
             <h2 class="text-2xl font-bold bg-gradient-to-r from-[#FF6B9D] to-[#FF8FAB] bg-clip-text text-transparent mb-3 flex items-center gap-2">
@@ -74,7 +74,6 @@ const handleEnterFeature = (route) => {
             </p>
           </div>
           
-          <!-- 插图区域 -->
           <div class="mb-8 h-40 flex items-center justify-center">
             <img :src="firstImage" alt="播客策划流程" class="h-full w-auto object-contain" />
           </div>
@@ -86,6 +85,7 @@ const handleEnterFeature = (route) => {
             进入策划室
           </button>
         </div>
+        -->
 
         <!-- 播客剪辑 -->
         <div class="glass-card rounded-2xl p-8 md:p-10 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group border-2 border-orange-300/60 bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col shadow-lg">
@@ -99,7 +99,6 @@ const handleEnterFeature = (route) => {
             </p>
           </div>
           
-          <!-- 插图区域 -->
           <div class="mb-8 h-40 flex items-center justify-center">
             <img :src="secondImage" alt="播客剪辑" class="h-full w-auto object-contain" />
           </div>
@@ -124,7 +123,6 @@ const handleEnterFeature = (route) => {
             </p>
           </div>
           
-          <!-- 插图区域 -->
           <div class="mb-8 h-40 flex items-center justify-center">
             <img :src="thirdImage" alt="内容增值" class="h-full w-auto object-contain" />
           </div>

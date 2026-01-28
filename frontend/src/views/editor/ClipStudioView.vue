@@ -94,8 +94,28 @@
       <main class="flex-1 flex flex-col bg-white overflow-hidden relative">
         <!-- 播放器预览 -->
         <div class="h-1/3 border-b border-pink-200 p-6 flex flex-col relative bg-gradient-to-b from-white via-pink-50/30 to-white">
+          <!-- 视图切换按钮 -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <button
+                @click="showWaveform = false"
+                class="px-3 py-1.5 text-sm rounded-lg transition"
+                :class="!showWaveform ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
+              >
+                📝 文字稿
+              </button>
+              <button
+                @click="showWaveform = true"
+                class="px-3 py-1.5 text-sm rounded-lg transition"
+                :class="showWaveform ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
+              >
+                📊 波形图
+              </button>
+            </div>
+          </div>
+
           <!-- 波形可视化区域 -->
-          <div class="flex-1 flex items-center justify-center mb-4">
+          <div v-if="showWaveform" class="flex-1 flex items-center justify-center mb-4">
             <div class="w-full max-w-5xl h-32 flex items-end justify-center gap-0.5 px-4 relative">
               <!-- 播放指示线 -->
               <div 
@@ -118,6 +138,25 @@
                 }"
                 @click="seekToPercentage(i / 120)"
               ></div>
+            </div>
+          </div>
+
+          <!-- 文字稿区域 -->
+          <div v-else class="flex-1 bg-white rounded-lg border border-pink-200 p-4 overflow-y-auto">
+            <div class="space-y-3">
+              <div 
+                v-for="(segment, index) in mockTranscript" 
+                :key="index"
+                class="p-3 rounded-lg cursor-pointer transition-all duration-200"
+                :class="isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : 'hover:bg-pink-50'"
+                @click="seekToTime(segment.startTime)"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs text-gray-500 font-mono">{{ formatTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full" :class="segment.speaker === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">说话人{{ segment.speaker }}</span>
+                </div>
+                <p class="text-sm text-gray-900 leading-relaxed">{{ segment.text }}</p>
+              </div>
             </div>
           </div>
           
@@ -1182,20 +1221,6 @@
               <button class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-xs rounded transition shadow-lg">一键生成</button>
             </div>
 
-            <!-- 交互式播客 (Feature 4.3) -->
-            <section>
-              <h4 class="text-sm font-bold text-gray-900 mb-2">交互式播客生成</h4>
-              <div class="space-y-2">
-                 <button class="w-full p-3 bg-white border border-pink-200 rounded text-left hover:bg-pink-50 transition group">
-                    <div class="text-xs text-gray-900 group-hover:text-pink-700 font-medium mb-1">实时问答配置</div>
-                    <div class="text-[10px] text-gray-600">集成大模型API，设置互动节点</div>
-                 </button>
-                 <button class="w-full p-3 bg-white border border-pink-200 rounded text-left hover:bg-pink-50 transition group">
-                    <div class="text-xs text-gray-900 group-hover:text-pink-700 font-medium mb-1">分支剧情设计</div>
-                    <div class="text-[10px] text-gray-600">预设2-3个主题分支，听众选择后无缝衔接</div>
-                 </button>
-              </div>
-           </section>
 
             <div class="space-y-2">
               <h4 class="text-sm font-bold text-gray-900">视频化转化</h4>
@@ -1282,6 +1307,7 @@ const hoverTime = ref(null)
 const showTimeInput = ref(false)
 const timeInputValue = ref('')
 const showMarkersPanel = ref(false)
+const showWaveform = ref(false) // 默认不显示波形图，显示文字稿
 const selectionStart = ref(null)
 const selectionEnd = ref(null)
 const isDraggingProgress = ref(false)
@@ -1364,6 +1390,40 @@ const isSearching = ref(false)
 const topicHeatmap = ref([])
 const goldenSentences = ref([])
 const isExtracting = ref(false)
+
+// 模拟转写文本数据
+const mockTranscript = ref([
+  {
+    startTime: 0,
+    endTime: 15,
+    speaker: 'A',
+    text: '大家好，欢迎来到今天的播客节目。今天我们要聊的话题是关于人工智能在创作领域的应用。'
+  },
+  {
+    startTime: 15,
+    endTime: 32,
+    speaker: 'B', 
+    text: '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。'
+  },
+  {
+    startTime: 32,
+    endTime: 48,
+    speaker: 'A',
+    text: '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。'
+  },
+  {
+    startTime: 48,
+    endTime: 65,
+    speaker: 'B',
+    text: '而且它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。'
+  },
+  {
+    startTime: 65,
+    endTime: 80,
+    speaker: 'A',
+    text: '这种个性化的处理方式确实很智能。那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
+  }
+])
 
 // 场景自适应设置
 const podcastType = ref('knowledge') // 'knowledge' | 'companion'
@@ -2139,6 +2199,11 @@ const seekToTime = (timeInSeconds) => {
   currentTime.value = timeInSeconds
   // 这里可以添加实际的音频跳转逻辑
   console.log('跳转到时间:', formatTime(timeInSeconds))
+}
+
+// 判断当前播放时间是否在某个文字片段内
+const isCurrentSegment = (segment) => {
+  return currentTime.value >= segment.startTime && currentTime.value <= segment.endTime
 }
 
 onMounted(async () => {
