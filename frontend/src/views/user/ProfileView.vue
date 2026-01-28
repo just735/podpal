@@ -47,7 +47,10 @@
               </h2>
               <p class="text-gray-600 text-sm">查看和管理你的账号信息</p>
             </div>
-            <button class="px-5 py-2.5 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 text-sm font-medium shadow-lg shadow-pink-300/50">
+            <button 
+              @click="showEditModal = true"
+              class="px-5 py-2.5 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 text-sm font-medium shadow-lg shadow-pink-300/50"
+            >
               编辑资料
             </button>
           </div>
@@ -394,6 +397,31 @@
           </div>
         </div>
       </div>
+
+      <!-- 编辑资料模态框 -->
+      <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showEditModal = false">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+          <h3 class="text-xl font-bold mb-4 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent">编辑资料</h3>
+          <form @submit.prevent="handleUpdateProfile" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+              <input v-model="editForm.username" type="text" class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+              <input v-model="editForm.email" type="email" class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+              <input v-model="editForm.phone" type="tel" class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300" />
+            </div>
+            <div class="flex gap-3 justify-end">
+              <button type="button" @click="showEditModal = false" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+              <button type="submit" class="px-4 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:opacity-90">保存</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -405,6 +433,7 @@ import { useProjectStore } from '../../stores/project'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import CreateProjectModal from '../../components/CreateProjectModal.vue'
+import api from '../../services/api'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -422,9 +451,15 @@ const tabs = [
 
 const activeTab = ref('basic')
 const showCreateProject = ref(false)
+const showEditModal = ref(false)
 const securityForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const twoFAEnabled = ref(false)
 const supportForm = ref({ subject: '', message: '' })
+const editForm = ref({
+  username: '',
+  email: '',
+  phone: ''
+})
 const prefs = ref({
   theme: userStore.preferences?.theme || 'dark',
   language: userStore.preferences?.language || 'zh',
@@ -454,6 +489,9 @@ const setActiveTab = (key) => {
   }
   if (key === 'statistics') {
     projectStore.fetchProjects()
+  }
+  if (key === 'basic' && showEditModal.value) {
+    showEditModal.value = false
   }
 }
 
@@ -536,6 +574,27 @@ const handleSupport = () => {
   const subject = encodeURIComponent(supportForm.value.subject)
   const body = encodeURIComponent(supportForm.value.message)
   window.open(`mailto:support@podpal.local?subject=${subject}&body=${body}`)
+  supportForm.value = { subject: '', message: '' }
+  alert('支持请求已发送！')
+}
+
+const handleUpdateProfile = async () => {
+  try {
+    // 更新用户信息
+    if (userStore.user) {
+      userStore.user = {
+        ...userStore.user,
+        username: editForm.value.username,
+        email: editForm.value.email,
+        phone: editForm.value.phone
+      }
+      localStorage.setItem('user', JSON.stringify(userStore.user))
+      alert('资料已更新')
+      showEditModal.value = false
+    }
+  } catch (e) {
+    alert('更新失败，请重试')
+  }
 }
 
 onMounted(async () => {
@@ -544,6 +603,14 @@ onMounted(async () => {
   }
   if (!projectStore.projects?.length) {
     await projectStore.fetchProjects()
+  }
+  // 初始化编辑表单
+  if (userStore.user) {
+    editForm.value = {
+      username: userStore.user.username || '',
+      email: userStore.user.email || '',
+      phone: userStore.user.phone || ''
+    }
   }
 })
 </script>

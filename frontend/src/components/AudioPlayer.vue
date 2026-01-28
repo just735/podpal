@@ -1,11 +1,11 @@
-﻿<template>
-  <div class="fixed bottom-0 left-0 right-0 bg-[#1a1f35] border-t border-[#485F88]/30 p-4 z-40">
+<template>
+  <div class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-pink-50 to-purple-50 border-t border-pink-200 p-4 z-40 shadow-lg">
     <div class="container mx-auto max-w-7xl">
       <div class="flex items-center gap-4">
         <!-- 播放控制 -->
         <button
           @click="togglePlay"
-          class="w-12 h-12 bg-[#485F88] rounded-full flex items-center justify-center hover:bg-[#9DACCC] transition"
+          class="w-12 h-12 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] rounded-full flex items-center justify-center hover:shadow-lg hover:scale-105 transition"
         >
           <svg v-if="!isPlaying" class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
@@ -16,15 +16,15 @@
         </button>
 
         <!-- 时间显示 -->
-        <div class="text-sm text-[#9DACCC] min-w-[100px]">
+        <div class="text-sm text-gray-700 min-w-[100px] font-medium">
           {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
         </div>
 
         <!-- 进度条-->
         <div class="flex-1 relative" @click="handleProgressClick">
-          <div class="h-2 bg-[#485F88]/30 rounded-full overflow-hidden cursor-pointer">
+          <div class="h-2 bg-pink-100 rounded-full overflow-hidden cursor-pointer">
             <div
-              class="h-full bg-[#485F88] transition-all"
+              class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] transition-all"
               :style="{ width: progressPercent + '%' }"
             ></div>
           </div>
@@ -32,11 +32,11 @@
 
         <!-- 音量控制 -->
         <div class="flex items-center gap-2">
-          <button @click="toggleMute" class="p-2 hover:bg-[#485F88]/30 rounded-lg transition">
-            <svg v-if="!isMuted" class="w-5 h-5 text-[#9DACCC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button @click="toggleMute" class="p-2 hover:bg-pink-100 rounded-lg transition">
+            <svg v-if="!isMuted" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
             </svg>
-            <svg v-else class="w-5 h-5 text-[#9DACCC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-else class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
             </svg>
@@ -46,7 +46,7 @@
             type="range"
             min="0"
             max="100"
-            class="w-20"
+            class="w-20 accent-pink-500"
             @input="handleVolumeChange"
           />
         </div>

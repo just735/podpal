@@ -520,19 +520,19 @@
             <div class="flex-1 overflow-auto relative" ref="timelineContainer" @scroll="onTimelineScroll">
               <div class="flex h-full">
                 <!-- 固定左侧轨道控制栏 -->
-                <div class="sticky left-0 z-20 bg-white border-r-2 border-pink-300 flex-shrink-0" style="width: 240px;">
+                <div class="sticky left-0 z-10 bg-white border-r-2 border-pink-300 flex-shrink-0" style="width: 240px;">
                   <!-- 轨道列表 -->
                   <div class="space-y-0">
                     <div 
                       v-for="(track, index) in tracks" 
                       :key="track.id"
-                      class="h-24 bg-white border-b border-pink-200 flex flex-col"
+                      class="h-24 bg-white border-b border-pink-200 flex flex-col overflow-hidden relative isolate"
                       :class="{ 'bg-pink-50/30': selectedTrackId === track.id }"
                     >
                       <!-- 轨道控制面板 -->
-                      <div class="flex-1 flex flex-col px-3 py-2">
+                      <div class="flex-1 flex flex-col px-3 py-2 overflow-hidden relative">
                         <!-- 轨道头部 -->
-                        <div class="flex items-center gap-2 mb-2 flex-shrink-0">
+                        <div class="flex items-center gap-2 mb-2 flex-shrink-0 z-10 relative">
                           <!-- 折叠按钮 -->
                           <button 
                             @click.stop="toggleTrackCollapse(track.id)"
@@ -568,9 +568,9 @@
                           </div>
                         </div>
                         <!-- 轨道控制区域 -->
-                        <div v-if="!track.collapsed" class="flex-1 flex flex-col gap-2">
+                        <div v-if="!track.collapsed" class="flex-1 flex flex-col gap-2 overflow-hidden">
                           <!-- 静音/独奏/录音 -->
-                          <div class="flex items-center gap-1">
+                          <div class="flex items-center gap-1 flex-shrink-0">
                             <button 
                               @click.stop="toggleMute(track.id)"
                               class="p-1.5 text-gray-500 hover:text-red-600 rounded transition flex-shrink-0"
@@ -604,19 +604,19 @@
                             </button>
                           </div>
                           <!-- 音量控制 -->
-                          <div class="space-y-1">
+                          <div class="space-y-1 flex-shrink-0 relative z-0">
                             <div class="flex items-center justify-between">
                               <span class="text-[10px] text-gray-600">音量</span>
                               <span class="text-[10px] text-gray-500 font-mono">{{ track.volume }}%</span>
                             </div>
-                            <div class="relative">
+                            <div class="relative overflow-hidden" style="padding: 0 2px; max-height: 6px;">
                               <input 
                                 type="range" 
                                 min="0" 
                                 max="100" 
                                 v-model="track.volume"
                                 @click.stop
-                                class="w-full h-1.5 bg-pink-100 rounded-lg appearance-none cursor-pointer"
+                                class="w-full h-1.5 bg-pink-100 rounded-lg appearance-none cursor-pointer relative z-0"
                                 style="background: linear-gradient(to right, #FF6B9D 0%, #FF6B9D var(--volume), #fce7f3 var(--volume), #fce7f3 100%);"
                                 :style="{ '--volume': track.volume + '%' }"
                               />
@@ -629,10 +629,10 @@
                 </div>
                 
                 <!-- 可滚动的轨道内容区域 -->
-                <div class="flex-1 overflow-x-auto overflow-y-auto" :style="{ width: `calc(100% - 240px)` }">
+                <div class="flex-1 overflow-x-auto overflow-y-auto relative z-0" :style="{ width: `calc(100% - 240px)` }">
                   <div class="relative" :style="{ width: timelineWidth + 'px' }">
                     <!-- 轨道内容列表 -->
-                    <div class="space-y-2">
+                    <div class="space-y-0">
                       <div 
                         v-for="(track, index) in tracks" 
                         :key="'content-' + track.id"
@@ -1255,15 +1255,17 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useProjectStore } from '../../stores/project'
 import weixinIcon from '../../static/weixin.png'
 import douyinIcon from '../../static/douyin.png'
 import qqIcon from '../../static/QQ.png'
 import xiaohongshuIcon from '../../static/xiaohongshu.png'
 
 const route = useRoute()
+const projectStore = useProjectStore()
 
 // 状态管理
-const currentProject = ref({ name: 'Vol.24 科技创业新风向', id: 1 })
+const currentProject = ref({ name: '未命名项目', id: null })
 const isPlaying = ref(false)
 const currentTime = ref(45)
 const audioDuration = ref(3600)
@@ -2139,9 +2141,22 @@ const seekToTime = (timeInSeconds) => {
   console.log('跳转到时间:', formatTime(timeInSeconds))
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (route.params.id) {
-    // Load project data
+    // 加载项目数据
+    await projectStore.fetchProject(route.params.id)
+    if (projectStore.currentProject) {
+      currentProject.value = projectStore.currentProject
+    }
+  } else {
+    // 如果没有项目 ID，尝试使用第一个项目
+    if (projectStore.projects.length === 0) {
+      await projectStore.fetchProjects()
+    }
+    if (projectStore.projects.length > 0) {
+      const firstProject = projectStore.projects[0]
+      currentProject.value = firstProject
+    }
   }
   updateTimelineWidth()
   
@@ -2188,11 +2203,11 @@ onMounted(() => {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #485F88;
+  background: #FF6B9D;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9DACCC;
+  background: #C084FC;
 }
 
 /* 波形动画 */
@@ -2203,6 +2218,31 @@ onMounted(() => {
   50% {
     transform: scaleY(1);
   }
+}
+
+/* 音量滑块样式 - 防止溢出 */
+input[type="range"] {
+  position: relative;
+  z-index: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  position: relative;
+  z-index: 1;
+}
+
+input[type="range"]::-moz-range-thumb {
+  position: relative;
+  z-index: 1;
+}
+
+/* 确保轨道内容不被遮挡 */
+.track-content-area {
+  position: relative;
+  z-index: 0;
 }
 </style>
 

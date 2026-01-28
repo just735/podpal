@@ -1,48 +1,48 @@
-﻿<template>
+<template>
   <div class="flex-1 flex flex-col overflow-hidden">
     <div class="p-6 space-y-6 overflow-y-auto">
       <div>
-        <h2 class="text-2xl font-bold text-white mb-4">内容增值</h2> 
-        <p class="text-[#9DACCC]">为你的播客内容生成增值素材</p>
+        <h2 class="text-2xl font-bold text-gray-700 mb-4">内容增值</h2> 
+        <p class="text-gray-600">为你的播客内容生成增值素材</p>
       </div>
 
       <!-- 文案生成 -->
       <div class="glass-card rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-white mb-4">文案生成</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">文案生成</h3>
         <div class="space-y-4">
           <button
             @click="generateShownotes"
-            class="w-full px-4 py-3 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition text-left"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition text-left"
           >
             <div class="font-medium">生成 Show Notes</div>
-            <div class="text-sm text-[#9DACCC] mt-1">自动生成播客文字笔记，包含标题、核心亮点、时间轴要点</div>
+            <div class="text-sm text-gray-600 mt-1">自动生成播客文字笔记，包含标题、核心亮点、时间轴要点</div>
           </button>
           <button
             @click="generatePromoCopy"
-            class="w-full px-4 py-3 border border-[#485F88] text-[#9DACCC] rounded-lg hover:bg-[#485F88]/30 transition text-left"
+            class="w-full px-4 py-3 border-2 border-pink-200/60 text-gray-600 rounded-lg hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600 transition text-left"
           >
             <div class="font-medium">生成推广文案</div>
-            <div class="text-sm text-[#9DACCC] mt-1">生成适配公众号、小红书、微博、短视频平台的推广文案</div>
+            <div class="text-sm text-gray-600 mt-1">生成适配公众号、小红书、微博、短视频平台的推广文案</div>
           </button>
           <button
             @click="generateTitles"
-            class="w-full px-4 py-3 border border-[#485F88] text-[#9DACCC] rounded-lg hover:bg-[#485F88]/30 transition text-left"
+            class="w-full px-4 py-3 border-2 border-pink-200/60 text-gray-600 rounded-lg hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600 transition text-left"
           >
             <div class="font-medium">生成标题</div>
-            <div class="text-sm text-[#9DACCC] mt-1">AI推荐多个吸睛标题，支持自定义关键词优化</div>
+            <div class="text-sm text-gray-600 mt-1">AI推荐多个吸睛标题，支持自定义关键词优化</div>
           </button>
         </div>
       </div>
 
       <!-- 播客视频�?-->
       <div class="glass-card rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-white mb-4">播客视频</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">播客视频</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">视频尺寸</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">视频尺寸</label>
             <select
               v-model="videoSettings.aspectRatio"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             >
               <option value="9:16">竖屏 (9:16) - 抖音/快手</option>
               <option value="16:9">横屏 (16:9) - Bilibili/YouTube</option>
@@ -50,10 +50,10 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">视频模板</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">视频模板</label>
             <select
               v-model="videoSettings.template"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             >
               <option value="simple">简约风</option>
               <option value="tech">科技</option>
@@ -62,7 +62,7 @@
           </div>
           <button
             @click="generateVideo"
-            class="w-full px-4 py-3 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
           >
             生成视频
           </button>
@@ -71,22 +71,22 @@
 
       <!-- 交互式播�?-->
       <div class="glass-card rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-white mb-4">交互式播客生成</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">交互式播客生成</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">互动节点频率</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">互动节点频率</label>
             <input
               v-model.number="interactiveSettings.frequency"
               type="number"
               min="1"
               max="10"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             />
-            <p class="text-xs text-[#9DACCC] mt-1">N 分钟设置一个互动节点</p>
+            <p class="text-xs text-gray-600 mt-1">N 分钟设置一个互动节点</p>
           </div>
           <button
             @click="generateInteractive"
-            class="w-full px-4 py-3 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
           >
             生成交互式播客
           </button>

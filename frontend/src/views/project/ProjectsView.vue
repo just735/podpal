@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="min-h-screen bg-white pt-24 pb-12 px-6">
     <div class="container mx-auto max-w-7xl">
       <!-- 头部 -->
@@ -36,6 +36,21 @@
             <option value="processing">进行中</option>
             <option value="completed">已完成</option>
           </select>
+          <div class="flex gap-2">
+            <button
+              v-if="selectedProjects.length > 0"
+              @click="handleBatchDelete"
+              class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            >
+              批量删除 ({{ selectedProjects.length }})
+            </button>
+            <button
+              @click="showBatchActions = !showBatchActions"
+              class="px-4 py-2 border border-pink-200 rounded-lg hover:bg-pink-50 transition"
+            >
+              {{ showBatchActions ? '取消选择' : '批量操作' }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -56,9 +71,18 @@
         <div
           v-for="project in filteredProjects"
           :key="project.id"
-          class="bg-white border-2 border-pink-200/60 rounded-xl p-6 cursor-pointer hover:scale-105 transition-transform hover:shadow-lg"
-          @click="router.push(`/projects/${project.id}`)"
+          class="bg-white border-2 rounded-xl p-6 cursor-pointer hover:scale-105 transition-transform hover:shadow-lg relative"
+          :class="selectedProjects.includes(project.id) ? 'border-pink-500 bg-pink-50' : 'border-pink-200/60'"
+          @click="showBatchActions ? toggleSelect(project.id) : router.push(`/projects/${project.id}`)"
         >
+          <div v-if="showBatchActions" class="absolute top-4 right-4">
+            <input
+              type="checkbox"
+              :checked="selectedProjects.includes(project.id)"
+              @click.stop="toggleSelect(project.id)"
+              class="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
+            />
+          </div>
           <div class="flex items-start justify-between mb-4">
             <h3 class="text-xl font-semibold text-gray-900 flex-1">{{ project.name }}</h3>
             <span
@@ -139,6 +163,8 @@ dayjs.extend(relativeTime)
 const router = useRouter()
 const projectStore = useProjectStore()
 const showCreateModal = ref(false)
+const showBatchActions = ref(false)
+const selectedProjects = ref([])
 const searchQuery = ref('')
 const filterStatus = ref('')
 
@@ -158,6 +184,35 @@ const filteredProjects = computed(() => {
 
   return projects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 })
+
+const stats = computed(() => {
+  const projects = projectStore.projects
+  return {
+    processing: projects.filter(p => p.status === 'processing').length,
+    completed: projects.filter(p => p.status === 'completed').length,
+    draft: projects.filter(p => p.status === 'draft').length
+  }
+})
+
+const toggleSelect = (projectId) => {
+  const index = selectedProjects.value.indexOf(projectId)
+  if (index > -1) {
+    selectedProjects.value.splice(index, 1)
+  } else {
+    selectedProjects.value.push(projectId)
+  }
+}
+
+const handleBatchDelete = async () => {
+  if (selectedProjects.value.length === 0) return
+  if (confirm(`确定要删除选中的 ${selectedProjects.value.length} 个项目吗？`)) {
+    for (const id of selectedProjects.value) {
+      await projectStore.deleteProject(id)
+    }
+    selectedProjects.value = []
+    showBatchActions.value = false
+  }
+}
 
 const formatDate = (date) => {
   if (!date) return '未知'

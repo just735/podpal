@@ -1,20 +1,20 @@
-﻿<template>
+<template>
   <div class="flex-1 flex flex-col overflow-hidden">
     <div class="p-6 space-y-6 overflow-y-auto">
       <div>
-        <h2 class="text-2xl font-bold text-white mb-4">导出与分发</h2>
-        <p class="text-[#9DACCC]">导出你的作品并分发到各个平台</p>
+        <h2 class="text-2xl font-bold text-gray-700 mb-4">导出与分发</h2>
+        <p class="text-gray-700">导出你的作品并分发到各个平台</p>
       </div>
 
       <!-- 音频导出 -->
       <div class="glass-card rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-white mb-4">音频导出</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">音频导出</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">导出格式</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">导出格式</label>
             <select
               v-model="audioExport.format"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             >
               <option value="mp3">MP3</option>
               <option value="wav">WAV</option>
@@ -22,10 +22,10 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">音质</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">音质</label>
             <select
               v-model="audioExport.quality"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             >
               <option value="low">(64kbps)</option>
               <option value="medium">(128kbps)</option>
@@ -35,7 +35,7 @@
           </div>
           <button
             @click="exportAudio"
-            class="w-full px-4 py-3 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
           >
             导出音频
           </button>
@@ -44,13 +44,13 @@
 
       <!-- 视频导出 -->
       <div class="glass-card rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-white mb-4">视频导出</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">视频导出</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">分辨率</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">分辨率</label>
             <select
               v-model="videoExport.resolution"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             >
               <option value="720p">720P</option>
               <option value="1080p">1080P</option>
@@ -58,10 +58,10 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">格式</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">格式</label>
             <select
               v-model="videoExport.format"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             >
               <option value="mp4">MP4</option>
               <option value="mov">MOV</option>
@@ -69,7 +69,7 @@
           </div>
           <button
             @click="exportVideo"
-            class="w-full px-4 py-3 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
           >
             导出视频
           </button>
@@ -78,13 +78,13 @@
 
       <!-- 文本导出 -->
       <div class="glass-card rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-white mb-4">文本导出</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">文本导出</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-[#C0C9DB] mb-2">导出格式</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">导出格式</label>
             <select
               v-model="textExport.format"
-              class="w-full px-4 py-2 bg-[#1a1f35] border border-[#485F88] rounded-lg text-white"
+              class="w-full px-4 py-2 bg-white border-2 border-pink-200/60 rounded-lg text-gray-700"
             >
               <option value="txt">TXT</option>
               <option value="word">Word</option>
@@ -93,7 +93,7 @@
           </div>
           <button
             @click="exportText"
-            class="w-full px-4 py-3 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
           >
             导出文本
           </button>
@@ -102,31 +102,31 @@
 
       <!-- 一键分�?-->
       <div class="glass-card rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-white mb-4">一键分发</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">一键分发</h3>
         <div class="space-y-3">
           <label class="flex items-center">
             <input type="checkbox" v-model="platforms.ximalaya" class="mr-2" />
-            <span class="text-[#9DACCC]">喜马拉雅</span>
+            <span class="text-gray-700">喜马拉雅</span>
           </label>
           <label class="flex items-center">
             <input type="checkbox" v-model="platforms.xiaoyuzhou" class="mr-2" />
-            <span class="text-[#9DACCC]">小宇</span>
+            <span class="text-gray-700">小宇</span>
           </label>
           <label class="flex items-center">
             <input type="checkbox" v-model="platforms.apple" class="mr-2" />
-            <span class="text-[#9DACCC]">Apple Podcasts</span>
+            <span class="text-gray-700">Apple Podcasts</span>
           </label>
           <label class="flex items-center">
             <input type="checkbox" v-model="platforms.douyin" class="mr-2" />
-            <span class="text-[#9DACCC]">抖音</span>
+            <span class="text-gray-700">抖音</span>
           </label>
           <label class="flex items-center">
             <input type="checkbox" v-model="platforms.bilibili" class="mr-2" />
-            <span class="text-[#9DACCC]">Bilibili</span>
+            <span class="text-gray-700">Bilibili</span>
           </label>
           <button
             @click="publishToPlatforms"
-            class="w-full px-4 py-3 bg-[#485F88] text-white rounded-lg hover:bg-[#9DACCC] transition mt-4"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition mt-4"
           >
             发布到选中平台
           </button>
