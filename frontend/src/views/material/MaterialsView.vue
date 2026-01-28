@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="min-h-screen bg-white pt-24 pb-12 px-6">
     <div class="container mx-auto max-w-7xl">
       <!-- 头部 -->
@@ -82,6 +82,15 @@
                 </svg>
               </button>
               <button
+                @click="addToProject(material)"
+                class="p-2 hover:bg-blue-50 rounded-lg transition text-gray-600 hover:text-blue-600"
+                title="添加到项目"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <button
                 @click="deleteMaterial(material.id)"
                 class="p-2 hover:bg-red-50 rounded-lg transition text-gray-600 hover:text-red-600"
                 title="删除"
@@ -118,9 +127,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMaterialStore } from '../../stores/material'
 import UploadModal from '../../components/UploadModal.vue'
 import dayjs from 'dayjs'
+
+const router = useRouter()
 
 const materialStore = useMaterialStore()
 const showUploadModal = ref(false)
@@ -177,6 +189,16 @@ const formatDuration = (seconds) => {
 const previewMaterial = (material) => {
   // 简单的预览反馈，实际项目中可以弹出一个播放器模态框
   alert(`正在预览: ${material.name}\n类型: ${material.type === 'audio' ? '音频' : '视频'}`)
+}
+
+const addToProject = (material) => {
+  // 显示项目选择对话框，让用户选择要添加到的项目
+  const projectId = prompt('请输入项目ID，或留空创建新项目:')
+  if (projectId) {
+    router.push(`/clip-studio/${projectId}?material=${material.id}`)
+  } else {
+    router.push(`/projects?create=true&material=${material.id}`)
+  }
 }
 
 const deleteMaterial = async (id) => {

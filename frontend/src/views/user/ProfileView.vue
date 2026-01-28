@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="pt-32 pb-20 px-6 min-h-screen bg-white">
     <div class="container mx-auto max-w-7xl">
       <!-- 头部区域 -->
@@ -488,6 +488,13 @@ const clipPercent = computed(() => {
   return Math.round((used / total) * 100)
 })
 const projectsCount = computed(() => projectStore.projects?.length || 0)
+
+const recentProjects = computed(() => {
+  if (!projectStore.projects?.length) return []
+  return [...projectStore.projects]
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+    .slice(0, 5)
+})
 
 const changePlan = (plan) => {
   userStore.setMembershipType(plan.name)
