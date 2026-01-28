@@ -274,6 +274,11 @@ const tabs = [
   { key: 'export', label: '导出分发', icon: '📤' }
 ]
 
+// 支持通过路由 query(tab) 指定初始激活的功能页，比如 /editor?tab=export
+if (route.query.tab && tabs.some(t => t.key === route.query.tab)) {
+  activeTab.value = route.query.tab
+}
+
 const formatDuration = (seconds) => {
   if (!seconds) return '0:00'
   const mins = Math.floor(seconds / 60)

@@ -1,4 +1,4 @@
-﻿<script setup>
+﻿﻿<script setup>
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { computed } from 'vue'
