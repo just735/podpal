@@ -13,6 +13,43 @@
       </div>
       
       <div class="flex items-center gap-6">
+        <!-- 视图切换 Tabs + 进度条 -->
+        <div class="flex flex-col items-start">
+          <div class="flex bg-gray-100/50 p-1 rounded-lg border border-pink-100">
+            <button 
+              v-for="(tab, i) in toolTabs" 
+              :key="tab.id"
+              @click="activeToolTab = tab.id"
+              :ref="el => setTabRef(el, i)"
+              class="px-4 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+              :class="activeToolTab === tab.id ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600 hover:text-pink-500 hover:bg-white/50'"
+            >
+              {{ tab.name }}
+            </button>
+          </div>
+          <!-- 三节点进度条（纯色，标注 1-2-3） -->
+          <div class="relative w-64 h-8 mt-1 hidden md:block" ref="stepsBar">
+            <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 bg-pink-100 rounded-full"></div>
+            <div 
+              class="absolute left-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-pink-300 transition-all" 
+              :style="{ width: progressWidthPercent + '%' }"
+            ></div>
+            <div class="absolute inset-x-0 top-1/2 -translate-y-1/2">
+              <div 
+                v-for="(tab, i) in toolTabs" 
+                :key="'step-node-' + tab.id" 
+                class="absolute -mt-3"
+                :style="{ left: (stepPositions[i] || 0) + '%' }"
+              >
+                <div 
+                  class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" 
+                  :class="i <= stepIndex ? 'bg-pink-400' : 'bg-pink-200'"
+                >{{ i + 1 }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 团队协作 (Feature 6) -->
         <div class="flex -space-x-2">
           <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white border-2 border-white" title="Team Member A">A</div>
@@ -98,6 +135,8 @@
 
       <!-- 3. 中间：工作区 (Feature 3, 9) -->
       <main class="flex-1 min-w-0 flex flex-col bg-white overflow-hidden relative">
+        <!-- Editor View -->
+        <div v-show="activeToolTab === 'edit'" class="flex-1 flex flex-col overflow-hidden relative h-full">
         <!-- 播放器预览 -->
         <div class="h-1/3 border-b border-pink-200 p-6 flex flex-col relative bg-gradient-to-b from-white via-pink-50/30 to-white">
           <!-- 视图切换按钮 -->
@@ -154,53 +193,125 @@
                 v-for="(segment, index) in mockTranscript" 
                 :key="index"
                 :ref="el => setSegmentRef(el, index)"
-                class="p-3 rounded-lg cursor-pointer transition-all duration-200"
-                :class="isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : 'hover:bg-pink-50'"
+                class="p-3 rounded-lg cursor-pointer transition-all duration-200 group relative"
+                :class="[
+                  isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : 'hover:bg-pink-50',
+                  segment.text.startsWith('[TTS]') && !segment.confirmed ? 'border border-dashed border-blue-300 bg-blue-50/30' : '',
+                  segment.text.startsWith('[TTS]') && segment.confirmed ? 'border border-blue-200 bg-blue-50' : ''
+                ]"
                 @click="seekToTime(segment.startTime)"
               >
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs text-gray-500 font-mono">{{ formatTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}</span>
-                  <span class="text-xs px-2 py-0.5 rounded-full" :class="segment.speaker === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">说话人{{ segment.speaker }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500 font-mono">{{ formatTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}</span>
+                    <span v-if="segment.text.startsWith('[TTS]')" class="text-[10px] bg-blue-500 text-white px-1.5 rounded">TTS</span>
+                    <span v-if="deletedCount(segment.text) > 0" class="text-[10px] bg-red-100 text-red-700 px-1.5 rounded">已留痕</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button 
+                      @click.stop="insertTTS(index)"
+                      class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
+                    >+ 插入补录</button>
+                    <span class="text-xs px-2 py-0.5 rounded-full" :class="segment.speaker === 'A' ? 'bg-blue-100 text-blue-700' : (segment.speaker === 'AI' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700')">
+                      {{ segment.speaker === 'AI' ? 'AI 合成' : '说话人' + segment.speaker }}
+                    </span>
+                  </div>
                 </div>
                 
-                <!-- 增强的文本编辑模式 -->
+                <!-- 增强的文本编辑模式 (仅针对 TTS) -->
                 <div 
-                  v-if="editingSegmentId === index"
+                  v-if="editingSegmentId === index && segment.text.startsWith('[TTS]')"
                   class="mt-1"
                 >
                   <textarea
                     v-model="segment.text"
                     v-focus
-                    @blur="editingSegmentId = null"
-                    @keydown.enter.prevent="editingSegmentId = null"
-                    class="w-full text-sm text-gray-900 leading-relaxed bg-white border border-pink-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-pink-300 resize-none"
+                    class="w-full text-sm text-gray-900 leading-relaxed bg-white border border-blue-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
                     rows="3"
                     @click.stop
                   />
-                  <div class="text-[10px] text-gray-400 mt-1 flex justify-end">按 Enter 或点击外部保存</div>
+                  <div class="mt-2 flex justify-end gap-2">
+                    <button 
+                      @click.stop="confirmTTS(index)"
+                      class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >确认加入</button>
+                    <button 
+                      @click.stop="editingSegmentId = null"
+                      class="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded"
+                    >取消</button>
+                  </div>
                 </div>
 
-                <!-- 增强的文本预览模式（支持口癖高亮与删除） -->
+                <!-- 删除编辑模式（非 TTS，允许任意选区删除并留痕） -->
                 <div 
-                  v-else
-                  class="mt-1 text-sm text-gray-900 leading-relaxed min-h-[3rem] whitespace-pre-wrap"
-                  @click.stop="editingSegmentId = index"
+                  v-else-if="editingSegmentId === index && !segment.text.startsWith('[TTS]')"
+                  class="mt-1 text-sm leading-relaxed min-h-[1.5rem] whitespace-pre-wrap border border-pink-200 rounded px-2 py-1"
+                  contenteditable="true"
+                  @keydown="onSegmentKeydown(segment, $event, index)"
+                  @paste.prevent
                 >
                   <template v-for="(token, tIndex) in parseSegmentText(segment.text)" :key="tIndex">
                     <span 
                       v-if="token.type === 'filler'" 
-                      class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-200 group relative"
+                      :data-token-index="tIndex"
+                      class="mx-0.5 px-1 py-0.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-200"
+                    >{{ token.text }}</span>
+                    <span 
+                      v-else-if="token.type === 'deleted'"
+                      :data-token-index="tIndex"
+                      class="text-gray-400 line-through decoration-red-400 decoration-2 mx-0.5"
+                    >{{ token.text }}</span>
+                    <span 
+                      v-else-if="token.type === 'space'"
+                      :data-token-index="tIndex"
+                    >{{ token.text }}</span>
+                    <span 
+                      v-else
+                      :data-token-index="tIndex"
+                    >{{ token.text }}</span>
+                  </template>
+                </div>
+
+                <!-- 预览模式（点击进入删除模式；口癖/已删除仍可单点切换） -->
+                <div 
+                  v-else
+                  class="mt-1 text-sm leading-relaxed min-h-[1.5rem] whitespace-pre-wrap"
+                  :class="segment.text.startsWith('[TTS]') ? 'text-blue-800 italic' : 'text-gray-900'"
+                >
+                  <template v-for="(token, tIndex) in parseSegmentText(segment.text)" :key="tIndex">
+                    <!-- 口癖 Token -->
+                    <span 
+                      v-if="token.type === 'filler'" 
+                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      :data-token-index="tIndex"
+                      class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-200 cursor-pointer hover:bg-yellow-200 transition"
                     >
                       {{ token.text }}
-                      <button 
-                        class="ml-1 w-3 h-3 rounded-full bg-yellow-200 hover:bg-yellow-300 text-yellow-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                        title="删除"
-                        @click.stop="removeFillerToken(segment, token.text, tIndex)"
-                      >
-                        <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
                     </span>
-                    <span v-else>{{ token.text }}</span>
+                    <!-- 已删除 Token -->
+                    <span 
+                      v-else-if="token.type === 'deleted'"
+                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      :data-token-index="tIndex"
+                      class="text-gray-400 line-through decoration-red-400 decoration-2 mx-0.5 cursor-pointer hover:text-gray-600 transition"
+                    >
+                      {{ token.text }}
+                    </span>
+                    <!-- 空白 Token -->
+                    <span 
+                      v-else-if="token.type === 'space'"
+                      :data-token-index="tIndex"
+                      @click.stop="editingSegmentId = index"
+                    >{{ token.text }}</span>
+                    <!-- 普通文本 Token -->
+                    <span 
+                      v-else
+                      :data-token-index="tIndex"
+                      @click.stop="editingSegmentId = index"
+                      class="cursor-pointer hover:bg-pink-100/50 rounded px-0.5 transition"
+                    >
+                      {{ token.text }}
+                    </span>
                   </template>
                 </div>
               </div>
@@ -607,7 +718,7 @@
             </div>
             
             <!-- 轨道区域（可滚动，与标尺垂直对齐） -->
-            <div class="flex-1 overflow-auto relative pt-1"
+            <div class="flex-1 overflow-auto relative"
               ref="timelineContainer"
               @scroll="onTimelineScroll"
             >
@@ -619,7 +730,7 @@
                     <div 
                       v-for="(track, index) in tracks" 
                       :key="track.id"
-                      class="min-h-[104px] bg-white border-b border-pink-200 flex flex-col overflow-hidden relative isolate"
+                      class="h-[104px] box-border bg-white border-b border-pink-200 flex flex-col overflow-hidden relative isolate"
                       :class="{ 'bg-pink-50/30': selectedTrackId === track.id }"
                     >
                       <!-- 轨道控制面板 -->
@@ -729,7 +840,7 @@
                       <div 
                         v-for="(track, index) in tracks" 
                         :key="'content-' + track.id"
-                        class="h-24 border-b border-pink-200 bg-white relative"
+                        class="h-[104px] box-border border-b border-pink-200 bg-white relative"
                         :class="{ 'bg-pink-50/30': selectedTrackId === track.id }"
                       >
                         <!-- 轨道内容区域 -->
@@ -822,24 +933,422 @@
             </div>
           </div>
         </div>
+        </div>
+
+        <!-- Content Enhancement View -->
+        <div v-if="activeToolTab === 'enhance'" class="flex-1 overflow-y-auto bg-gray-50 p-8 animate-fadeIn">
+          <div class="max-w-5xl mx-auto space-y-8">
+             <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-900">内容增值工作台</h2>
+                <div class="text-sm text-gray-500">利用 AI 为您的播客创造更多价值</div>
+             </div>
+             
+             <!-- 1. Shownotes 生成 -->
+             <section class="bg-white rounded-xl border border-pink-200 shadow-sm p-6">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold text-gray-900">智能 Shownotes</h3>
+                    <p class="text-xs text-gray-500">一键生成标题、摘要、时间戳和思维导图</p>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <!-- 生成选项 -->
+                   <div class="space-y-4">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">播客类型</label>
+                        <select v-model="podcastType" class="w-full rounded-lg border-gray-300 border p-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+                          <option value="knowledge">知识分享类 (干货提取)</option>
+                          <option value="companion">情感陪伴类 (氛围描述)</option>
+                          <option value="interview">访谈对话类 (观点碰撞)</option>
+                          <option value="story">故事叙述类 (情节梳理)</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                         <label class="block text-sm font-medium text-gray-700 mb-2">包含内容</label>
+                         <div class="space-y-2">
+                           <label class="flex items-center gap-2 text-sm text-gray-600">
+                             <input type="checkbox" checked class="rounded border-gray-300 text-pink-600 focus:ring-pink-500">
+                             SEO 优化标题 (5个备选)
+                           </label>
+                           <label class="flex items-center gap-2 text-sm text-gray-600">
+                             <input type="checkbox" checked class="rounded border-gray-300 text-pink-600 focus:ring-pink-500">
+                             内容摘要 (300字)
+                           </label>
+                           <label class="flex items-center gap-2 text-sm text-gray-600">
+                             <input type="checkbox" checked class="rounded border-gray-300 text-pink-600 focus:ring-pink-500">
+                             带跳转的时间戳
+                           </label>
+                         </div>
+                      </div>
+
+                      <button 
+                        @click="generateShownotes"
+                        :disabled="isGeneratingShownotes"
+                        class="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                         <svg v-if="isGeneratingShownotes" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                         </svg>
+                         {{ isGeneratingShownotes ? 'AI 正在生成...' : '立即生成 Shownotes' }}
+                      </button>
+                   </div>
+
+                   <!-- 结果预览 -->
+                   <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[300px]">
+                      <div v-if="!shownotesData" class="h-full flex flex-col items-center justify-center text-gray-400">
+                         <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                         <span class="text-sm">点击生成查看结果</span>
+                      </div>
+                      <div v-else class="space-y-4 animate-fadeIn">
+                         <div class="space-y-2">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase">推荐标题</h4>
+                            <div class="space-y-1">
+                               <div v-for="(title, idx) in shownotesData.titles" :key="idx" class="p-2 bg-white border border-gray-200 rounded text-sm text-gray-800 hover:border-pink-300 cursor-pointer transition flex items-center justify-between group">
+                                  <span>{{ title }}</span>
+                                  <button class="text-xs text-pink-600 opacity-0 group-hover:opacity-100">复制</button>
+                               </div>
+                            </div>
+                         </div>
+                         <div class="space-y-2">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase">摘要</h4>
+                            <p class="text-sm text-gray-700 bg-white p-3 rounded border border-gray-200 leading-relaxed">{{ shownotesData.summary }}</p>
+                         </div>
+                         <div class="pt-2">
+                            <button @click="showMindMap = true" class="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1">
+                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.553-.894L15 7m0 13V7" /></svg>
+                               查看思维导图
+                            </button>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </section>
+
+             <!-- 2. 视频化与分发 -->
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 视频播客生成 -->
+                <section class="bg-white rounded-xl border border-pink-200 shadow-sm p-6">
+                   <div class="flex items-center gap-3 mb-4">
+                      <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      </div>
+                      <div>
+                         <h3 class="text-lg font-bold text-gray-900">视频播客生成</h3>
+                         <p class="text-xs text-gray-500">将音频转化为短视频，抢占视频平台流量</p>
+                      </div>
+                   </div>
+                   
+                   <div class="space-y-4">
+                      <div class="grid grid-cols-2 gap-3">
+                         <div 
+                           class="p-3 border rounded-lg cursor-pointer transition hover:border-pink-400"
+                           :class="videoTemplate === 'digital-human' ? 'border-pink-500 bg-pink-50' : 'border-gray-200'"
+                           @click="videoTemplate = 'digital-human'"
+                         >
+                            <div class="text-sm font-medium text-gray-900 mb-1">AI 数字人口播</div>
+                            <div class="text-xs text-gray-500">根据音频口型驱动数字人</div>
+                         </div>
+                         <div 
+                           class="p-3 border rounded-lg cursor-pointer transition hover:border-pink-400"
+                           :class="videoTemplate === 'waveform' ? 'border-pink-500 bg-pink-50' : 'border-gray-200'"
+                           @click="videoTemplate = 'waveform'"
+                         >
+                            <div class="text-sm font-medium text-gray-900 mb-1">波形可视化</div>
+                            <div class="text-xs text-gray-500">动态波形 + 滚动字幕</div>
+                         </div>
+                      </div>
+                      
+                      <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                         <div class="text-xs text-gray-500 mb-2">选择金句片段</div>
+                         <div class="flex flex-wrap gap-2">
+                           <button 
+                             v-for="s in goldenSentences" 
+                             :key="s.id"
+                             @click="toggleGoldenSentence(s)"
+                             class="px-2 py-1 rounded text-xs transition border"
+                             :class="selectedSentences.includes(s.id) ? 'bg-blue-500 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-pink-300'"
+                           >
+                             金句片段 {{ s.id - 100 }} ({{ Math.max(1, Math.round((s.endTime - s.startTime))) }}s)
+                           </button>
+                         </div>
+                      </div>
+
+                      <button 
+                        @click="generateVideoPreview"
+                        :disabled="isGeneratingVideo"
+                        class="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                         <svg v-if="isGeneratingVideo" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                         </svg>
+                         {{ isGeneratingVideo ? '正在生成视频...' : '生成预览视频' }}
+                      </button>
+
+                      <!-- 生成结果列表 -->
+                      <div v-if="generatedVideos.length" class="space-y-2 pt-2 border-t border-gray-100">
+                        <div class="text-xs font-medium text-gray-900">已生成视频</div>
+                        <div v-for="(video, idx) in generatedVideos" :key="video.id" class="flex gap-3 p-3 bg-gray-50 rounded border border-gray-200 hover:border-pink-200 transition group">
+                           <div class="w-24 h-16 bg-gray-300 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
+                             <img :src="video.thumbnail" class="w-full h-full object-cover">
+                             <div class="absolute bottom-0.5 right-0.5 px-1 py-0.5 bg-black/50 text-[8px] text-white rounded">{{ video.duration }}</div>
+                             <div class="absolute inset-0 bg-black/30 hidden group-hover:flex items-center justify-center transition">
+                                <svg class="w-8 h-8 text-white opacity-80 hover:opacity-100" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                             </div>
+                           </div>
+                           <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                              <div>
+                                <div class="text-xs font-medium text-gray-900 truncate">视频预览_{{ video.id }}</div>
+                                <div class="text-[10px] text-gray-500 mt-0.5">模板: {{ video.template === 'digital-human' ? '数字人' : '波形可视化' }}</div>
+                              </div>
+                              <div class="flex gap-3">
+                                 <button @click="previewVideo(video)" class="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                    查看详情
+                                 </button>
+                                 <button class="text-[10px] text-gray-500 hover:text-gray-700">删除</button>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
+                   </div>
+                </section>
+
+                <!-- 社交媒体文案 -->
+                <section class="bg-white rounded-xl border border-pink-200 shadow-sm p-6">
+                   <div class="flex items-center gap-3 mb-4">
+                      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </div>
+                      <div>
+                         <h3 class="text-lg font-bold text-gray-900">多平台文案</h3>
+                         <p class="text-xs text-gray-500">针对不同平台调性生成推广文案</p>
+                      </div>
+                   </div>
+                   
+                   <div class="space-y-3">
+                      <div class="flex gap-2 border-b border-gray-100 pb-2">
+                         <button 
+                           @click="socialPlatform = 'wechat'"
+                           class="px-3 py-1 text-xs rounded-full transition"
+                           :class="socialPlatform === 'wechat' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-50'"
+                         >公众号</button>
+                         <button 
+                           @click="socialPlatform = 'xiaohongshu'"
+                           class="px-3 py-1 text-xs rounded-full transition"
+                           :class="socialPlatform === 'xiaohongshu' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-50'"
+                         >小红书</button>
+                         <button 
+                           @click="socialPlatform = 'weibo'"
+                           class="px-3 py-1 text-xs rounded-full transition"
+                           :class="socialPlatform === 'weibo' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-50'"
+                         >微博</button>
+                      </div>
+                      <div class="relative">
+                        <textarea 
+                          v-model="socialCopyContent"
+                          class="w-full h-32 p-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-400 resize-none" 
+                          :placeholder="isGeneratingCopy ? 'AI 正在思考中...' : 'AI 将在此生成适配该平台的推广文案...'"
+                          :disabled="isGeneratingCopy"
+                        ></textarea>
+                        <div v-if="isGeneratingCopy" class="absolute inset-0 bg-white/50 flex items-center justify-center">
+                          <svg class="animate-spin h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      </div>
+                      <div class="flex justify-end gap-2">
+                         <button 
+                           @click="generateSocialCopy"
+                           :disabled="isGeneratingCopy"
+                           class="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50"
+                         >
+                           {{ socialCopyContent ? '重新生成' : '立即生成' }}
+                         </button>
+                         <button 
+                           @click="copySocialCopy"
+                           :disabled="!socialCopyContent"
+                           class="px-3 py-1.5 text-xs bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:bg-gray-300"
+                         >
+                           复制文案
+                         </button>
+                      </div>
+                   </div>
+                </section>
+
+               <!-- MindMap Modal -->
+               <div v-if="showMindMap" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showMindMap = false">
+                  <div class="bg-white rounded-xl shadow-2xl w-[800px] h-[600px] flex flex-col overflow-hidden animate-scaleIn">
+                     <div class="flex items-center justify-between p-4 border-b border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900">思维导图预览</h3>
+                        <button @click="showMindMap = false" class="text-gray-400 hover:text-gray-600">
+                           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                     </div>
+                     <div class="flex-1 bg-gray-50 p-6 overflow-auto flex items-center justify-center">
+                        <!-- Simple CSS Mindmap Visualization -->
+                        <div class="flex flex-col items-center gap-8">
+                           <div class="bg-pink-100 text-pink-700 px-6 py-3 rounded-lg font-bold border border-pink-200 shadow-sm">
+                              {{ shownotesData.mindmap?.root || 'AI 播客创作' }}
+                           </div>
+                           <div class="flex gap-12 relative">
+                              <!-- Connector Lines (Simplified) -->
+                              <div class="absolute top-[-2rem] left-1/2 -translate-x-1/2 w-[80%] h-8 border-t-2 border-l-2 border-r-2 border-gray-300 rounded-t-xl"></div>
+                              
+                              <div v-for="(node, idx) in shownotesData.mindmap?.children" :key="idx" class="flex flex-col items-center gap-4 relative">
+                                  <div class="w-0.5 h-4 bg-gray-300 absolute -top-4"></div>
+                                  <div class="bg-white border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm text-sm text-center min-w-[100px]">
+                                     <div>{{ node.label }}</div>
+                                     <div v-if="node.time" class="text-xs text-gray-400 mt-0.5">{{ node.time }}</div>
+                                  </div>
+                                  <div v-if="node.children" class="flex flex-col gap-2 relative pt-4">
+                                     <div class="w-0.5 h-4 bg-gray-300 absolute top-0 left-1/2 -translate-x-1/2"></div>
+                                     <div v-for="(child, cIdx) in node.children" :key="cIdx" class="bg-gray-50 border border-gray-100 px-3 py-1.5 rounded text-xs text-gray-600 flex flex-col items-center gap-0.5 min-w-[80px]">
+                                        <span>{{ child.label }}</span>
+                                        <span v-if="child.time" class="text-[10px] text-gray-400">{{ child.time }}</span>
+                                     </div>
+                                  </div>
+                               </div>
+                           </div>
+                        </div>
+                     </div>
+                     <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+                        <button class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg">导出图片</button>
+                        <button class="px-4 py-2 text-sm bg-pink-500 text-white rounded-lg hover:bg-pink-600 shadow-sm">导出 PDF</button>
+                     </div>
+                  </div>
+               </div>
+
+               <!-- Video Preview Modal -->
+               <div v-if="showVideoPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showVideoPreview = false">
+                  <div class="bg-white rounded-xl shadow-2xl w-[640px] flex flex-col overflow-hidden animate-scaleIn">
+                     <div class="flex items-center justify-between p-4 border-b border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900">视频预览</h3>
+                        <button @click="showVideoPreview = false" class="text-gray-400 hover:text-gray-600">
+                           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                     </div>
+                     <div class="aspect-video bg-black flex items-center justify-center relative group">
+                        <!-- Mock Video Player -->
+                        <img :src="currentVideo?.thumbnail" class="w-full h-full object-cover opacity-80">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                           <div class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:scale-110 transition">
+                              <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                           </div>
+                        </div>
+                        <div class="absolute bottom-4 left-4 right-4 h-1 bg-white/30 rounded-full overflow-hidden">
+                           <div class="h-full w-1/3 bg-pink-500 rounded-full"></div>
+                        </div>
+                        <div class="absolute bottom-8 left-4 text-white text-xs">{{ currentVideo?.duration }}</div>
+                     </div>
+                     <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+                        <button class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg">下载视频</button>
+                        <button class="px-4 py-2 text-sm bg-pink-500 text-white rounded-lg hover:bg-pink-600 shadow-sm">分享</button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export Distribution View -->
+        <div v-if="activeToolTab === 'export'" class="flex-1 overflow-y-auto bg-gray-50 p-8 animate-fadeIn">
+           <div class="max-w-4xl mx-auto space-y-8">
+              <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-900">导出与分发</h2>
+                <button @click="doExport" class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition font-bold">
+                   立即导出
+                </button>
+             </div>
+
+             <div class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                   <h3 class="text-lg font-bold text-gray-900 mb-4">导出设置</h3>
+                   <div class="grid grid-cols-2 gap-6">
+                      <div>
+                         <label class="block text-sm font-medium text-gray-700 mb-2">文件格式</label>
+                         <div class="flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                               <input type="radio" name="format" class="text-pink-600 focus:ring-pink-500" checked>
+                               <span class="text-sm text-gray-800">MP3 (推荐)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                               <input type="radio" name="format" class="text-pink-600 focus:ring-pink-500">
+                               <span class="text-sm text-gray-800">WAV (无损)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                               <input type="radio" name="format" class="text-pink-600 focus:ring-pink-500">
+                               <span class="text-sm text-gray-800">M4A</span>
+                            </label>
+                         </div>
+                      </div>
+                      <div>
+                         <label class="block text-sm font-medium text-gray-700 mb-2">音质比特率</label>
+                         <select class="w-full rounded border-gray-300 text-sm py-1.5">
+                            <option>128 kbps (标准)</option>
+                            <option selected>192 kbps (高品质)</option>
+                            <option>320 kbps (超高品质)</option>
+                         </select>
+                      </div>
+                   </div>
+                </div>
+                
+                <div class="p-6 bg-gray-50/50">
+                   <h3 class="text-lg font-bold text-gray-900 mb-4">一键分发</h3>
+                   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div 
+                        class="flex flex-col items-center justify-center p-4 bg-white border rounded-lg transition cursor-pointer group"
+                        :class="selectedPlatforms.includes('weixin') ? 'border-green-500 shadow-md' : 'border-gray-200 hover:border-green-400 hover:shadow-md'"
+                        @click="togglePlatform('weixin')"
+                      >
+                         <img :src="weixinIcon" class="w-10 h-10 mb-2 transition" :class="selectedPlatforms.includes('weixin') ? '' : 'grayscale group-hover:grayscale-0'" />
+                         <span class="text-sm font-medium text-gray-700">微信听书</span>
+                         <span class="text-xs mt-1" :class="selectedPlatforms.includes('weixin') ? 'text-green-600' : 'text-gray-400'">{{ selectedPlatforms.includes('weixin') ? '已选中' : '未绑定' }}</span>
+                      </div>
+                      <div 
+                        class="flex flex-col items-center justify-center p-4 bg-white border rounded-lg transition cursor-pointer group"
+                        :class="selectedPlatforms.includes('douyin') ? 'border-black shadow-md' : 'border-gray-200 hover:border-black hover:shadow-md'"
+                        @click="togglePlatform('douyin')"
+                      >
+                         <img :src="douyinIcon" class="w-10 h-10 mb-2 transition" :class="selectedPlatforms.includes('douyin') ? '' : 'grayscale group-hover:grayscale-0'" />
+                         <span class="text-sm font-medium text-gray-700">抖音</span>
+                         <span class="text-xs mt-1" :class="selectedPlatforms.includes('douyin') ? 'text-black' : 'text-gray-400'">{{ selectedPlatforms.includes('douyin') ? '已选中' : '未绑定' }}</span>
+                      </div>
+                      <div 
+                        class="flex flex-col items-center justify-center p-4 bg-white border rounded-lg transition cursor-pointer group"
+                        :class="selectedPlatforms.includes('qq') ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-blue-400 hover:shadow-md'"
+                        @click="togglePlatform('qq')"
+                      >
+                         <img :src="qqIcon" class="w-10 h-10 mb-2 transition" :class="selectedPlatforms.includes('qq') ? '' : 'grayscale group-hover:grayscale-0'" />
+                         <span class="text-sm font-medium text-gray-700">QQ 音乐</span>
+                         <span class="text-xs mt-1" :class="selectedPlatforms.includes('qq') ? 'text-blue-600' : 'text-gray-400'">{{ selectedPlatforms.includes('qq') ? '已选中' : '未绑定' }}</span>
+                      </div>
+                      <div 
+                        class="flex flex-col items-center justify-center p-4 bg-white border rounded-lg transition cursor-pointer group"
+                        :class="selectedPlatforms.includes('xiaohongshu') ? 'border-red-500 shadow-md' : 'border-gray-200 hover:border-red-400 hover:shadow-md'"
+                        @click="togglePlatform('xiaohongshu')"
+                      >
+                         <img :src="xiaohongshuIcon" class="w-10 h-10 mb-2 transition" :class="selectedPlatforms.includes('xiaohongshu') ? '' : 'grayscale group-hover:grayscale-0'" />
+                         <span class="text-sm font-medium text-gray-700">小红书</span>
+                         <span class="text-xs mt-1" :class="selectedPlatforms.includes('xiaohongshu') ? 'text-red-600' : 'text-gray-400'">{{ selectedPlatforms.includes('xiaohongshu') ? '已选中' : '未绑定' }}</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           </div>
+        </div>
+
       </main>
 
       <!-- 4. 右侧：AI 智能工具箱 (Feature 3, 4, 5) -->
-      <aside class="w-96 flex-none bg-gradient-to-b from-pink-50 to-purple-50 border-l border-pink-200 flex flex-col">
-        <!-- 工具导航 Tabs -->
-        <div class="flex border-b border-pink-200">
-          <button 
-            v-for="tab in toolTabs" 
-            :key="tab.id"
-            @click="activeToolTab = tab.id"
-            class="flex-1 py-3 text-sm font-medium transition relative"
-            :class="activeToolTab === tab.id ? 'text-gray-900 font-bold' : 'text-gray-600 hover:text-pink-600'"
-          >
-            {{ tab.name }}
-            <div v-if="activeToolTab === tab.id" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC]"></div>
-          </button>
-        </div>
-
+      <aside v-show="activeToolTab === 'edit'" class="w-96 flex-none bg-gradient-to-b from-pink-50 to-purple-50 border-l border-pink-200 flex flex-col">
         <div class="flex-1 overflow-y-auto p-6 space-y-8">
           
           <!-- Tab 1: 智能剪辑 (Feature 3) -->
@@ -1111,13 +1620,13 @@
                   <div
                     v-for="task in voiceTasks"
                     :key="task.id"
-                    class="flex items-center justify-between px-2 py-1 rounded bg-pink-50 border border-pink-100 text-[11px] text-gray-700"
+                  class="flex items-center justify-between px-2 py-1 rounded bg-pink-50 border border-pink-100 text-[11px] text-gray-700"
                   >
                     <div class="flex-1 min-w-0">
                       <div class="font-medium text-gray-900 truncate">{{ task.label }}</div>
                       <div class="text-[10px] text-gray-500 truncate">{{ task.note }}</div>
                     </div>
-                    <div class="ml-2 text-right">
+                  <div class="ml-2 text-right flex items-center gap-2">
                       <div class="text-[10px] text-gray-400">{{ task.createdAt }}</div>
                       <div
                         class="mt-0.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px]"
@@ -1125,6 +1634,14 @@
                       >
                         {{ task.status }}
                       </div>
+                   <button 
+                     v-if="task.status === '已完成'"
+                     @click="openTTSPreview(task)"
+                     class="px-2 py-0.5 rounded border text-[10px] hover:bg-pink-50"
+                     :class="task.inserted ? 'border-blue-500 text-blue-600' : 'border-pink-300 text-gray-900'"
+                   >
+                     {{ task.inserted ? '已插入' : '查看' }}
+                   </button>
                     </div>
                   </div>
                  </div>
@@ -1168,297 +1685,70 @@
             </section>
           </div>
 
-          <!-- Tab 2: 内容增值 (Feature 4) -->
-          <div v-if="activeToolTab === 'enhance'" class="space-y-6 animate-fadeIn">
-            <!-- 场景自适应设置 -->
-            <section>
-              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span class="w-1 h-4 bg-violet-500 rounded-full"></span>
-                场景自适应设置
-              </h3>
-              <div class="p-4 bg-white border border-pink-200 rounded-lg space-y-3">
-                <div class="text-xs font-medium text-gray-900 mb-2">播客类型</div>
-                <div class="space-y-2">
-                  <label class="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer hover:text-pink-600 transition p-2 rounded hover:bg-pink-50">
-                    <input type="radio" name="podcastType" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300" v-model="podcastType" value="knowledge">
-                    <div class="flex-1">
-                      <div class="font-medium">知识分享类</div>
-                      <div class="text-xs text-gray-500 mt-0.5">追求极致信息效率，精准剔除冗余</div>
-                    </div>
-                  </label>
-                  <label class="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer hover:text-pink-600 transition p-2 rounded hover:bg-pink-50">
-                    <input type="radio" name="podcastType" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300" v-model="podcastType" value="companion">
-                    <div class="flex-1">
-                      <div class="font-medium">情感陪伴类</div>
-                      <div class="text-xs text-gray-500 mt-0.5">保留真实呼吸感与松弛感</div>
-                    </div>
-                  </label>
-                </div>
-                <div class="pt-2 border-t border-pink-100">
-                  <div class="text-xs text-gray-600 mb-2">当前算法权重</div>
-                  <div class="space-y-2">
-                    <div>
-                      <div class="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>语义逻辑权重</span>
-                        <span>{{ podcastType === 'knowledge' ? '80%' : '50%' }}</span>
-                      </div>
-                      <div class="h-1.5 bg-pink-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all" 
-                          :style="{ width: podcastType === 'knowledge' ? '80%' : '50%' }"></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div class="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>情感保留权重</span>
-                        <span>{{ podcastType === 'knowledge' ? '20%' : '50%' }}</span>
-                      </div>
-                      <div class="h-1.5 bg-pink-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all" 
-                          :style="{ width: podcastType === 'knowledge' ? '20%' : '50%' }"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
 
-            <!-- Shownotes 与章节生成 -->
-            <section>
-              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span class="w-1 h-4 bg-amber-500 rounded-full"></span>
-                Shownotes 与章节生成
-              </h3>
-              <div class="p-4 bg-white border border-pink-200 rounded-lg space-y-3">
-                <button 
-                  @click="generateShownotes"
-                  :disabled="isGeneratingShownotes"
-                  class="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <svg v-if="isGeneratingShownotes" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>{{ isGeneratingShownotes ? '生成中...' : '生成结构化 Shownotes' }}</span>
-                </button>
-                <div v-if="shownotesData" class="space-y-3 pt-2 border-t border-pink-100">
-                  <div class="text-xs font-bold text-gray-900 mb-2">章节时间轴</div>
-                  <div class="space-y-2 max-h-60 overflow-y-auto">
-                    <div v-for="chapter in shownotesData.chapters" :key="chapter.id" 
-                      class="p-2 bg-pink-50 border border-pink-200 rounded cursor-pointer hover:bg-pink-100 transition"
-                      @click="seekToTime(chapter.startTime)"
-                    >
-                      <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-medium text-gray-900">{{ chapter.title }}</span>
-                        <span class="text-[10px] text-pink-600">{{ formatTime(chapter.startTime) }}</span>
-                      </div>
-                      <div class="text-[10px] text-gray-600 line-clamp-2">{{ chapter.summary }}</div>
-                    </div>
-                  </div>
-                  <button 
-                    @click="showMindMap = !showMindMap"
-                    class="w-full py-2 bg-white border border-pink-200 text-gray-700 text-xs rounded-lg hover:bg-pink-50 transition flex items-center justify-center gap-2"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    <span>{{ showMindMap ? '隐藏' : '显示' }}思维导图</span>
-                  </button>
-                  <div v-if="showMindMap && shownotesData.mindMap" class="p-3 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
-                    <div class="text-xs font-medium text-gray-900 mb-2">思维导图预览</div>
-                    <div class="text-[10px] text-gray-600 whitespace-pre-line">{{ shownotesData.mindMap }}</div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- 视频播客自动生成 -->
-            <section>
-              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span class="w-1 h-4 bg-rose-500 rounded-full"></span>
-                视频播客自动生成
-              </h3>
-              <div class="p-4 bg-white border border-pink-200 rounded-lg space-y-3">
-                <div class="space-y-2">
-                  <label class="text-xs font-medium text-gray-900">选择金句片段</label>
-                  <div v-if="goldenSentences.length" class="space-y-2 max-h-40 overflow-y-auto">
-                    <label v-for="sentence in goldenSentences" :key="sentence.id" 
-                      class="flex items-start gap-2 p-2 bg-pink-50 border border-pink-200 rounded cursor-pointer hover:bg-pink-100 transition"
-                    >
-                      <input type="checkbox" :value="sentence.id" v-model="selectedSentences" class="mt-0.5">
-                      <div class="flex-1">
-                        <div class="text-xs text-gray-900">{{ sentence.content.substring(0, 50) }}...</div>
-                        <div class="text-[10px] text-gray-600 mt-1">{{ formatTime(sentence.startTime) }} - {{ formatTime(sentence.endTime) }}</div>
-                      </div>
-                    </label>
-                  </div>
-                  <div v-else class="text-xs text-gray-500 text-center py-4">
-                    请先提取金句
-                    <button @click="loadSampleGoldenSentences" class="text-pink-500 hover:underline ml-2">加载示例</button>
-                  </div>
-                </div>
-                <div class="space-y-2">
-                  <label class="text-xs font-medium text-gray-900">视频模板</label>
-                  <select v-model="videoTemplate" class="w-full px-3 py-2 text-xs border border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-300">
-                    <option value="digital-human">数字人播客</option>
-                    <option value="waveform">波形可视化</option>
-                    <option value="subtitle">字幕卡片</option>
-                    <option value="hybrid">混合模式</option>
-                  </select>
-                </div>
-                <button 
-                  @click="generateVideoPodcast"
-                  :disabled="selectedSentences.length === 0 || isGeneratingVideo"
-                  class="w-full py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <svg v-if="isGeneratingVideo" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>{{ isGeneratingVideo ? '生成中...' : '生成视频播客' }}</span>
-                </button>
-                <div v-if="generatedVideos.length" class="space-y-2 pt-2 border-t border-pink-100">
-                  <div class="text-xs font-medium text-gray-900">已生成视频</div>
-                  <div v-for="video in generatedVideos" :key="video.id" class="p-2 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-xs font-medium text-gray-900">{{ video.title }}</span>
-                      <span class="text-[10px] text-gray-600">{{ video.duration }}</span>
-                    </div>
-                    <div class="flex items-center gap-2 mt-2">
-                      <button class="text-[10px] px-2 py-1 bg-rose-500 text-white rounded hover:bg-rose-600 transition">预览</button>
-                      <button class="text-[10px] px-2 py-1 bg-white border border-rose-300 text-rose-600 rounded hover:bg-rose-50 transition">下载</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <div class="p-4 bg-white border border-pink-200 rounded-lg">
-              <h4 class="text-sm font-bold text-gray-900 mb-2">AI 文案生成</h4>
-               <div class="grid grid-cols-2 gap-2 mb-3">
-                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" v-model="copyTypes.shownotes" class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
-                    Show Notes
-                  </label>
-                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" v-model="copyTypes.xiaohongshu" class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
-                    小红书文案
-                  </label>
-                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" v-model="copyTypes.article" class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
-                    公众号文章
-                  </label>
-                  <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" v-model="copyTypes.subtitle" class="rounded bg-white border border-pink-200 text-pink-600 focus:ring-pink-300">
-                    视频字幕
-                  </label>
-               </div>
-              <button 
-                @click="generateAICopy"
-                :disabled="isGeneratingCopy"
-                class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-xs rounded transition shadow-lg flex items-center justify-center gap-2"
-              >
-                <svg v-if="isGeneratingCopy" class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>{{ isGeneratingCopy ? '生成中...' : '一键生成' }}</span>
-              </button>
-              
-              <!-- 生成结果展示 -->
-              <div v-if="generatedCopy" class="mt-3 space-y-3 pt-3 border-t border-pink-100 animate-fadeIn">
-                <div v-if="generatedCopy.shownotes && copyTypes.shownotes" class="space-y-1">
-                   <div class="text-xs font-bold text-gray-900">Show Notes</div>
-                   <textarea readonly class="w-full h-20 p-2 text-[10px] text-gray-600 bg-pink-50 border border-pink-100 rounded resize-none focus:outline-none" :value="generatedCopy.shownotes"></textarea>
-                </div>
-                <div v-if="generatedCopy.xiaohongshu && copyTypes.xiaohongshu" class="space-y-1">
-                   <div class="text-xs font-bold text-gray-900">小红书文案</div>
-                   <textarea readonly class="w-full h-20 p-2 text-[10px] text-gray-600 bg-pink-50 border border-pink-100 rounded resize-none focus:outline-none" :value="generatedCopy.xiaohongshu"></textarea>
-                </div>
-                 <div v-if="generatedCopy.article && copyTypes.article" class="space-y-1">
-                   <div class="text-xs font-bold text-gray-900">公众号文章</div>
-                   <textarea readonly class="w-full h-20 p-2 text-[10px] text-gray-600 bg-pink-50 border border-pink-100 rounded resize-none focus:outline-none" :value="generatedCopy.article"></textarea>
-                </div>
-                 <div v-if="generatedCopy.subtitle && copyTypes.subtitle" class="space-y-1">
-                   <div class="text-xs font-bold text-gray-900">视频字幕</div>
-                   <textarea readonly class="w-full h-20 p-2 text-[10px] text-gray-600 bg-pink-50 border border-pink-100 rounded resize-none focus:outline-none" :value="generatedCopy.subtitle"></textarea>
-                </div>
-              </div>
-            </div>
-
-
-            <div class="space-y-2">
-              <h4 class="text-sm font-bold text-gray-900">视频化转化</h4>
-              <div class="grid grid-cols-3 gap-2">
-                 <div 
-                   class="aspect-[9/16] bg-white rounded border cursor-pointer flex items-center justify-center text-xs text-gray-600 flex-col gap-1 transition"
-                   :class="aspectRatio === '9:16' ? 'border-pink-500 bg-pink-50 ring-1 ring-pink-500' : 'border-pink-200 hover:border-pink-300'"
-                   @click="aspectRatio = '9:16'"
-                 >
-                    <span>9:16</span>
-                    <span class="text-[8px] text-gray-500">抖音/Shorts</span>
-                 </div>
-                 <div 
-                   class="aspect-[16/9] bg-white rounded border cursor-pointer flex items-center justify-center text-xs text-gray-600 flex-col gap-1 transition"
-                   :class="aspectRatio === '16:9' ? 'border-pink-500 bg-pink-50 ring-1 ring-pink-500' : 'border-pink-200 hover:border-pink-300'"
-                   @click="aspectRatio = '16:9'"
-                 >
-                    <span>16:9</span>
-                    <span class="text-[8px] text-gray-500">B站/YT</span>
-                 </div>
-                 <div 
-                   class="aspect-square bg-white rounded border cursor-pointer flex items-center justify-center text-xs text-gray-600 transition"
-                   :class="aspectRatio === '1:1' ? 'border-pink-500 bg-pink-50 ring-1 ring-pink-500' : 'border-pink-200 hover:border-pink-300'"
-                   @click="aspectRatio = '1:1'"
-                 >1:1</div>
-              </div>
-              <button 
-                @click="addVisualTemplate"
-                :disabled="isAddingTemplate"
-                class="w-full py-2 mt-2 bg-white border border-pink-200 hover:bg-pink-50 text-gray-700 text-xs rounded transition flex items-center justify-center gap-2"
-              >
-                <svg v-if="isAddingTemplate" class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>{{ isAddingTemplate ? '添加中...' : '添加可视化波形/字幕模板' }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Tab 3: 导出分发 (Feature 5) -->
-          <div v-if="activeToolTab === 'export'" class="space-y-6 animate-fadeIn">
-            <div class="space-y-3">
-              <label class="block text-sm text-gray-700">导出格式</label>
-              <select class="w-full bg-white border border-pink-200 text-gray-900 text-sm rounded p-2 focus:ring-2 focus:ring-pink-300 outline-none">
-                <option>MP3 (320kbps)</option>
-                <option>WAV (无损)</option>
-                <option>MP4 (1080P)</option>
-              </select>
-            </div>
-            <div class="space-y-3">
-              <label class="block text-sm text-gray-700">分发平台</label>
-              <div class="grid grid-cols-4 gap-2">
-                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="微信">
-                  <img :src="weixinIcon" alt="微信" class="w-full h-full object-contain" />
-                </div>
-                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="抖音">
-                  <img :src="douyinIcon" alt="抖音" class="w-full h-full object-contain" />
-                </div>
-                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="QQ">
-                  <img :src="qqIcon" alt="QQ" class="w-full h-full object-contain" />
-                </div>
-                <div class="w-10 h-10 rounded-full cursor-pointer transition opacity-90 hover:opacity-100" title="小红书">
-                  <img :src="xiaohongshuIcon" alt="小红书" class="w-full h-full object-contain" />
-                </div>
-              </div>
-            </div>
-            <button class="w-full py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white font-bold rounded-lg shadow-lg transition transform hover:-translate-y-0.5">
-              导出并分发
-            </button>
-          </div>
 
         </div>
       </aside>
+    </div>
+    
+    <!-- TTS 预览与插入 Modal -->
+    <div v-if="showTTSModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showTTSModal = false">
+      <div class="bg-white rounded-xl shadow-2xl w-[720px] flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-100">
+          <h3 class="text-lg font-bold text-gray-900">TTS 预览与插入</h3>
+          <button @click="showTTSModal = false" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="p-4 space-y-3">
+          <div class="text-sm text-gray-600">任务：{{ currentTTSTask?.label }}（{{ currentTTSTask?.status }}）</div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <div class="text-xs text-gray-500">合成文稿</div>
+              <textarea 
+                v-model="ttsDraftText"
+                class="w-full h-40 p-3 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                placeholder="请输入将用于合成的文本..."
+              ></textarea>
+            </div>
+            <div class="space-y-2">
+              <div class="text-xs text-gray-500">试听（占位）</div>
+              <div class="h-40 rounded-lg bg-gradient-to-b from-blue-900 to-black flex items-center justify-center">
+                <button class="px-3 py-1.5 text-xs bg-white/20 text-white rounded hover:bg-white/30">播放预览</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+          <button @click="confirmTTSInsertToTranscript" class="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">插入文字稿</button>
+          <button @click="showTTSModal = false" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded">关闭</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 导出成功 Modal -->
+    <div v-if="showExportSuccess" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showExportSuccess = false">
+      <div class="bg-white rounded-xl shadow-2xl w-[520px] overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 class="text-lg font-bold text-gray-900">导出成功</h3>
+          <button @click="showExportSuccess = false" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="p-6 space-y-3">
+          <div class="text-sm text-gray-700">音频文件已成功导出。</div>
+          <div class="text-xs text-gray-500">已选分发平台：</div>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="p in selectedPlatforms" :key="p" class="px-2 py-0.5 text-xs rounded bg-pink-100 text-pink-700 border border-pink-200">
+              {{ p }}
+            </span>
+            <span v-if="selectedPlatforms.length === 0" class="text-xs text-gray-400">暂无选择</span>
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+          <button @click="showExportSuccess = false" class="px-4 py-2 text-sm bg-pink-500 text-white rounded hover:bg-pink-600">好的</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -1525,40 +1815,121 @@ watch(currentTime, (newTime) => {
   }
 })
 
-// 解析文本，识别口癖
+// 解析文本，识别口癖与删除状态（词级）
 const parseSegmentText = (text) => {
   if (!text) return []
   const tokens = []
-  // 简单的正则拆分，保留分隔符
-  const regex = new RegExp(`(${fillerWords.join('|')})`, 'g')
-  const parts = text.split(regex)
-  
+  let isTTS = false
+  let processText = text
+  if (text.startsWith('[TTS]')) {
+    isTTS = true
+    processText = text.substring(5)
+  }
+  const fillerRegex = fillerWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+  const mainRegex = new RegExp(`(~~.*?~~|${fillerRegex})`, 'g')
+  const parts = processText.split(mainRegex)
   parts.forEach(part => {
-    if (fillerWords.includes(part)) {
-      tokens.push({ type: 'filler', text: part })
-    } else if (part) {
-      tokens.push({ type: 'text', text: part })
+    if (!part) return
+    if (part.startsWith('~~') && part.endsWith('~~')) {
+      tokens.push({ type: 'deleted', text: part.substring(2, part.length - 2), isTTS })
+      return
     }
+    if (new RegExp(`^(${fillerRegex})$`).test(part)) {
+      tokens.push({ type: 'filler', text: part, isTTS })
+      return
+    }
+    const wordRegex = /(\s+|[，。！？、；：,.!?…—-])/g
+    const subs = part.split(wordRegex)
+    subs.forEach(sub => {
+      if (!sub) return
+      if (wordRegex.test(sub)) {
+        tokens.push({ type: 'space', text: sub, isTTS })
+      } else {
+        tokens.push({ type: 'text', text: sub, isTTS })
+      }
+    })
   })
   return tokens
 }
 
-// 移除特定的口癖 Token
-const removeFillerToken = (segment, word, tokenIndex) => {
-  // 注意：这里的 tokenIndex 是在 parseSegmentText 结果中的索引
-  // 但我们需要修改原始文本。
-  // 更简单的方法是：重建文本时跳过该 Token
-  // 为了确保删除的是点击的那一个，我们需要重新解析一遍并匹配索引
+// 切换文本的删除状态（留痕模式，跳过空白）
+const toggleTokenDelete = (segment, tokenIndex) => {
   const tokens = parseSegmentText(segment.text)
-  if (tokens[tokenIndex] && tokens[tokenIndex].text === word) {
-    // 移除该 token
-    tokens.splice(tokenIndex, 1)
-    // 重新组合文本
-    segment.text = tokens.map(t => t.text).join('')
-    // 如果没有口癖了，可以在这里触发其他逻辑，目前只需更新文本
+  const token = tokens[tokenIndex]
+  if (!token || token.type === 'space') return
+  if (token.type === 'deleted') {
+    token.type = 'text'
+  } else {
+    token.type = 'deleted'
   }
+  let prefix = segment.text.startsWith('[TTS]') ? '[TTS]' : ''
+  const contentText = tokens.map(t => {
+    if (t.type === 'deleted') return `~~${t.text}~~`
+    return t.text
+  }).join('')
+  segment.text = prefix + contentText
 }
 
+// 插入 TTS 片段（待确认）
+const insertTTS = (index) => {
+  const baseEnd = mockTranscript.value[index]?.endTime ?? 0
+  const newSeg = {
+    startTime: baseEnd,
+    endTime: baseEnd + 5,
+    speaker: 'AI',
+    text: '[TTS]请输入合成文本...',
+    confirmed: false
+  }
+  mockTranscript.value.splice(index + 1, 0, newSeg)
+  editingSegmentId.value = index + 1
+}
+
+// 确认 TTS 片段内容
+const confirmTTS = (index) => {
+  const seg = mockTranscript.value[index]
+  if (!seg || !seg.text.startsWith('[TTS]')) return
+  seg.confirmed = true
+  editingSegmentId.value = null
+}
+
+// 文稿删除编辑：阻止输入，仅支持选择后按删除键做留痕
+const onSegmentKeydown = (segment, event, index) => {
+  // 禁止输入与换行
+  if (event.key.length === 1 || event.key === 'Enter' || event.key === 'Tab') {
+    event.preventDefault()
+    return
+  }
+  // ESC 退出编辑
+  if (event.key === 'Escape') {
+    editingSegmentId.value = null
+    event.preventDefault()
+    return
+  }
+  // Delete/Backspace：对已选文本做留痕
+  if (event.key === 'Delete' || event.key === 'Backspace') {
+    const sel = window.getSelection()
+    const selectedText = sel ? sel.toString() : ''
+    if (!selectedText || !selectedText.trim()) {
+      event.preventDefault()
+      return
+    }
+    event.preventDefault()
+    const prefix = segment.text.startsWith('[TTS]') ? '[TTS]' : ''
+    const raw = prefix ? segment.text.slice(5) : segment.text
+    const idx = raw.indexOf(selectedText)
+    if (idx === -1) return
+    const next = raw.slice(0, idx) + '~~' + selectedText + '~~' + raw.slice(idx + selectedText.length)
+    segment.text = prefix + next
+    // 选区清除
+    sel.removeAllRanges()
+    return
+  }
+}
+// 播放器增强功能
+// 统计留痕删除标记数量
+const deletedCount = (text) => {
+  return parseSegmentText(text).filter(t => t.type === 'deleted').length
+}
 // 播放器增强功能
 const playbackSpeed = ref(1)
 const loopMode = ref(false)
@@ -1657,6 +2028,112 @@ const loadSampleGoldenSentences = () => {
     { id: 102, content: '我们不应该为了追求完美而牺牲了内容的自然流动。', startTime: 45.8, endTime: 52.1 },
     { id: 103, content: '技术只是工具，创意才是播客的灵魂所在。', startTime: 88.4, endTime: 94.7 }
   ]
+}
+
+const generateShownotes = async () => {
+  if (isGeneratingShownotes.value) return
+  isGeneratingShownotes.value = true
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 2000))
+  
+  shownotesData.value = {
+    titles: [
+      'AI 时代的播客创作：从灵感到分发的全流程解析',
+      '如何利用 PodPal 打造你的第一个爆款播客？',
+      '播客制作新范式：技术如何赋能内容创作',
+      '声音的艺术：探索 AI 音频编辑的无限可能',
+      '从零开始做播客：新手必看的 AI 工具指南'
+    ],
+    summary: '本期节目我们深入探讨了人工智能在播客创作领域的应用。从早期的语音转写到如今的智能剪辑、内容生成，AI 正在重塑音频内容的生产流程。我们邀请了资深播客制作人，分享他们使用 PodPal 提升效率的实战经验，并展望了未来播客行业的发展趋势。无论你是刚入门的新手，还是经验丰富的创作者，本期内容都将为你带来全新的启发。',
+    mindmap: {
+      root: 'AI 播客创作',
+      children: [
+        { 
+          label: '前期策划', 
+          time: '02:30',
+          children: [
+            { label: '选题灵感', time: '03:15' }, 
+            { label: '脚本撰写', time: '05:45' }
+          ] 
+        },
+        { 
+          label: '中期制作', 
+          time: '12:00',
+          children: [
+            { label: '智能录音', time: '14:20' }, 
+            { label: 'AI 剪辑', time: '18:10' }
+          ] 
+        },
+        { 
+          label: '后期分发', 
+          time: '25:30',
+          children: [
+            { label: 'Shownotes', time: '26:45' }, 
+            { label: '多平台分发', time: '28:30' }
+          ] 
+        }
+      ]
+    }
+  }
+  
+  isGeneratingShownotes.value = false
+}
+
+// 视频生成相关
+const generateVideoPreview = async () => {
+  if (isGeneratingVideo.value) return
+  isGeneratingVideo.value = true
+  
+  await new Promise(resolve => setTimeout(resolve, 3000))
+  
+  generatedVideos.value.push({
+    id: Date.now(),
+    url: '#', // 实际项目中为视频 URL
+    thumbnail: 'https://placehold.co/320x180/FF6B9D/ffffff?text=Video+Preview',
+    duration: '00:15',
+    template: videoTemplate.value,
+    sentences: [...selectedSentences.value]
+  })
+  
+  isGeneratingVideo.value = false
+}
+
+const showVideoPreview = ref(false)
+const currentVideo = ref(null)
+
+const previewVideo = (video) => {
+  currentVideo.value = video
+  showVideoPreview.value = true
+}
+
+// 社交文案相关
+const socialPlatform = ref('wechat') // 'wechat' | 'xiaohongshu' | 'weibo'
+const socialCopyContent = ref('')
+const isGeneratingCopy = ref(false)
+
+const generateSocialCopy = async () => {
+  if (isGeneratingCopy.value) return
+  isGeneratingCopy.value = true
+  socialCopyContent.value = ''
+  
+  await new Promise(resolve => setTimeout(resolve, 1500))
+  
+  const copies = {
+    wechat: `【深度好文】AI 如何改变播客创作？\n\n今天想和大家聊聊 AI 在音频领域的应用。🎙️\n\n从语音转写到智能剪辑，AI 正在悄然改变我们的创作方式。本期节目，我们邀请到了资深制作人，一起探讨技术背后的无限可能。\n\n🎧 收听指南：\n03:15 AI 剪辑的优势\n12:30 内容创作者的机遇\n\n#播客 #AI #内容创作`,
+    xiaohongshu: `宝藏播客推荐！✨ AI 搞定播客制作？\n\n姐妹们！发现了一个超级好用的播客制作神器 PodPal！🎤\n\n以前剪辑要花好几个小时，现在 AI 一键搞定！真的太香了！😭\n\n本期节目干货满满，想做播客的宝子们千万不要错过！\n\n#播客 #宝藏App #AI工具 #高效工作`,
+    weibo: `AI 时代的播客创作新范式。🎙️\n\n本期节目聊了聊 AI 技术对音频内容生产的影响。在这个效率至上的时代，创作者该如何利用工具赋能？\n\n点击链接收听完整节目 👇\n\n#播客 #科技 #AI`
+  }
+  
+  socialCopyContent.value = copies[socialPlatform.value] || copies.wechat
+  isGeneratingCopy.value = false
+}
+
+const copySocialCopy = () => {
+  if (!socialCopyContent.value) return
+  navigator.clipboard.writeText(socialCopyContent.value)
+  // 实际项目中可以加一个 Toast 提示
+  alert('文案已复制到剪贴板')
 }
 
 // 口癖 / 语气词列表，用于高亮和一键删除
@@ -1773,6 +2250,26 @@ const videoTemplate = ref('digital-human')
 const isGeneratingVideo = ref(false)
 const generatedVideos = ref([])
 
+const toggleGoldenSentence = (s) => {
+  const idx = selectedSentences.value.indexOf(s.id)
+  if (idx >= 0) {
+    selectedSentences.value.splice(idx, 1)
+  } else {
+    selectedSentences.value.push(s.id)
+  }
+}
+
+// 分发平台选择
+const selectedPlatforms = ref([])
+const togglePlatform = (platform) => {
+  const idx = selectedPlatforms.value.indexOf(platform)
+  if (idx >= 0) {
+    selectedPlatforms.value.splice(idx, 1)
+  } else {
+    selectedPlatforms.value.push(platform)
+  }
+}
+
 // 素材库 Mock Data (Feature 2)
 const assets = ref([
   { id: 1, name: '原始录音_Track1.wav', type: 'audio', duration: '45:20', format: 'WAV' },
@@ -1788,14 +2285,43 @@ const toolTabs = [
   { id: 'export', name: '导出分发' }
 ]
 
+// 顶部步骤进度
+const stepIndex = computed(() => toolTabs.findIndex(t => t.id === activeToolTab.value))
+const tabRefs = ref([])
+const stepsBar = ref(null)
+const stepPositions = ref([])
+const setTabRef = (el, i) => {
+  if (el) tabRefs.value[i] = el
+}
+const measureSteps = () => {
+  const bar = stepsBar.value
+  if (!bar) return
+  const barRect = bar.getBoundingClientRect()
+  stepPositions.value = tabRefs.value.map(btn => {
+    if (!btn) return 0
+    const rect = btn.getBoundingClientRect()
+    const center = rect.left + rect.width / 2
+    const pct = ((center - barRect.left) / barRect.width) * 100
+    return Math.max(0, Math.min(100, pct))
+  })
+}
+const progressWidthPercent = computed(() => {
+  const idx = stepIndex.value
+  return idx >= 0 ? (stepPositions.value[idx] || 0) : 0
+})
+
 const showLinkModal = ref(false)
 const fileInput = ref(null)
 
 // Methods
 const formatTime = (seconds) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
 
 const togglePlay = () => {
@@ -1945,7 +2471,8 @@ const handleVoiceTool = (type) => {
     createdAt: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
     note: type === 'clone'
       ? '会根据当前项目的一段语音生成新的声线配置。'
-      : '会为当前文稿生成多角色朗读方案。'
+      : '会为当前文稿生成多角色朗读方案。',
+    ttsText: '这是一段示例的 AI 合成语音文稿，可在“查看”中修改后插入到文字稿。'
   })
   // 简单模拟：2 秒后把任务标记为“已完成”
   setTimeout(() => {
@@ -1963,6 +2490,49 @@ const toggleVoiceEnhance = () => {
 
 const toggleEchoRemoval = () => {
   echoRemovalEnabled.value = !echoRemovalEnabled.value
+}
+
+// TTS 预览与插入
+const showTTSModal = ref(false)
+const currentTTSTask = ref(null)
+const ttsDraftText = ref('')
+const openTTSPreview = (task) => {
+  currentTTSTask.value = task
+  ttsDraftText.value = task.ttsText || '请输入合成文稿...'
+  showTTSModal.value = true
+}
+const getCurrentSegmentIndex = () => {
+  return mockTranscript.value.findIndex(seg => currentTime.value >= seg.startTime && currentTime.value <= seg.endTime)
+}
+const confirmTTSInsertToTranscript = () => {
+  const text = ttsDraftText.value?.trim()
+  if (!text) return
+  const idx = getCurrentSegmentIndex()
+  const baseEnd = idx >= 0 ? mockTranscript.value[idx].endTime : (mockTranscript.value[mockTranscript.value.length - 1]?.endTime || 0)
+  const newSeg = {
+    startTime: baseEnd,
+    endTime: baseEnd + Math.max(3, Math.min(15, Math.ceil(text.length / 8))), // 简单估时
+    speaker: 'AI',
+    text: '[TTS]' + text,
+    confirmed: true
+  }
+  if (idx >= 0) {
+    mockTranscript.value.splice(idx + 1, 0, newSeg)
+  } else {
+    mockTranscript.value.push(newSeg)
+  }
+  if (currentTTSTask.value) {
+    currentTTSTask.value.inserted = true
+  }
+  showTTSModal.value = false
+}
+
+// 导出成功弹窗
+const showExportSuccess = ref(false)
+const doExport = async () => {
+  showExportSuccess.value = false
+  await new Promise(r => setTimeout(r, 500))
+  showExportSuccess.value = true
 }
 
 // 脚本优化反馈提示
@@ -2348,12 +2918,15 @@ const redo = () => {
 }
 
 const onTimelineScroll = (event) => {
-  // 同步时间轴标尺和轨道内容的滚动
-  if (event && event.target) {
-    const scrollLeft = event.target.scrollLeft
-    if (timelineRuler.value) {
-      timelineRuler.value.scrollLeft = scrollLeft
-    }
+  if (!event || !event.target) return
+  const scrollLeft = event.target.scrollLeft
+  if (event.target === timelineContainer.value) {
+    if (timelineRuler.value) timelineRuler.value.scrollLeft = scrollLeft
+  } else if (event.target === timelineRuler.value) {
+    if (timelineContainer.value) timelineContainer.value.scrollLeft = scrollLeft
+  } else {
+    if (timelineRuler.value) timelineRuler.value.scrollLeft = scrollLeft
+    if (timelineContainer.value) timelineContainer.value.scrollLeft = scrollLeft
   }
 }
 
@@ -2586,114 +3159,9 @@ const extractGoldenSentences = async () => {
   isExtracting.value = false
 }
 
-// 生成 Shownotes
-const generateShownotes = async () => {
-  if (isGeneratingShownotes.value) return
-  
-  isGeneratingShownotes.value = true
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  
-  shownotesData.value = {
-    chapters: [
-      {
-        id: 1,
-        title: '开场：职场焦虑的普遍现象',
-        summary: '讨论职场焦虑在当代社会中的普遍性，以及它对个人工作和生活的影响。',
-        startTime: 0,
-        endTime: 1200
-      },
-      {
-        id: 2,
-        title: '职场焦虑的根源分析',
-        summary: '深入分析职场焦虑产生的内外因素，包括工作压力、未来不确定性等。',
-        startTime: 1200,
-        endTime: 3600
-      },
-      {
-        id: 3,
-        title: '应对策略：时间管理与心理调节',
-        summary: '提供实用的应对方法，包括时间管理技巧和心理调节策略。',
-        startTime: 3600,
-        endTime: 5400
-      },
-      {
-        id: 4,
-        title: '职业规划与长期发展',
-        summary: '探讨如何通过职业规划来减少焦虑，实现长期职业发展目标。',
-        startTime: 5400,
-        endTime: 7200
-      }
-    ],
-    mindMap: `职场焦虑应对
-├── 问题识别
-│   ├── 普遍现象
-│   └── 影响分析
-├── 根源分析
-│   ├── 外部因素
-│   │   ├── 工作压力
-│   │   └── 环境变化
-│   └── 内部因素
-│       ├── 心理状态
-│       └── 认知模式
-└── 解决方案
-    ├── 时间管理
-    ├── 心理调节
-    └── 职业规划`
-  }
-  
-  isGeneratingShownotes.value = false
-}
-
-// 生成视频播客
-const generateVideoPodcast = async () => {
-  if (selectedSentences.length === 0 || isGeneratingVideo.value) return
-  
-  isGeneratingVideo.value = true
-  await new Promise(resolve => setTimeout(resolve, 3000))
-  
-  const selected = goldenSentences.value.filter(s => selectedSentences.value.includes(s.id))
-  
-  generatedVideos.value = selected.map((sentence, index) => ({
-    id: index + 1,
-    title: `金句片段 ${index + 1}: ${sentence.content.substring(0, 20)}...`,
-    duration: `${Math.floor((sentence.endTime - sentence.startTime) / 60)}:${String((sentence.endTime - sentence.startTime) % 60).padStart(2, '0')}`,
-    template: videoTemplate.value,
-    sentenceId: sentence.id
-  }))
-  
-  isGeneratingVideo.value = false
-}
-
-// AI 文案生成状态
-const isGeneratingCopy = ref(false)
-const generatedCopy = ref(null)
-const copyTypes = ref({
-  shownotes: true,
-  xiaohongshu: false,
-  article: false,
-  subtitle: false
-})
-
 // 视频化转化状态
 const aspectRatio = ref('9:16')
 const isAddingTemplate = ref(false)
-
-// 生成 AI 文案
-const generateAICopy = async () => {
-  if (isGeneratingCopy.value) return
-  
-  isGeneratingCopy.value = true
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  
-  generatedCopy.value = {
-    shownotes: copyTypes.value.shownotes ? `## 🎙️ 本期播客：职场焦虑粉碎指南\n\n### ⏱️ 时间轴\n00:00 开场：为什么我们都感到焦虑？\n12:30 根源深度剖析\n34:20 实用应对策略三板斧\n\n### 📝 核心观点\n职场焦虑不是你的错，而是环境与心理的双重作用...` : null,
-    xiaohongshu: copyTypes.value.xiaohongshu ? `职场焦虑退退退！👋 3招教你找回松弛感\n\n家人们谁懂啊！每天上班如上坟...😭\n今天分享几个超实用的职场解压小技巧：\n1️⃣ 拒绝内耗，专注当下\n2️⃣ 学会拒绝，设立边界\n3️⃣ 寻找副业，增加底气\n\n#职场 #焦虑 #个人成长 #搞钱` : null,
-    article: copyTypes.value.article ? `# 深度好文 | 当我们在谈论职场焦虑时，我们在谈论什么？\n\n在这个内卷的时代，焦虑似乎成了职场人的标配...` : null,
-    subtitle: copyTypes.value.subtitle ? `[00:00.00] 大家好，欢迎来到本期播客\n[00:05.00] 今天我们聊聊职场焦虑这个话题...` : null
-  }
-  
-  isGeneratingCopy.value = false
-}
 
 // 添加可视化模板
 const addVisualTemplate = async () => {
@@ -2737,6 +3205,11 @@ onMounted(async () => {
     }
   }
   updateTimelineWidth()
+  // 载入示例金句，便于选择
+  loadSampleGoldenSentences()
+  // 测量步骤节点位置并监听窗口变化
+  setTimeout(measureSteps, 0)
+  window.addEventListener('resize', measureSteps)
   
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
