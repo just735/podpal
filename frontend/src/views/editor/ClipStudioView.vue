@@ -1464,39 +1464,99 @@
           
           <!-- Tab 1: 智能剪辑 (Feature 3) -->
           <div v-if="activeToolTab === 'edit'" class="space-y-6 animate-fadeIn">
-            <!-- 语音分析 -->
+            <!-- 脚本优化 -->
             <section>
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
-                语音转写与分析
+                <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
+                脚本优化
               </h3>
-              <div class="space-y-3">
-                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
-                  <span class="text-sm text-gray-900">说话人分离</span>
-                  <button class="w-10 h-5 bg-blue-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute right-1 top-1"></div></button>
-                </div>
-                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
-                  <span class="text-sm text-gray-900">智能情绪提取</span>
-                  <button class="w-10 h-5 bg-gray-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute left-1 top-1"></div></button>
-                </div>
-                <!-- 新增：转写语言选择 -->
-                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
-                  <span class="text-sm text-gray-900">转写语言</span>
-                  <select class="bg-white text-xs text-gray-900 rounded px-2 py-1 border border-pink-200 focus:ring-2 focus:ring-pink-300">
-                     <option>自动识别</option>
-                     <option>中文</option>
-                     <option>English</option>
-                     <option>中英混合</option>
-                  </select>
-                </div>
-                <button 
-                  @click="startTranscription"
-                  :disabled="isTranscribing"
-                  class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] hover:shadow-lg hover:scale-105 text-sm text-white rounded transition disabled:opacity-50 disabled:hover:scale-100"
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
+                  title="自动修正错别字、剔除口语化冗余"
+                  @click="applyScriptOptimization('filler')"
                 >
-                  {{ isTranscribing ? '转写中...' : '开始转写' }}
+                  去口语冗余
+                </button>
+                <button
+                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
+                  title="检测逻辑断层，推荐衔接句"
+                  @click="applyScriptOptimization('logic')"
+                >
+                  逻辑纠错
+                </button>
+                <button
+                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
+                  title="提取核心片段生成精华版"
+                  @click="applyScriptOptimization('highlights')"
+                >
+                  一键精华提取
+                </button>
+                <button
+                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
+                  title="根据内容推荐背景音乐"
+                  @click="applyScriptOptimization('bgm')"
+                >
+                  BGM智能匹配
                 </button>
               </div>
+              <div v-if="scriptOptimizeMessage" class="mt-2 text-[11px] text-gray-600">{{ scriptOptimizeMessage }}</div>
+            </section>
+
+             <!-- 语音生成（示例交互） -->
+             <section>
+              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span class="w-1 h-4 bg-pink-500 rounded-full"></span>
+                语音生成
+              </h3>
+               <div class="space-y-3">
+                 <div class="grid grid-cols-2 gap-2">
+                    <button
+                      class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition flex items-center justify-center gap-1"
+                      @click="handleVoiceTool('clone')"
+                    >
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                      声线克隆
+                    </button>
+                     <button
+                      class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
+                      @click="handleVoiceTool('multi')"
+                    >
+                      多角色生成
+                    </button>
+                 </div>
+                 <!-- 最近语音生成任务列表 -->
+                 <div v-if="voiceTasks.length" class="pt-2 border-t border-pink-100 space-y-1">
+                  <div class="text-xs font-medium text-gray-900">最近语音生成任务</div>
+                  <div
+                    v-for="task in voiceTasks"
+                    :key="task.id"
+                  class="flex items-center justify-between px-2 py-1 rounded bg-pink-50 border border-pink-100 text-[11px] text-gray-700"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-gray-900 truncate">{{ task.label }}</div>
+                      <div class="text-[10px] text-gray-500 truncate">{{ task.note }}</div>
+                    </div>
+                  <div class="ml-2 text-right flex items-center gap-2">
+                      <div class="text-[10px] text-gray-400">{{ task.createdAt }}</div>
+                      <div
+                        class="mt-0.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px]"
+                        :class="task.status === '已完成' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+                      >
+                        {{ task.status }}
+                      </div>
+                   <button 
+                     v-if="task.status === '已完成'"
+                     @click="openTTSPreview(task)"
+                     class="px-2 py-0.5 rounded border text-[10px] hover:bg-pink-50"
+                     :class="task.inserted ? 'border-blue-500 text-blue-600' : 'border-pink-300 text-gray-900'"
+                   >
+                     {{ task.inserted ? '已插入' : '查看' }}
+                   </button>
+                    </div>
+                  </div>
+                 </div>
+               </div>
             </section>
 
             <section>
@@ -1674,99 +1734,39 @@
               </div>
             </section>
 
-            <!-- 脚本优化 -->
+            <!-- 语音分析 -->
             <section>
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
-                脚本优化
+                <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
+                语音转写与分析
               </h3>
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
-                  title="自动修正错别字、剔除口语化冗余"
-                  @click="applyScriptOptimization('filler')"
+              <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                  <span class="text-sm text-gray-900">说话人分离</span>
+                  <button class="w-10 h-5 bg-blue-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute right-1 top-1"></div></button>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                  <span class="text-sm text-gray-900">智能情绪提取</span>
+                  <button class="w-10 h-5 bg-gray-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute left-1 top-1"></div></button>
+                </div>
+                <!-- 新增：转写语言选择 -->
+                <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                  <span class="text-sm text-gray-900">转写语言</span>
+                  <select class="bg-white text-xs text-gray-900 rounded px-2 py-1 border border-pink-200 focus:ring-2 focus:ring-pink-300">
+                     <option>自动识别</option>
+                     <option>中文</option>
+                     <option>English</option>
+                     <option>中英混合</option>
+                  </select>
+                </div>
+                <button 
+                  @click="startTranscription"
+                  :disabled="isTranscribing"
+                  class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] hover:shadow-lg hover:scale-105 text-sm text-white rounded transition disabled:opacity-50 disabled:hover:scale-100"
                 >
-                  去口语冗余
-                </button>
-                <button
-                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
-                  title="检测逻辑断层，推荐衔接句"
-                  @click="applyScriptOptimization('logic')"
-                >
-                  逻辑纠错
-                </button>
-                <button
-                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
-                  title="提取核心片段生成精华版"
-                  @click="applyScriptOptimization('highlights')"
-                >
-                  一键精华提取
-                </button>
-                <button
-                  class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
-                  title="根据内容推荐背景音乐"
-                  @click="applyScriptOptimization('bgm')"
-                >
-                  BGM智能匹配
+                  {{ isTranscribing ? '转写中...' : '开始转写' }}
                 </button>
               </div>
-              <div v-if="scriptOptimizeMessage" class="mt-2 text-[11px] text-gray-600">{{ scriptOptimizeMessage }}</div>
-            </section>
-
-             <!-- 语音生成（示例交互） -->
-             <section>
-              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span class="w-1 h-4 bg-pink-500 rounded-full"></span>
-                语音生成
-              </h3>
-               <div class="space-y-3">
-                 <div class="grid grid-cols-2 gap-2">
-                    <button
-                      class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition flex items-center justify-center gap-1"
-                      @click="handleVoiceTool('clone')"
-                    >
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                      声线克隆
-                    </button>
-                     <button
-                      class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
-                      @click="handleVoiceTool('multi')"
-                    >
-                      多角色生成
-                    </button>
-                 </div>
-                 <!-- 最近语音生成任务列表 -->
-                 <div v-if="voiceTasks.length" class="pt-2 border-t border-pink-100 space-y-1">
-                  <div class="text-xs font-medium text-gray-900">最近语音生成任务</div>
-                  <div
-                    v-for="task in voiceTasks"
-                    :key="task.id"
-                  class="flex items-center justify-between px-2 py-1 rounded bg-pink-50 border border-pink-100 text-[11px] text-gray-700"
-                  >
-                    <div class="flex-1 min-w-0">
-                      <div class="font-medium text-gray-900 truncate">{{ task.label }}</div>
-                      <div class="text-[10px] text-gray-500 truncate">{{ task.note }}</div>
-                    </div>
-                  <div class="ml-2 text-right flex items-center gap-2">
-                      <div class="text-[10px] text-gray-400">{{ task.createdAt }}</div>
-                      <div
-                        class="mt-0.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px]"
-                        :class="task.status === '已完成' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
-                      >
-                        {{ task.status }}
-                      </div>
-                   <button 
-                     v-if="task.status === '已完成'"
-                     @click="openTTSPreview(task)"
-                     class="px-2 py-0.5 rounded border text-[10px] hover:bg-pink-50"
-                     :class="task.inserted ? 'border-blue-500 text-blue-600' : 'border-pink-300 text-gray-900'"
-                   >
-                     {{ task.inserted ? '已插入' : '查看' }}
-                   </button>
-                    </div>
-                  </div>
-                 </div>
-               </div>
             </section>
             
             <!-- 音频优化 -->
