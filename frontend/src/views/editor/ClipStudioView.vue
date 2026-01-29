@@ -13,43 +13,6 @@
       </div>
       
       <div class="flex items-center gap-6">
-        <!-- 视图切换 Tabs + 进度条 -->
-        <div class="flex flex-col items-start">
-          <div class="flex bg-gray-100/50 p-1 rounded-lg border border-pink-100">
-            <button 
-              v-for="(tab, i) in toolTabs" 
-              :key="tab.id"
-              @click="activeToolTab = tab.id"
-              :ref="el => setTabRef(el, i)"
-              class="px-4 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
-              :class="activeToolTab === tab.id ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600 hover:text-pink-500 hover:bg-white/50'"
-            >
-              {{ tab.name }}
-            </button>
-          </div>
-          <!-- 三节点进度条（纯色，标注 1-2-3） -->
-          <div class="relative w-64 h-8 mt-1 hidden md:block" ref="stepsBar">
-            <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 bg-pink-100 rounded-full"></div>
-            <div 
-              class="absolute left-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-pink-300 transition-all" 
-              :style="{ width: progressWidthPercent + '%' }"
-            ></div>
-            <div class="absolute inset-x-0 top-1/2 -translate-y-1/2">
-              <div 
-                v-for="(tab, i) in toolTabs" 
-                :key="'step-node-' + tab.id" 
-                class="absolute -mt-3"
-                :style="{ left: (stepPositions[i] || 0) + '%' }"
-              >
-                <div 
-                  class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" 
-                  :class="i <= stepIndex ? 'bg-pink-400' : 'bg-pink-200'"
-                >{{ i + 1 }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- 团队协作 (Feature 6) -->
         <div class="flex -space-x-2">
           <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white border-2 border-white" title="Team Member A">A</div>
@@ -75,6 +38,49 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
+      <!-- 垂直流程导航栏 -->
+      <nav class="w-20 flex-none bg-white border-r border-pink-100 flex flex-col items-center py-8 gap-10 relative">
+        <!-- 进度背景线 -->
+        <div class="absolute left-1/2 top-14 bottom-14 w-0.5 bg-pink-50 -translate-x-1/2">
+          <div 
+            class="absolute top-0 w-full bg-gradient-to-b from-[#FF6B9D] to-[#C084FC] transition-all duration-500 rounded-full"
+            :style="{ height: progressHeightPercent + '%' }"
+          ></div>
+        </div>
+
+        <!-- 步骤节点 -->
+        <div 
+          v-for="(tab, i) in toolTabs" 
+          :key="tab.id"
+          @click="handleTabClick(tab)"
+          class="relative z-10 flex flex-col items-center gap-2 cursor-pointer group"
+          :class="{ 'opacity-40 cursor-not-allowed': tab.id !== 'upload' && !hasUploaded }"
+        >
+          <!-- 图标容器 -->
+          <div 
+            class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 border-2"
+            :class="[
+              i <= stepIndex ? 'bg-gradient-to-br from-[#FF6B9D] to-[#C084FC] border-transparent text-white shadow-lg shadow-pink-100' : 'bg-white border-pink-100 text-pink-300 group-hover:border-pink-300',
+              activeToolTab === tab.id ? 'scale-110 ring-4 ring-pink-50' : 'hover:scale-105'
+            ]"
+          >
+            <div v-html="tab.icon"></div>
+          </div>
+          <!-- 标签 -->
+          <span 
+            class="text-[10px] font-bold tracking-tighter transition-colors text-center px-1"
+            :class="i <= stepIndex ? 'text-pink-600' : 'text-gray-400'"
+          >
+            {{ tab.name }}
+          </span>
+          <!-- 节点状态圆点 (当前步骤) -->
+          <div 
+            v-if="activeToolTab === tab.id"
+            class="absolute -left-1 top-5 w-1.5 h-1.5 bg-pink-500 rounded-full animate-pulse"
+          ></div>
+        </div>
+      </nav>
+
       <!-- 2. 左侧：素材与资产管理 (Feature 2) -->
       <aside class="w-80 flex-none bg-gradient-to-b from-pink-50 to-purple-50 border-r border-pink-200 flex flex-col">
         <div class="p-4 border-b border-pink-200">
@@ -100,6 +106,8 @@
             :key="asset.id" 
             class="p-3 bg-white rounded-lg border border-pink-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer group transition-all duration-200"
             @click="selectAsset(asset)"
+            draggable="true"
+            @dragstart="handleAssetDragStart($event, asset)"
           >
             <div class="flex items-start justify-between mb-2">
               <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -135,10 +143,44 @@
 
       <!-- 3. 中间：工作区 (Feature 3, 9) -->
       <main class="flex-1 min-w-0 flex flex-col bg-white overflow-hidden relative">
+        <!-- Upload View -->
+        <div v-if="activeToolTab === 'upload'" class="flex-1 overflow-y-auto bg-gray-50 p-8 animate-fadeIn">
+           <div class="max-w-4xl mx-auto space-y-6">
+              <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-900">上传素材</h2>
+              </div>
+              <div class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden p-6">
+                <div v-if="!inlineUploading" class="space-y-4">
+                  <div 
+                    class="border-2 border-dashed border-pink-200 rounded-xl p-8 bg-pink-50/50 hover:bg-pink-50 transition cursor-pointer text-center"
+                    @click="triggerInlineUpload"
+                    @dragover.prevent
+                    @dragenter.prevent
+                    @drop="handleInlineDrop($event)"
+                  >
+                    <div class="text-sm text-gray-900 mb-2">点击选择文件或拖拽到此处</div>
+                    <div class="text-xs text-gray-500">支持: mp3, wav, m4a, mp4, mov</div>
+                  </div>
+                  <input ref="inlineFileInput" type="file" accept="audio/*,video/*" class="hidden" @change="handleInlineSelect">
+                  <div class="flex items-center justify-between">
+                    <button class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600" @click="useSampleAsset">使用示例素材</button>
+                    <span class="text-xs text-gray-500">完成后将自动进入智能剪辑</span>
+                  </div>
+                </div>
+                <div v-else class="space-y-3">
+                  <div class="text-sm text-gray-900">正在上传: {{ inlineFilename }}</div>
+                  <div class="h-2 w-full bg-pink-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-pink-500 rounded-full transition-all" :style="{ width: inlineProgress + '%' }"></div>
+                  </div>
+                  <div class="text-xs text-gray-500">请稍候...</div>
+                </div>
+              </div>
+           </div>
+        </div>
         <!-- Editor View -->
-        <div v-show="activeToolTab === 'edit'" class="flex-1 flex flex-col overflow-hidden relative h-full">
+        <div v-show="activeToolTab === 'edit'" class="flex-none flex flex-col overflow-hidden relative" :style="{ height: totalEditorHeightPx + 'px' }" ref="editorColumn">
         <!-- 播放器预览 -->
-        <div class="h-1/3 border-b border-pink-200 p-6 flex flex-col relative bg-gradient-to-b from-white via-pink-50/30 to-white">
+        <div class="h-[600px] border-b border-pink-200 p-6 flex flex-col relative bg-gradient-to-b from-white via-pink-50/30 to-white">
           <!-- 视图切换按钮 -->
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
@@ -187,7 +229,26 @@
           </div>
 
           <!-- 文字稿区域（可编辑 & 口癖高亮） -->
-          <div v-else ref="transcriptContainer" class="flex-1 bg-white rounded-lg border border-pink-200 p-4 overflow-y-auto">
+          <div v-else ref="transcriptContainer" class="flex-1 bg-white rounded-lg border border-pink-200 p-4 overflow-y-auto relative">
+            <!-- 标注说明 -->
+            <div class="sticky top-0 z-10 bg-white/90 backdrop-blur-sm pb-2 mb-2 border-b border-pink-100 flex items-center gap-4 text-[10px] text-gray-500">
+              <span class="flex items-center gap-1">
+                <span class="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></span>
+                口癖/冗余
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="w-2 h-2 rounded bg-purple-100 border border-purple-200"></span>
+                口吃/重复
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="w-2 h-2 bg-gray-400 line-through decoration-red-400"></span>
+                已删除内容
+              </span>
+              <span class="flex items-center gap-1 ml-auto">
+                <i class="ri-information-line text-pink-400"></i>
+                点击文字可进行智能处理
+              </span>
+            </div>
             <div class="space-y-3">
               <div 
                 v-for="(segment, index) in mockTranscript" 
@@ -196,6 +257,7 @@
                 class="p-3 rounded-lg cursor-pointer transition-all duration-200 group relative"
                 :class="[
                   isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : 'hover:bg-pink-50',
+                  isSegmentHighlighted(index) ? 'ring-2 ring-pink-400 ring-inset bg-pink-50/50' : '',
                   segment.text.startsWith('[TTS]') && !segment.confirmed ? 'border border-dashed border-blue-300 bg-blue-50/30' : '',
                   segment.text.startsWith('[TTS]') && segment.confirmed ? 'border border-blue-200 bg-blue-50' : ''
                 ]"
@@ -212,6 +274,11 @@
                       @click.stop="insertTTS(index)"
                       class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
                     >+ 插入补录</button>
+                    <button 
+                      v-if="segment.text.startsWith('[TTS]')"
+                      @click.stop="deleteTTSSegment(index)"
+                      class="hidden group-hover:flex text-[10px] text-red-500 hover:text-red-700 font-medium"
+                    >删除补录</button>
                     <span class="text-xs px-2 py-0.5 rounded-full" :class="segment.speaker === 'A' ? 'bg-blue-100 text-blue-700' : (segment.speaker === 'AI' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700')">
                       {{ segment.speaker === 'AI' ? 'AI 合成' : '说话人' + segment.speaker }}
                     </span>
@@ -257,6 +324,11 @@
                       class="mx-0.5 px-1 py-0.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-200"
                     >{{ token.text }}</span>
                     <span 
+                      v-else-if="token.type === 'stutter'"
+                      :data-token-index="tIndex"
+                      class="mx-0.5 px-1 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200"
+                    >{{ token.text }}</span>
+                    <span 
                       v-else-if="token.type === 'deleted'"
                       :data-token-index="tIndex"
                       class="text-gray-400 line-through decoration-red-400 decoration-2 mx-0.5"
@@ -285,6 +357,15 @@
                       @click.stop="toggleTokenDelete(segment, tIndex)"
                       :data-token-index="tIndex"
                       class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-200 cursor-pointer hover:bg-yellow-200 transition"
+                    >
+                      {{ token.text }}
+                    </span>
+                    <!-- 口吃 Token -->
+                    <span 
+                      v-else-if="token.type === 'stutter'"
+                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      :data-token-index="tIndex"
+                      class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200 cursor-pointer hover:bg-purple-200 transition"
                     >
                       {{ token.text }}
                     </span>
@@ -652,7 +733,7 @@
           </div>
           
           <!-- 时间轴和轨道 -->
-          <div class="flex-1 flex flex-col overflow-hidden">
+          <div class="flex-shrink-0 flex flex-col overflow-hidden border-t border-pink-200" :style="{ height: fixedTimelineHeightPx + 'px' }">
             <!-- 时间轴标尺（固定在顶部） -->
             <div 
               class="h-20 border-b-2 border-pink-300 bg-gradient-to-b from-pink-50 to-white flex-shrink-0 relative overflow-x-auto overflow-y-visible sticky top-0 z-20"
@@ -722,7 +803,7 @@
               ref="timelineContainer"
               @scroll="onTimelineScroll"
             >
-              <div class="flex h-full">
+            <div class="flex" :style="{ height: timelineContentHeightPx + 'px' }">
                 <!-- 固定左侧轨道控制栏 -->
                 <div class="sticky left-0 z-10 bg-white border-r-2 border-pink-300 flex-shrink-0" style="width: 240px;">
                   <!-- 轨道列表 -->
@@ -730,8 +811,9 @@
                     <div 
                       v-for="(track, index) in tracks" 
                       :key="track.id"
-                      class="h-[104px] box-border bg-white border-b border-pink-200 flex flex-col overflow-hidden relative isolate"
+                      class="h-[104px] box-border bg-white border-b border-pink-200 flex flex-col overflow-hidden relative isolate cursor-pointer"
                       :class="{ 'bg-pink-50/30': selectedTrackId === track.id }"
+                      @click="selectTrack(track.id)"
                     >
                       <!-- 轨道控制面板 -->
                       <div class="flex-1 flex flex-col px-3 py-2 overflow-hidden relative">
@@ -804,6 +886,16 @@
                             >
                               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" />
+                              </svg>
+                            </button>
+                            <!-- 删除按钮 -->
+                            <button 
+                              @click.stop="deleteTrack(track.id)"
+                              class="p-1.5 text-gray-400 hover:text-red-500 rounded transition flex-shrink-0"
+                              title="删除轨道"
+                            >
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
                           </div>
@@ -890,6 +982,7 @@
                               minWidth: '40px'
                             }"
                             @mousedown.stop="!track.locked && startDragClip(clip, $event)"
+                            @click.stop="selectClip(clip)"
                             @dblclick.stop="editClip(clip)"
                           >
                             <!-- 片段内容 -->
@@ -1302,7 +1395,7 @@
                 
                 <div class="p-6 bg-gray-50/50">
                    <h3 class="text-lg font-bold text-gray-900 mb-4">一键分发</h3>
-                   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                   <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div 
                         class="flex flex-col items-center justify-center p-4 bg-white border rounded-lg transition cursor-pointer group"
                         :class="selectedPlatforms.includes('weixin') ? 'border-green-500 shadow-md' : 'border-gray-200 hover:border-green-400 hover:shadow-md'"
@@ -1339,6 +1432,24 @@
                          <span class="text-sm font-medium text-gray-700">小红书</span>
                          <span class="text-xs mt-1" :class="selectedPlatforms.includes('xiaohongshu') ? 'text-red-600' : 'text-gray-400'">{{ selectedPlatforms.includes('xiaohongshu') ? '已选中' : '未绑定' }}</span>
                       </div>
+                      <div 
+                        class="flex flex-col items-center justify-center p-4 bg-white border rounded-lg transition cursor-pointer group"
+                        :class="selectedPlatforms.includes('apple') ? 'border-orange-500 shadow-md' : 'border-gray-200 hover:border-orange-400 hover:shadow-md'"
+                        @click="togglePlatform('apple')"
+                      >
+                         <img :src="appleIcon" class="w-10 h-10 mb-2 transition" :class="selectedPlatforms.includes('apple') ? '' : 'grayscale group-hover:grayscale-0'" />
+                         <span class="text-sm font-medium text-gray-700">Apple 播客</span>
+                         <span class="text-xs mt-1" :class="selectedPlatforms.includes('apple') ? 'text-orange-600' : 'text-gray-400'">{{ selectedPlatforms.includes('apple') ? '已选中' : '未绑定' }}</span>
+                      </div>
+                      <div 
+                        class="flex flex-col items-center justify-center p-4 bg-white border rounded-lg transition cursor-pointer group"
+                        :class="selectedPlatforms.includes('xiaoyuzhou') ? 'border-yellow-500 shadow-md' : 'border-gray-200 hover:border-yellow-400 hover:shadow-md'"
+                        @click="togglePlatform('xiaoyuzhou')"
+                      >
+                         <img :src="xiaoyuzhouIcon" class="w-10 h-10 mb-2 transition" :class="selectedPlatforms.includes('xiaoyuzhou') ? '' : 'grayscale group-hover:grayscale-0'" />
+                         <span class="text-sm font-medium text-gray-700">小宇宙</span>
+                         <span class="text-xs mt-1" :class="selectedPlatforms.includes('xiaoyuzhou') ? 'text-yellow-600' : 'text-gray-400'">{{ selectedPlatforms.includes('xiaoyuzhou') ? '已选中' : '未绑定' }}</span>
+                      </div>
                    </div>
                 </div>
              </div>
@@ -1348,8 +1459,8 @@
       </main>
 
       <!-- 4. 右侧：AI 智能工具箱 (Feature 3, 4, 5) -->
-      <aside v-show="activeToolTab === 'edit'" class="w-96 flex-none bg-gradient-to-b from-pink-50 to-purple-50 border-l border-pink-200 flex flex-col">
-        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+      <aside v-show="activeToolTab === 'edit'" class="w-96 flex-none bg-gradient-to-b from-pink-50 to-purple-50 border-l border-pink-200 flex flex-col" :style="{ height: totalEditorHeightPx + 'px' }">
+        <div class="p-6 space-y-8 overflow-y-auto" :style="rightPanelStyle">
           
           <!-- Tab 1: 智能剪辑 (Feature 3) -->
           <div v-if="activeToolTab === 'edit'" class="space-y-6 animate-fadeIn">
@@ -1440,12 +1551,22 @@
                   <div class="mt-2 text-[10px] text-gray-500 text-center">该功能面向会员限时免费</div>
                 </div>
                 <div v-if="cutSuggestions.length" class="space-y-2">
-                  <div v-for="s in cutSuggestions" :key="s.id" class="p-3 bg-white border border-pink-200 rounded text-xs text-gray-700 flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
+                  <div v-for="s in cutSuggestions" :key="s.id" class="p-3 bg-white border border-pink-200 rounded text-xs text-gray-700 flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
                       <div class="font-medium text-gray-900">{{ s.label }}</div>
-                      <div class="text-[10px] text-gray-600 truncate">{{ s.preview }}</div>
+                      <span class="px-2 py-0.5 rounded bg-pink-100 text-pink-700 border border-pink-200 text-[10px]">{{ s.tag }}</span>
                     </div>
-                    <span class="ml-3 px-2 py-0.5 rounded bg-pink-100 text-pink-700 border border-pink-200 text-[10px]">{{ s.tag }}</span>
+                    <div class="text-[10px] text-gray-600 leading-relaxed bg-gray-50 p-2 rounded border border-dashed border-gray-200" v-html="s.previewHtml"></div>
+                    <div class="flex justify-end gap-2 mt-1">
+                      <button 
+                        @click="applyCutSuggestion(s)"
+                        class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] hover:bg-pink-600 transition shadow-sm"
+                      >应用建议</button>
+                      <button 
+                        @click="cutSuggestions = cutSuggestions.filter(item => item.id !== s.id)"
+                        class="px-3 py-1 bg-white text-gray-500 border border-gray-200 rounded-full text-[10px] hover:bg-gray-50 transition"
+                      >忽略</button>
+                    </div>
                   </div>
                 </div>
                 <div v-if="samplePreview.length" class="space-y-3 pt-2 border-t border-pink-100">
@@ -1740,7 +1861,7 @@
           <div class="text-xs text-gray-500">已选分发平台：</div>
           <div class="flex flex-wrap gap-2">
             <span v-for="p in selectedPlatforms" :key="p" class="px-2 py-0.5 text-xs rounded bg-pink-100 text-pink-700 border border-pink-200">
-              {{ p }}
+              {{ platformNames[p] || p }}
             </span>
             <span v-if="selectedPlatforms.length === 0" class="text-xs text-gray-400">暂无选择</span>
           </div>
@@ -1761,6 +1882,8 @@ import weixinIcon from '../../static/weixin.png'
 import douyinIcon from '../../static/douyin.png'
 import qqIcon from '../../static/QQ.png'
 import xiaohongshuIcon from '../../static/xiaohongshu.png'
+import appleIcon from '../../static/Apple播客.png'
+import xiaoyuzhouIcon from '../../static/小宇宙.png'
 
 const route = useRoute()
 const projectStore = useProjectStore()
@@ -1840,12 +1963,17 @@ const parseSegmentText = (text) => {
     }
     const wordRegex = /(\s+|[，。！？、；：,.!?…—-])/g
     const subs = part.split(wordRegex)
+    const stutterRegex = /([\u4e00-\u9fa5A-Za-z])\1{1,}/
     subs.forEach(sub => {
       if (!sub) return
       if (wordRegex.test(sub)) {
         tokens.push({ type: 'space', text: sub, isTTS })
       } else {
-        tokens.push({ type: 'text', text: sub, isTTS })
+        if (stutterRegex.test(sub)) {
+          tokens.push({ type: 'stutter', text: sub, isTTS })
+        } else {
+          tokens.push({ type: 'text', text: sub, isTTS })
+        }
       }
     })
   })
@@ -1890,6 +2018,13 @@ const confirmTTS = (index) => {
   if (!seg || !seg.text.startsWith('[TTS]')) return
   seg.confirmed = true
   editingSegmentId.value = null
+}
+
+// 删除 TTS 片段
+const deleteTTSSegment = (index) => {
+  const seg = mockTranscript.value[index]
+  if (!seg || !seg.text.startsWith('[TTS]')) return
+  mockTranscript.value.splice(index, 1)
 }
 
 // 文稿删除编辑：阻止输入，仅支持选择后按删除键做留痕
@@ -1952,6 +2087,32 @@ const selectedTrackId = ref(null)
 const selectedClipId = ref(null)
 const timelineContainer = ref(null)
 const timelineRuler = ref(null)
+const centerPanelHeight = ref(0)
+const editorColumn = ref(null)
+const TRACK_ROW_HEIGHT = 104
+const TIMELINE_RULER_HEIGHT = 80
+const PLAYER_HEIGHT = 600
+const VISIBLE_TRACKS_CAP = 6
+
+// 轨道内容的总高度（所有轨道）
+const timelineContentHeightPx = computed(() => {
+  return tracks.value.length * TRACK_ROW_HEIGHT
+})
+
+// 时间轴区域的高度（标尺 + 6个轨道的高度 + 底部预留空间）
+const fixedTimelineHeightPx = computed(() => {
+  return TIMELINE_RULER_HEIGHT + (VISIBLE_TRACKS_CAP * TRACK_ROW_HEIGHT) + 10
+})
+
+// 整个编辑器区域的总高度（播放器 + 时间轴区域）
+const totalEditorHeightPx = computed(() => {
+  return PLAYER_HEIGHT + fixedTimelineHeightPx.value
+})
+
+const rightPanelStyle = computed(() => ({
+  height: totalEditorHeightPx.value + 'px',
+  overflowY: 'auto'
+}))
 
 // 轨道数据
 const tracks = ref([
@@ -1959,7 +2120,7 @@ const tracks = ref([
     id: 1,
     name: '主人声 A',
     type: '音频',
-    color: 'bg-blue-500',
+    color: 'bg-[#6366F1]',
     muted: false,
     solo: false,
     volume: 100,
@@ -1970,19 +2131,46 @@ const tracks = ref([
     clips: [
       {
         id: 1,
-        name: '片段 1',
+        name: '大家好，欢迎来到今天的播客节目',
         start: 0,
-        end: 1200,
-        color: 'bg-gradient-to-r from-blue-500/80 to-blue-400/80 border-blue-400',
+        end: 7.5,
+        color: 'bg-gradient-to-r from-[#6366F1]/80 to-[#818CF8]/80 border-[#818CF8]',
         fadeIn: true,
         fadeOut: false
       },
       {
         id: 2,
-        name: '片段 2',
-        start: 1212,
-        end: 3600,
-        color: 'bg-gradient-to-r from-blue-500/80 to-blue-400/80 border-blue-400',
+        name: '没错，比如 PodPal 平台',
+        start: 16,
+        end: 24,
+        color: 'bg-gradient-to-r from-[#6366F1]/80 to-[#818CF8]/80 border-[#818CF8]',
+        fadeIn: false,
+        fadeOut: false
+      },
+      {
+        id: 3,
+        name: '这种个性化的处理方式',
+        start: 32.5,
+        end: 40,
+        color: 'bg-gradient-to-r from-[#6366F1]/80 to-[#818CF8]/80 border-[#818CF8]',
+        fadeIn: false,
+        fadeOut: false
+      },
+      {
+        id: 4,
+        name: '说得太好了。其实，创作的本质',
+        start: 47.5,
+        end: 55,
+        color: 'bg-gradient-to-r from-[#6366F1]/80 to-[#818CF8]/80 border-[#818CF8]',
+        fadeIn: false,
+        fadeOut: false
+      },
+      {
+        id: 5,
+        name: '这种理念非常契合我们产品的初衷',
+        start: 62.5,
+        end: 70,
+        color: 'bg-gradient-to-r from-[#6366F1]/80 to-[#818CF8]/80 border-[#818CF8]',
         fadeIn: false,
         fadeOut: false
       }
@@ -1992,7 +2180,7 @@ const tracks = ref([
     id: 2,
     name: '背景音乐',
     type: '音频',
-    color: 'bg-orange-500',
+    color: 'bg-[#F59E0B]',
     muted: false,
     solo: false,
     volume: 60,
@@ -2005,8 +2193,83 @@ const tracks = ref([
         id: 3,
         name: 'BGM',
         start: 0,
-        end: 3600,
-        color: 'bg-gradient-to-r from-orange-500/80 to-orange-400/80 border-orange-400',
+        end: 1800,
+        color: 'bg-gradient-to-r from-[#F59E0B]/80 to-[#FBBF24]/80 border-[#FBBF24]',
+        fadeIn: true,
+        fadeOut: true
+      }
+    ]
+  },
+  {
+    id: 3,
+    name: '嘉宾声 B',
+    type: '音频',
+    color: 'bg-[#10B981]',
+    muted: false,
+    solo: false,
+    volume: 90,
+    pan: 0,
+    collapsed: false,
+    locked: false,
+    recording: false,
+    clips: [
+      {
+        id: 301,
+        name: '是的，这确实是一个很有趣的话题',
+        start: 7.5,
+        end: 16,
+        color: 'bg-gradient-to-r from-[#10B981]/80 to-[#34D399]/80 border-[#34D399]',
+        fadeIn: true,
+        fadeOut: true
+      },
+      {
+        id: 302,
+        name: '而且它它它还能够根据不同的播客类型',
+        start: 24,
+        end: 32.5,
+        color: 'bg-gradient-to-r from-[#10B981]/80 to-[#34D399]/80 border-[#34D399]',
+        fadeIn: false,
+        fadeOut: false
+      },
+      {
+        id: 303,
+        name: '我觉得最核心的优势在于',
+        start: 40,
+        end: 47.5,
+        color: 'bg-gradient-to-r from-[#10B981]/80 to-[#34D399]/80 border-[#34D399]',
+        fadeIn: false,
+        fadeOut: false
+      },
+      {
+        id: 304,
+        name: '没错，我们不应该为了追求完美',
+        start: 55,
+        end: 62.5,
+        color: 'bg-gradient-to-r from-[#10B981]/80 to-[#34D399]/80 border-[#34D399]',
+        fadeIn: false,
+        fadeOut: false
+      }
+    ]
+  },
+  {
+    id: 4,
+    name: '片头/片尾',
+    type: '音频',
+    color: 'bg-[#EC4899]',
+    muted: false,
+    solo: false,
+    volume: 80,
+    pan: 0,
+    collapsed: false,
+    locked: false,
+    recording: false,
+    clips: [
+      {
+        id: 401,
+        name: 'Intro',
+        start: 0,
+        end: 5,
+        color: 'bg-gradient-to-r from-[#EC4899]/80 to-[#F472B6]/80 border-[#F472B6]',
         fadeIn: true,
         fadeOut: true
       }
@@ -2147,33 +2410,57 @@ const echoRemovalEnabled = ref(false)
 const mockTranscript = ref([
   {
     startTime: 0,
-    endTime: 15,
+    endTime: 7.5,
     speaker: 'A',
-    text: '大家好，欢迎来到今天的播客节目。今天我们要聊的话题是关于人工智能在创作领域的应用。'
+    text: '大家好，欢迎来到今天的播客节目。那个，今天我们要聊的话题是关于人工智能在创作领域的应用。'
   },
   {
-    startTime: 15,
-    endTime: 32,
+    startTime: 7.5,
+    endTime: 16,
     speaker: 'B', 
-    text: '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。'
+    text: '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。嗯，比如自动去除口癖。'
   },
   {
-    startTime: 32,
-    endTime: 48,
+    startTime: 16,
+    endTime: 24,
     speaker: 'A',
-    text: '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。'
+    text: '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。其实，它还能识别口吃。'
   },
   {
-    startTime: 48,
-    endTime: 65,
+    startTime: 24,
+    endTime: 32.5,
     speaker: 'B',
-    text: '而且它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。'
+    text: '而且它它它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。你知道，这很有用。'
   },
   {
-    startTime: 65,
-    endTime: 80,
+    startTime: 32.5,
+    endTime: 40,
     speaker: 'A',
-    text: '这种个性化的处理方式确实很智能。那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
+    text: '这种个性化的处理方式确实很智能。怎么说呢，那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
+  },
+  {
+    startTime: 40,
+    endTime: 47.5,
+    speaker: 'B',
+    text: '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中解放出来。这就是播客创作的未来，让技术服务于创意。'
+  },
+  {
+    startTime: 47.5,
+    endTime: 55,
+    speaker: 'A',
+    text: '说得太好了。其实，创作的本质在于真实性的表达，这才是真正能打动听众的关键所在。'
+  },
+  {
+    startTime: 55,
+    endTime: 62.5,
+    speaker: 'B',
+    text: '没错，我们不应该为了追求完美而牺牲了内容的自然流动。技术的进步应当是无感的，让听众更专注于内容本身。'
+  },
+  {
+    startTime: 62.5,
+    endTime: 70,
+    speaker: 'A',
+    text: '这种理念非常契合我们产品的初衷。怎么说呢，技术只是工具，创意才是播客的灵魂所在。'
   }
 ])
 
@@ -2211,19 +2498,19 @@ const startTranscription = async () => {
       startTime: lastEnd + 0,
       endTime: lastEnd + 12,
       speaker: 'A',
-      text: '继续刚才的话题，我们来结合一个实际的剪辑案例，看看如何提升听感。'
+      text: '继续刚才的话题，我们来结合一个实际的剪辑案例，那个，看看如何提升听感。'
     },
     {
       startTime: lastEnd + 12,
       endTime: lastEnd + 27,
       speaker: 'B',
-      text: '首先，去除口癖会让信息更凝练，比如把“就是说、然后呢、那个”等词清理掉。'
+      text: '首先，去除口癖会让信息更凝练，比如把“就是说、然后呢、那个那个”等词清理掉。'
     },
     {
       startTime: lastEnd + 27,
       endTime: lastEnd + 41,
       speaker: 'A',
-      text: '其次，补充过渡句可以减少语义跳跃，让听众更容易跟上思路。'
+      text: '其次，补充过渡句可以减少语义跳跃，让让让听众更容易跟上思路。'
     }
   ]
 
@@ -2259,6 +2546,16 @@ const toggleGoldenSentence = (s) => {
   }
 }
 
+// 分发平台映射
+const platformNames = {
+  weixin: '微信听书',
+  douyin: '抖音',
+  qq: 'QQ 音乐',
+  xiaohongshu: '小红书',
+  apple: 'Apple 播客',
+  xiaoyuzhou: '小宇宙'
+}
+
 // 分发平台选择
 const selectedPlatforms = ref([])
 const togglePlatform = (platform) => {
@@ -2278,40 +2575,143 @@ const assets = ref([
 ])
 
 // 工具栏 Tabs
-const activeToolTab = ref('edit')
+const hasUploaded = ref(false)
+const activeToolTab = ref('upload')
 const toolTabs = [
-  { id: 'edit', name: '智能剪辑' },
-  { id: 'enhance', name: '内容增值' },
-  { id: 'export', name: '导出分发' }
+  { 
+    id: 'upload', 
+    name: '上传素材', 
+    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>` 
+  },
+  { 
+    id: 'edit', 
+    name: '智能剪辑', 
+    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" /></svg>` 
+  },
+  { 
+    id: 'enhance', 
+    name: '内容增值', 
+    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" /></svg>` 
+  },
+  { 
+    id: 'export', 
+    name: '导出分发', 
+    icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>` 
+  }
 ]
+const handleTabClick = (tab) => {
+  if (tab.id !== 'upload' && !hasUploaded.value) {
+    activeToolTab.value = 'upload'
+    return
+  }
+  activeToolTab.value = tab.id
+}
 
 // 顶部步骤进度
 const stepIndex = computed(() => toolTabs.findIndex(t => t.id === activeToolTab.value))
-const tabRefs = ref([])
-const stepsBar = ref(null)
-const stepPositions = ref([])
-const setTabRef = (el, i) => {
-  if (el) tabRefs.value[i] = el
-}
-const measureSteps = () => {
-  const bar = stepsBar.value
-  if (!bar) return
-  const barRect = bar.getBoundingClientRect()
-  stepPositions.value = tabRefs.value.map(btn => {
-    if (!btn) return 0
-    const rect = btn.getBoundingClientRect()
-    const center = rect.left + rect.width / 2
-    const pct = ((center - barRect.left) / barRect.width) * 100
-    return Math.max(0, Math.min(100, pct))
-  })
-}
-const progressWidthPercent = computed(() => {
-  const idx = stepIndex.value
-  return idx >= 0 ? (stepPositions.value[idx] || 0) : 0
+const progressHeightPercent = computed(() => {
+  return (stepIndex.value / (toolTabs.length - 1)) * 100
 })
 
 const showLinkModal = ref(false)
 const fileInput = ref(null)
+const inlineFileInput = ref(null)
+const inlineUploading = ref(false)
+const inlineProgress = ref(0)
+const inlineFilename = ref('')
+const triggerInlineUpload = () => inlineFileInput.value?.click()
+
+const handleAssetDragStart = (e, asset) => {
+  e.dataTransfer.setData('assetId', asset.id)
+  e.dataTransfer.effectAllowed = 'copy'
+}
+
+const handleInlineDrop = async (e) => {
+  e.preventDefault()
+  
+  // 检查是否是从外部拖入的文件
+  const files = e.dataTransfer.files
+  if (files && files.length > 0) {
+    const f = files[0]
+    inlineFilename.value = f.name
+    inlineUploading.value = true
+    inlineProgress.value = 0
+    for (let i = 0; i <= 100; i += 10) {
+      await new Promise(r => setTimeout(r, 150))
+      inlineProgress.value = i
+    }
+    assets.value.unshift({
+      id: Date.now(),
+      name: f.name,
+      type: f.type.startsWith('video') ? 'video' : 'audio',
+      duration: '00:00',
+      format: f.name.split('.').pop().toUpperCase()
+    })
+    hasUploaded.value = true
+    inlineUploading.value = false
+    activeToolTab.value = 'edit'
+    return
+  }
+  
+  // 检查是否是从左侧素材库拖入的素材
+  const assetId = e.dataTransfer.getData('assetId')
+  if (assetId) {
+    const asset = assets.value.find(a => a.id == assetId)
+    if (asset) {
+      inlineUploading.value = true
+      inlineFilename.value = asset.name
+      inlineProgress.value = 0
+      for (let i = 0; i <= 100; i += 10) {
+        await new Promise(r => setTimeout(r, 80))
+        inlineProgress.value = i
+      }
+      hasUploaded.value = true
+      inlineUploading.value = false
+      activeToolTab.value = 'edit'
+    }
+  }
+}
+
+const handleInlineSelect = async (e) => {
+  const f = e.target.files?.[0]
+  if (!f) return
+  inlineFilename.value = f.name
+  inlineUploading.value = true
+  inlineProgress.value = 0
+  for (let i = 0; i <= 100; i += 10) {
+    await new Promise(r => setTimeout(r, 150))
+    inlineProgress.value = i
+  }
+  assets.value.unshift({
+    id: Date.now(),
+    name: f.name,
+    type: f.type.startsWith('video') ? 'video' : 'audio',
+    duration: '00:00',
+    format: f.name.split('.').pop().toUpperCase()
+  })
+  hasUploaded.value = true
+  inlineUploading.value = false
+  activeToolTab.value = 'edit'
+}
+const useSampleAsset = async () => {
+  inlineUploading.value = true
+  inlineFilename.value = '示例播客音频.mp3'
+  inlineProgress.value = 0
+  for (let i = 0; i <= 100; i += 10) {
+    await new Promise(r => setTimeout(r, 120))
+    inlineProgress.value = i
+  }
+  assets.value.unshift({
+    id: Date.now(),
+    name: '示例播客音频.mp3',
+    type: 'audio',
+    duration: '10:00',
+    format: 'MP3'
+  })
+  hasUploaded.value = true
+  inlineUploading.value = false
+  activeToolTab.value = 'edit'
+}
 
 // Methods
 const formatTime = (seconds) => {
@@ -2627,6 +3027,13 @@ const toggleTrackLock = (trackId) => {
   }
 }
 
+const deleteTrack = (trackId) => {
+  const index = tracks.value.findIndex(t => t.id === trackId)
+  if (index !== -1) {
+    tracks.value.splice(index, 1)
+  }
+}
+
 const toggleRecord = (trackId) => {
   const track = tracks.value.find(t => t.id === trackId)
   if (track) {
@@ -2714,6 +3121,65 @@ const addTrack = () => {
 const selectTrack = (trackId) => {
   selectedTrackId.value = trackId
   selectedClipId.value = null
+  
+  // 查找该轨道对应的所有说话人片段
+  const track = tracks.value.find(t => t.id === trackId)
+  if (!track) {
+    highlightedTranscriptIndices.value = []
+    return
+  }
+
+  const range = []
+  // 根据轨道名称映射说话人
+  let speaker = ''
+  if (track.name.includes('A')) speaker = 'A'
+  else if (track.name.includes('B')) speaker = 'B'
+  else if (track.name.includes('AI')) speaker = 'AI'
+
+  if (speaker) {
+    mockTranscript.value.forEach((seg, idx) => {
+      if (seg.speaker === speaker) {
+        range.push(idx)
+      }
+    })
+  }
+  highlightedTranscriptIndices.value = range
+  
+  // 滚动到该轨道的第一条文字稿
+  if (range.length > 0) {
+    scrollToSegment(range[0])
+  }
+}
+
+const highlightedTranscriptIndices = ref([])
+
+const isSegmentHighlighted = (index) => {
+  return highlightedTranscriptIndices.value.includes(index)
+}
+
+const scrollToSegment = (index) => {
+  const el = segmentRefs.value[index]
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+}
+
+const selectClip = (clip) => {
+  selectedClipId.value = clip.id
+  // 查找该片段对应的文字稿索引范围
+  const range = []
+  mockTranscript.value.forEach((seg, idx) => {
+    // 如果文字稿的时间段与片段的时间段有交集，则视为相关
+    if (seg.startTime < clip.end && seg.endTime > clip.start) {
+      range.push(idx)
+    }
+  })
+  highlightedTranscriptIndices.value = range
+  
+  // 如果有高亮内容，自动滚动到第一条
+  if (range.length > 0) {
+    scrollToSegment(range[0])
+  }
 }
 
 const toggleMute = (trackId) => {
@@ -2805,7 +3271,7 @@ const addFadeOut = () => {
 
 // 拖拽和调整大小
 const startDragClip = (clip, event) => {
-  selectedClipId.value = clip.id
+  selectClip(clip)
   const startX = event.clientX
   const startLeft = (clip.start / audioDuration.value * timelineWidth.value)
   
@@ -2942,47 +3408,64 @@ const generateCutSuggestions = async () => {
   // 模拟API调用延迟
   await new Promise(resolve => setTimeout(resolve, 800))
   
-  // 模拟数据：根据选择的策略返回不同的剪辑建议
-      const allSamples = [
-        { id: 1, t: '00:12-00:14', type: 'filler', preview: '嗯...就是那个...我觉得吧 -> 我觉得吧 (已自动优化)', tag: '口癖' },
-        { id: 2, t: '01:03-01:05', type: 'stutter', preview: '我我我 认为这个方向 -> 我认为这个方向 (已自动优化)', tag: '口吃' },
-        { id: 3, t: '03:20-03:23', type: 'filler', preview: '然后呢...就是说...其实 -> 其实 (已自动优化)', tag: '口癖' },
-        { id: 4, t: '05:41-05:44', type: 'stutter', preview: '那那 那个问题是关键 -> 那个问题是关键 (已自动优化)', tag: '口吃' },
-        { id: 5, t: '07:15-07:18', type: 'filler', preview: '呃...你知道吧...就是 -> (已删除冗余)', tag: '口癖' },
-        { id: 6, t: '08:12-08:15', type: 'filler', preview: '怎么说呢...基本上... -> (已精简表达)', tag: '口癖' },
-        { id: 7, t: '09:30-09:33', type: 'stutter', preview: '这这 这个项目非常重要 -> 这个项目非常重要 (已自动优化)', tag: '口吃' }
-      ]
+  const suggestions = []
+  mockTranscript.value.forEach((segment, segmentIndex) => {
+    const tokens = parseSegmentText(segment.text)
+    
+    // 找出该片段中的口癖与口吃
+    const targetTokens = tokens.filter(t => {
+      if (cuttingStrategy.value === 'filler' && t.type === 'filler') return true
+      if (cuttingStrategy.value === 'stutter' && t.type === 'stutter') return true
+      if (cuttingStrategy.value === 'both' && (t.type === 'filler' || t.type === 'stutter')) return true
+      if (cuttingStrategy.value === 'all' && (t.type === 'filler' || t.type === 'stutter')) return true
+      return false
+    })
+
+    if (targetTokens.length > 0) {
+      // 生成预览文本：标注出要删除的部分
+      const previewHtml = tokens.map(t => {
+        const isTarget = targetTokens.some(target => target === t)
+        if (isTarget) {
+          return `<span class="text-red-400 line-through mx-0.5">${t.text}</span>`
+        }
+        return `<span>${t.text}</span>`
+      }).join('')
+
+      suggestions.push({
+        id: `sug-${segmentIndex}-${Date.now()}`,
+        segmentIndex,
+        label: `建议优化片段 ${formatTime(segment.startTime)}`,
+        previewHtml,
+        tag: targetTokens.some(t => t.type === 'stutter') ? '口吃' : '口癖',
+        targetTokenTexts: targetTokens.map(t => t.text)
+      })
+    }
+  })
   
-  let filtered = []
-  switch (cuttingStrategy.value) {
-    case 'filler':
-      // 只剪口癖
-      filtered = allSamples.filter(s => s.type === 'filler')
-      break
-    case 'stutter':
-      // 只剪口吃
-      filtered = allSamples.filter(s => s.type === 'stutter')
-      break
-    case 'both':
-      // 两者都剪
-      filtered = allSamples.filter(s => s.type === 'filler' || s.type === 'stutter')
-      break
-    case 'all':
-    default:
-      // 一键全剪（包含所有类型）
-      filtered = allSamples
-      break
-  }
-  
-  cutSuggestions.value = filtered.map(s => ({ 
-    id: s.id, 
-    label: `建议移除片段 ${s.t}`, 
-    preview: s.preview, 
-    tag: s.tag 
-  }))
-  
-  buildSamplePreview()
+  cutSuggestions.value = suggestions
   isGenerating.value = false
+}
+
+// 应用剪辑建议
+const applyCutSuggestion = (suggestion) => {
+  const segment = mockTranscript.value[suggestion.segmentIndex]
+  if (!segment) return
+
+  // 对文字稿进行处理：将建议删除的 token 包装在 ~~ 中（留痕模式）
+  const tokens = parseSegmentText(segment.text)
+  const updatedText = tokens.map(t => {
+    // 简单的文本匹配，在实际项目中可能需要更精确的索引匹配
+    if (suggestion.targetTokenTexts.includes(t.text) && (t.type === 'filler' || t.type === 'stutter')) {
+      return `~~${t.text}~~`
+    }
+    if (t.type === 'deleted') return `~~${t.text}~~`
+    return t.text
+  }).join('')
+
+  segment.text = (segment.text.startsWith('[TTS]') ? '[TTS]' : '') + updatedText
+  
+  // 从建议列表中移除
+  cutSuggestions.value = cutSuggestions.value.filter(s => s.id !== suggestion.id)
 }
 
 const buildSamplePreview = () => {
@@ -3129,33 +3612,32 @@ const extractGoldenSentences = async () => {
   isExtracting.value = true
   await new Promise(resolve => setTimeout(resolve, 1500))
   
-  goldenSentences.value = [
-    {
-      id: 1,
-      content: '职场焦虑主要来源于对未来的不确定性，以及工作压力带来的心理负担。',
-      startTime: 1250,
-      endTime: 1350,
-      viralPotential: 92,
-      logicScore: 95
-    },
-    {
-      id: 2,
-      content: '应对职场焦虑，我建议可以从时间管理、心理调节和职业规划三个方面入手。',
-      startTime: 3420,
-      endTime: 3520,
-      viralPotential: 88,
-      logicScore: 90
-    },
-    {
-      id: 3,
-      content: '职场焦虑的根源其实很复杂，既有外部环境因素，也有个人心理因素，需要综合看待。',
-      startTime: 5670,
-      endTime: 5780,
-      viralPotential: 85,
-      logicScore: 88
-    }
-  ]
+  // 模拟 AI 分析逻辑：从文字稿中筛选出具有“金句”特质的句子
+  // 这里我们根据句子长度和一些关键词（如“本质”、“未来”、“关键”、“灵魂”）进行简单模拟
+  const keywords = ['本质', '未来', '关键', '灵魂', '解放', '核心', '流动']
+  const results = []
   
+  mockTranscript.value.forEach((segment, index) => {
+    // 排除包含过多口癖或口吃的片段
+    const tokens = parseSegmentText(segment.text)
+    const hasTooManyFillers = tokens.filter(t => t.type === 'filler' || t.type === 'stutter').length > 2
+    
+    if (!hasTooManyFillers && segment.text.length > 20) {
+      const hasKeyword = keywords.some(k => segment.text.includes(k))
+      if (hasKeyword) {
+        results.push({
+          id: `golden-${index}-${Date.now()}`,
+          content: segment.text.replace(/~~.*?~~/g, '').replace(/\[TTS\]/g, ''), // 移除标注和 TTS 前缀
+          startTime: segment.startTime,
+          endTime: segment.endTime,
+          viralPotential: Math.floor(Math.random() * 15) + 80, // 80-95
+          logicScore: Math.floor(Math.random() * 10) + 85 // 85-95
+        })
+      }
+    }
+  })
+  
+  goldenSentences.value = results.slice(0, 5) // 最多展示 5 条
   isExtracting.value = false
 }
 
@@ -3207,9 +3689,14 @@ onMounted(async () => {
   updateTimelineWidth()
   // 载入示例金句，便于选择
   loadSampleGoldenSentences()
-  // 测量步骤节点位置并监听窗口变化
-  setTimeout(measureSteps, 0)
-  window.addEventListener('resize', measureSteps)
+  // 同步右侧面板高度与中间剪辑区可视高度
+  const measureCenter = () => {
+    centerPanelHeight.value = timelineContentHeightPx.value
+  }
+  setTimeout(measureCenter, 0)
+  window.addEventListener('resize', measureCenter)
+  const ro = new ResizeObserver(() => measureCenter())
+  if (editorColumn.value) ro.observe(editorColumn.value)
   
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
