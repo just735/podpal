@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'dart:async';
 
 class EditStep extends StatefulWidget {
@@ -108,7 +109,8 @@ class _EditStepState extends State<EditStep> {
 
   List<Map<String, dynamic>> _parseTranscriptToTokens(String text) {
     final List<Map<String, dynamic>> tokens = [];
-    final wordPattern = RegExp(r'(\s+|[，。！？、；：,.!?…—-])');
+    // 仅按空白字符拆分，保留标点符号在单词内，避免换行问题
+    final wordPattern = RegExp(r'(\s+)');
     int lastIndex = 0;
     
     for (final match in wordPattern.allMatches(text)) {
@@ -405,6 +407,62 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
+  List<Map<String, dynamic>> _diffText(String oldText, String newText) {
+    final List<Map<String, dynamic>> tokens = [];
+    
+    // 简单的字符级差异对比（实际开发中建议使用 diff_match_patch 库）
+    // 这里为了演示实现一个基础版本
+    int i = 0, j = 0;
+    while (i < oldText.length || j < newText.length) {
+      if (i < oldText.length && j < newText.length && oldText[i] == newText[j]) {
+        // 相同字符
+        tokens.add({'type': 'text', 'text': oldText[i]});
+        i++;
+        j++;
+      } else {
+        // 查找下一个匹配点以确定是删除还是新增
+        int nextI = i;
+        int nextJ = j;
+        bool found = false;
+        
+        // 尝试寻找后续匹配
+        for (int lookAhead = 1; lookAhead < 10; lookAhead++) {
+          if (i + lookAhead < oldText.length && j < newText.length && oldText[i + lookAhead] == newText[j]) {
+            // 说明 i 到 i+lookAhead 之间是被删掉的
+            for (int k = 0; k < lookAhead; k++) {
+              tokens.add({'type': 'deleted', 'text': oldText[i + k]});
+            }
+            i += lookAhead;
+            found = true;
+            break;
+          }
+          if (j + lookAhead < newText.length && i < oldText.length && newText[j + lookAhead] == oldText[i]) {
+            // 说明 j 到 j+lookAhead 之间是新增的
+            for (int k = 0; k < lookAhead; k++) {
+              tokens.add({'type': 'added', 'text': newText[j + k]});
+            }
+            j += lookAhead;
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          // 如果没找到匹配，视为替换（先删后加）
+          if (i < oldText.length) {
+            tokens.add({'type': 'deleted', 'text': oldText[i]});
+            i++;
+          }
+          if (j < newText.length) {
+            tokens.add({'type': 'added', 'text': newText[j]});
+            j++;
+          }
+        }
+      }
+    }
+    return tokens;
+  }
+
   void _editSegmentText(int itemIndex) {
     final item = _transcript[itemIndex];
     final tokens = (item['tokens'] as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -436,9 +494,9 @@ class _EditStepState extends State<EditStep> {
               final newText = controller.text;
               if (newText != oldText) {
                 setState(() {
-                  item['tokens'] = _parseTranscriptToTokens(newText);
-                  item['text'] = newText;
+                  // 手动编辑时，不再使用原有的 token 解析，而是生成带有差异信息的 token 列表
                   if (isOriginal) {
+                    item['tokens'] = _diffText(oldText, newText);
                     item['editTrace'] = {
                       'oldText': oldText,
                       'newText': newText,
@@ -446,8 +504,10 @@ class _EditStepState extends State<EditStep> {
                       'timestamp': DateTime.now().toString(),
                     };
                   } else {
+                    item['tokens'] = _parseTranscriptToTokens(newText);
                     item['editTrace'] = null;
                   }
+                  item['text'] = newText;
                   _onSearch(_searchQuery);
                 });
                 _saveHistory();
@@ -1747,79 +1807,99 @@ class _EditStepState extends State<EditStep> {
               ],
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 0,
-              runSpacing: 4,
-              children: List.generate(tokens.length, (tokenIndex) {
-                final token = tokens[tokenIndex];
-                final type = token['type'];
-                final text = token['text'];
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.5),
+                children: [
+                  ...List.generate(tokens.length, (tokenIndex) {
+                    final token = tokens[tokenIndex];
+                    final type = token['type'];
+                    final text = token['text'];
 
-                if (type == 'space') {
-                  return Text(text, style: const TextStyle(fontSize: 16));
-                }
+                    if (type == 'space') {
+                      return TextSpan(text: text);
+                    }
 
-                Color textColor = Colors.black87;
-                Color bgColor = Colors.transparent;
-                TextDecoration decoration = TextDecoration.none;
+                    Color textColor = Colors.black87;
+                    Color bgColor = Colors.transparent;
+                    TextDecoration decoration = TextDecoration.none;
 
-                if (type == 'filler') {
-                  textColor = Colors.orange[700]!;
-                  bgColor = Colors.orange[50]!;
-                } else if (type == 'stutter') {
-                  textColor = Colors.purple[700]!;
-                  bgColor = Colors.purple[50]!;
-                } else if (type == 'deleted') {
-                  textColor = Colors.grey[400]!;
-                  decoration = TextDecoration.lineThrough;
-                } else if (type == 'modified') {
-                  textColor = Colors.blue[700]!;
-                  bgColor = Colors.blue[50]!;
-                }
+                    if (type == 'filler') {
+                      textColor = Colors.orange[700]!;
+                      bgColor = Colors.orange[50]!;
+                    } else if (type == 'stutter') {
+                      textColor = Colors.purple[700]!;
+                      bgColor = Colors.purple[50]!;
+                    } else if (type == 'deleted') {
+                      textColor = Colors.grey[400]!;
+                      decoration = TextDecoration.lineThrough;
+                    } else if (type == 'added') {
+                      textColor = Colors.blue[700]!;
+                      bgColor = Colors.blue[50]!;
+                    } else if (type == 'modified') {
+                      textColor = Colors.blue[700]!;
+                      bgColor = Colors.blue[50]!;
+                    }
 
-                return GestureDetector(
-                  onTap: () => _toggleTokenDelete(itemIndex, tokenIndex),
-                  onLongPress: allowTokenEdit ? () => _editTokenText(itemIndex, tokenIndex) : null,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: bgColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                    child: type == 'modified'
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                token['oldText'],
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[400],
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
-                              const Icon(Icons.arrow_right, size: 16, color: Colors.blue),
-                              Text(
-                                text,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: textColor,
-                                  decoration: decoration,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            text,
+                    // 如果是新增的文本（来自手动编辑差异对比）
+                    if (type == 'added') {
+                      return TextSpan(
+                        text: text,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: textColor,
+                          backgroundColor: bgColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    }
+
+                    // 修改过的单词（长按修改）
+                    if (type == 'modified') {
+                      return TextSpan(
+                        children: [
+                          TextSpan(
+                            text: token['oldText'] ?? '',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[400],
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Icon(Icons.arrow_right, size: 16, color: Colors.blue[300]),
+                          ),
+                          TextSpan(
+                            text: text,
+                            recognizer: allowTokenEdit ? (LongPressGestureRecognizer()..onLongPress = () => _editTokenText(itemIndex, tokenIndex)) : null,
                             style: TextStyle(
                               fontSize: 16,
                               color: textColor,
+                              backgroundColor: bgColor != Colors.transparent ? bgColor : null,
                               decoration: decoration,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                  ),
-                );
-              }),
+                        ],
+                      );
+                    }
+
+                    // 普通单词、语气词、重复词
+                    return TextSpan(
+                      text: text,
+                      recognizer: allowTokenEdit ? (LongPressGestureRecognizer()..onLongPress = () => _editTokenText(itemIndex, tokenIndex)) : null,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: textColor,
+                        backgroundColor: bgColor != Colors.transparent ? bgColor : null,
+                        decoration: decoration,
+                        fontWeight: (type == 'filler' || type == 'stutter') ? FontWeight.w500 : FontWeight.normal,
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
           ],
         ),
