@@ -1,8 +1,41 @@
 import 'package:flutter/material.dart';
 
-class UploadStep extends StatelessWidget {
+class UploadStep extends StatefulWidget {
   final VoidCallback onNext;
   const UploadStep({super.key, required this.onNext});
+
+  @override
+  State<UploadStep> createState() => _UploadStepState();
+}
+
+class _UploadStepState extends State<UploadStep> {
+  bool _isUploading = false;
+  int? _uploadingIndex;
+
+  void _handleMaterialClick(int index, String fileName) async {
+    if (_isUploading) return;
+
+    setState(() {
+      _isUploading = true;
+      _uploadingIndex = index;
+    });
+
+    // 模拟上传延迟
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() {
+        _isUploading = false;
+        _uploadingIndex = null;
+      });
+
+      // 延迟一小会儿后跳转到下一步
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        widget.onNext();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +47,7 @@ class UploadStep extends StatelessWidget {
           const SizedBox(height: 40),
           // 开始创作按钮区域
           GestureDetector(
-            onTap: onNext,
+            onTap: widget.onNext,
             child: Container(
               width: double.infinity,
               height: 200,
@@ -55,8 +88,13 @@ class UploadStep extends StatelessWidget {
           const SizedBox(height: 40),
           // 素材库区域
           const Text(
-            '素材库',
+            '从素材库选择',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '点击素材可直接上传并开始剪辑',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -69,28 +107,54 @@ class UploadStep extends StatelessWidget {
               ),
               itemCount: 4,
               itemBuilder: (context, index) {
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.audio_file, color: Colors.blue),
-                      const Spacer(),
-                      Text(
-                        '播客素材 ${index + 1}.mp3',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                final fileName = '播客素材 ${index + 1}.mp3';
+                final isCurrentUploading = _uploadingIndex == index;
+
+                return GestureDetector(
+                  onTap: () => _handleMaterialClick(index, fileName),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isCurrentUploading ? Colors.pink[50] : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isCurrentUploading ? const Color(0xFFFF6B9D) : Colors.transparent,
+                        width: 1,
                       ),
-                      Text(
-                        '12.5 MB',
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                      ),
-                    ],
+                    ),
+                    child: Stack(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.audio_file, 
+                              color: isCurrentUploading ? const Color(0xFFFF6B9D) : Colors.blue,
+                            ),
+                            const Spacer(),
+                            Text(
+                              fileName,
+                              style: TextStyle(
+                                fontSize: 12, 
+                                fontWeight: FontWeight.w500,
+                                color: isCurrentUploading ? const Color(0xFFFF6B9D) : Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '12.5 MB',
+                              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                        if (isCurrentUploading)
+                          const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                      ],
+                    ),
                   ),
                 );
               },

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'views/start_page.dart';
 import 'views/main_screen.dart';
+import 'views/login_page.dart';
+import 'views/register_page.dart';
+import 'views/editor_page.dart';
 
 void main() {
   runApp(const PodPalApp());
@@ -35,7 +38,10 @@ class PodPalApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const StartPage(),
+        '/login': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
         '/main': (context) => const MainScreen(),
+        '/editor': (context) => const EditorPage(),
       },
     );
   }

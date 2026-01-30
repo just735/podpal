@@ -44,7 +44,7 @@ class StartPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/main');
+                  Navigator.pushNamed(context, '/login');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -56,14 +56,16 @@ class StartPage extends StatelessWidget {
                   elevation: 0,
                 ),
                 child: const Text(
-                  'Login',
+                  '立即登录',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushNamed(context, '/register');
+              },
               child: Text(
                 '还没有账号？立即注册',
                 style: TextStyle(color: Colors.white.withOpacity(0.8)),

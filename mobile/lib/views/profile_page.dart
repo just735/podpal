@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'membership_page.dart';
+import 'cloud_library_page.dart';
+import 'edit_history_page.dart';
+import 'settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -6,9 +10,12 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('个人中心'),
+        backgroundColor: Colors.white,
+        title: const Text('个人中心', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -24,10 +31,6 @@ class ProfilePage extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFFF6B9D), width: 3),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://placeholder.com/user-avatar'),
-                        fit: BoxFit.cover,
-                      ),
                     ),
                     child: const Icon(Icons.person, size: 60, color: Color(0xFFFF6B9D)),
                   ),
@@ -66,10 +69,13 @@ class ProfilePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  _buildMenuItem(Icons.workspace_premium, '我的会员', Colors.amber),
-                  _buildMenuItem(Icons.cloud_outlined, '云端素材库', Colors.blue),
-                  _buildMenuItem(Icons.history, '剪辑历史', Colors.orange),
-                  _buildMenuItem(Icons.settings_outlined, '设置', Colors.grey),
+                  _buildMenuItem(context, Icons.workspace_premium, '我的会员', Colors.amber, const MembershipPage()),
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  _buildMenuItem(context, Icons.cloud_outlined, '云端素材库', Colors.blue, const CloudLibraryPage()),
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  _buildMenuItem(context, Icons.history, '剪辑历史', Colors.orange, const EditHistoryPage()),
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  _buildMenuItem(context, Icons.settings_outlined, '设置', Colors.grey, const SettingsPage()),
                 ],
               ),
             ),
@@ -109,13 +115,18 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, Color color) {
+  Widget _buildMenuItem(BuildContext context, IconData icon, String title, Color color, Widget destination) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: color),
-      title: Text(title),
+      title: Text(title, style: const TextStyle(fontSize: 16)),
       trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => destination),
+        );
+      },
     );
   }
 }
