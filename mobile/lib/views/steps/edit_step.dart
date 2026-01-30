@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 class EditStep extends StatefulWidget {
   final VoidCallback onNext;
@@ -148,6 +149,9 @@ class _EditStepState extends State<EditStep> {
   List<Map<String, dynamic>> _filteredTranscript = [];
   String _searchQuery = '';
   bool _isSearching = false;
+  int _selectedStrategy = 0; // 0: 全剪辑, 1: 口癖, 2: 口吃
+  bool _isTranscribing = false;
+  Timer? _transcriptionTimer;
   final List<List<Map<String, dynamic>>> _history = [];
   int _historyIndex = -1;
   final ScrollController _transcriptScrollController = ScrollController();
@@ -212,19 +216,29 @@ class _EditStepState extends State<EditStep> {
     setState(() {
       for (var item in _transcript) {
         final tokens = (item['tokens'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        final oldText = _tokensToText(tokens);
+        bool modified = false;
+        
         for (var token in tokens) {
           if (token['type'] == 'filler' || token['type'] == 'stutter') {
             token['type'] = 'deleted';
+            modified = true;
           }
+        }
+        
+        if (modified) {
+          item['text'] = _tokensToText(tokens);
+          item['editTrace'] = {
+            'oldText': oldText,
+            'newText': item['text'],
+            'type': 'AI 自动优化 (去除口癖/重复)',
+            'timestamp': DateTime.now().toString(),
+          };
         }
       }
       _onSearch(_searchQuery);
     });
     _saveHistory();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('AI 已自动识别并处理冗余词汇')),
-    );
   }
 
   void _showKeywords() {
@@ -399,9 +413,6 @@ class _EditStepState extends State<EditStep> {
     final bool confirmed = item['confirmed'] == true;
 
     if (isTts && !confirmed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先确认加入该段补录')),
-      );
       return;
     }
 
@@ -428,7 +439,12 @@ class _EditStepState extends State<EditStep> {
                   item['tokens'] = _parseTranscriptToTokens(newText);
                   item['text'] = newText;
                   if (isOriginal) {
-                    item['editTrace'] = {'oldText': oldText, 'newText': newText};
+                    item['editTrace'] = {
+                      'oldText': oldText,
+                      'newText': newText,
+                      'type': '手动编辑修改',
+                      'timestamp': DateTime.now().toString(),
+                    };
                   } else {
                     item['editTrace'] = null;
                   }
@@ -456,9 +472,6 @@ class _EditStepState extends State<EditStep> {
       item['tokens'] = _parseTranscriptToTokens(text);
     });
     _saveHistory();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('补录已确认，可继续编辑')),
-    );
   }
 
   void _deleteSegment(int itemIndex) {
@@ -467,9 +480,6 @@ class _EditStepState extends State<EditStep> {
       _onSearch(_searchQuery);
     });
     _saveHistory();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已删除该段文稿')),
-    );
   }
 
   void _scrollToSegment(int itemIndex) {
@@ -656,58 +666,138 @@ class _EditStepState extends State<EditStep> {
   }
 
   void _optimizeScript() {
+    int? selectedIndex;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('脚本优化', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                const Text('脚本优化', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 2.2,
+                  children: [
+                    _buildActionBtn(
+                      '去口语冗余', 
+                      '自动修正错别字、剔除口语化冗余', 
+                      () async {
+                        setModalState(() => selectedIndex = 0);
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        if (mounted) Navigator.pop(context);
+                        _optimizeAI();
+                      },
+                      isSelected: selectedIndex == 0,
+                    ),
+                    _buildActionBtn(
+                      '逻辑纠错', 
+                      '检测逻辑断层，推荐衔接句', 
+                      () async {
+                        setModalState(() => selectedIndex = 1);
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        _applyOptimization('logic');
+                      },
+                      isSelected: selectedIndex == 1,
+                    ),
+                    _buildActionBtn(
+                      '一键精华提取', 
+                      '提取核心片段生成精华版', 
+                      () async {
+                        setModalState(() => selectedIndex = 2);
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        _applyOptimization('highlights');
+                      },
+                      isSelected: selectedIndex == 2,
+                    ),
+                    _buildActionBtn(
+                      'BGM智能匹配', 
+                      '根据内容推荐背景音乐', 
+                      () async {
+                        setModalState(() => selectedIndex = 3);
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        _applyOptimization('bgm');
+                      },
+                      isSelected: selectedIndex == 3,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
               ],
             ),
-            const SizedBox(height: 20),
-            GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2.5,
-              children: [
-                _buildActionBtn('去口语冗余', '自动修正错别字、剔除口语化冗余', () => _applyOptimization('filler')),
-                _buildActionBtn('逻辑纠错', '检测逻辑断层，推荐衔接句', () => _applyOptimization('logic')),
-                _buildActionBtn('一键精华提取', '提取核心片段生成精华版', () => _applyOptimization('highlights')),
-                _buildActionBtn('BGM智能匹配', '根据内容推荐背景音乐', () => _applyOptimization('bgm')),
-              ],
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
   void _applyOptimization(String type) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('已应用脚本优化: $type')),
-    );
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+    
+    setState(() {
+      if (type == 'logic') {
+        // Mock logic optimization: add a tip or insert a transition segment
+        final newItem = {
+          'speaker': 'AI',
+          'time': '32.00',
+          'text': '[建议补充过渡句] 此处语义跳跃明显，建议补充一句过渡说明。',
+          'isOriginal': false,
+          'isTts': true,
+          'confirmed': false,
+          'tokens': _parseTranscriptToTokens('[建议补充过渡句] 此处语义跳跃明显，建议补充一句过渡说明。'),
+          'editTrace': {
+            'oldText': '',
+            'newText': '逻辑优化建议',
+            'type': 'AI 逻辑纠错',
+            'timestamp': DateTime.now().toString(),
+          }
+        };
+        _transcript.insert(5, newItem); // Insert at a specific place
+      } else if (type == 'highlights') {
+        // Highlight segments with high scores (mock)
+      } else if (type == 'bgm') {
+        // Suggest BGM (mock)
+      }
+      _onSearch(_searchQuery);
+    });
+    _saveHistory();
   }
 
   void _generateVoice() {
@@ -818,90 +908,144 @@ class _EditStepState extends State<EditStep> {
     _onSearch(_searchQuery);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSegment(1));
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已插入 AI 生成文稿')),
-    );
   }
 
   void _aiSpecialCut() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.indigo,
-                    borderRadius: BorderRadius.circular(2),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.indigo,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                const Text('AI 专项剪辑', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildStrategyOption('AI 全剪辑', '一键全剪，处理所有冗余内容'),
-            _buildStrategyOption('AI 口癖剪辑', '只处理口癖（如：嗯、呃、这个等）'),
-            _buildStrategyOption('AI 口吃剪辑', '只处理口吃（如：重复字词、结巴等）'),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('正在生成剪辑建议...')),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6B9D),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('立即生成剪辑建议'),
+                  const SizedBox(width: 8),
+                  const Text('AI 专项剪辑', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              _buildStrategyOption(0, 'AI 全剪辑', '一键全剪，处理所有冗余内容', setModalState),
+              _buildStrategyOption(1, 'AI 口癖剪辑', '只处理口癖（如：嗯、呃、这个等）', setModalState),
+              _buildStrategyOption(2, 'AI 口吃剪辑', '只处理口吃（如：重复字词、结巴等）', setModalState),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _applySpecialCut();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B9D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('立即生成剪辑建议'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStrategyOption(String title, String desc) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.pink.withOpacity(0.1)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.radio_button_off, size: 20, color: Colors.pink),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                Text(desc, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
+  void _applySpecialCut() {
+    setState(() {
+      String typeLabel = '';
+      if (_selectedStrategy == 0) typeLabel = 'AI 全剪辑 (口癖+口吃)';
+      else if (_selectedStrategy == 1) typeLabel = 'AI 口癖剪辑';
+      else if (_selectedStrategy == 2) typeLabel = 'AI 口吃剪辑';
+
+      for (var item in _transcript) {
+        if (item['isOriginal'] != true) continue;
+        
+        final tokens = (item['tokens'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        final oldText = _tokensToText(tokens);
+        bool modified = false;
+        
+        for (var token in tokens) {
+          if (_selectedStrategy == 0) {
+            if (token['type'] == 'filler' || token['type'] == 'stutter') {
+              token['type'] = 'deleted';
+              modified = true;
+            }
+          } else if (_selectedStrategy == 1) {
+            if (token['type'] == 'filler') {
+              token['type'] = 'deleted';
+              modified = true;
+            }
+          } else if (_selectedStrategy == 2) {
+            if (token['type'] == 'stutter') {
+              token['type'] = 'deleted';
+              modified = true;
+            }
+          }
+        }
+        
+        if (modified) {
+          item['text'] = _tokensToText(tokens);
+          item['editTrace'] = {
+            'oldText': oldText,
+            'newText': item['text'],
+            'type': typeLabel,
+            'timestamp': DateTime.now().toString(),
+          };
+        }
+      }
+      _onSearch(_searchQuery);
+    });
+    _saveHistory();
+  }
+
+  Widget _buildStrategyOption(int index, String title, String desc, StateSetter setModalState) {
+    bool isSelected = _selectedStrategy == index;
+    return InkWell(
+      onTap: () {
+        setModalState(() {
+          _selectedStrategy = index;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.pink.withOpacity(0.05) : Colors.white,
+          border: Border.all(color: isSelected ? Colors.pink : Colors.pink.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, size: 20, color: Colors.pink),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  Text(desc, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1002,69 +1146,139 @@ class _EditStepState extends State<EditStep> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.purple,
-                    borderRadius: BorderRadius.circular(2),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.purple,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('语音转写与分析', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildToggleItem('说话人分离', true),
+              _buildToggleItem('智能情绪提取', false),
+              const SizedBox(height: 10),
+              const Text('转写语言', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: '自动识别',
+                    isExpanded: true,
+                    items: ['自动识别', '中文', 'English', '中英混合'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                    onChanged: (v) {},
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Text('语音转写与分析', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildToggleItem('说话人分离', true),
-            _buildToggleItem('智能情绪提取', false),
-            const SizedBox(height: 10),
-            const Text('转写语言', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: '自动识别',
-                  isExpanded: true,
-                  items: ['自动识别', '中文', 'English', '中英混合'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
-                  onChanged: (v) {},
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isTranscribing ? null : () {
+                    Navigator.pop(context);
+                    _startTranscription();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B9D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text(_isTranscribing ? '正在转写中...' : '开始转写'),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6B9D),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('开始转写'),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _startTranscription() {
+    if (_isTranscribing) return;
+    
+    setState(() {
+      _isTranscribing = true;
+    });
+
+    int count = 0;
+    final List<String> mockSentences = [
+      "大家好，欢迎收听本期播客。",
+      "今天我们邀请到了一位特别嘉宾，来聊聊 AI 时代的创作。",
+      "其实我觉得，技术的边界正在被不断拓宽。",
+      "没错，正如我们之前讨论的那样，效率与创意的平衡至关重要。"
+    ];
+
+    _transcriptionTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      if (count >= mockSentences.length) {
+        timer.cancel();
+        setState(() {
+          _isTranscribing = false;
+        });
+        return;
+      }
+
+      setState(() {
+        final text = mockSentences[count];
+        final newItem = {
+          'speaker': 'C',
+          'time': '111.00 - ${111.00 + (count + 1) * 5}.00',
+          'text': text,
+          'isOriginal': true, // Keep as original so we see history
+          'isTts': false,
+          'confirmed': true,
+          'tokens': _parseTranscriptToTokens(text),
+          'editTrace': {
+            'oldText': '(新转写内容)',
+            'newText': text,
+            'type': '语音转写 (Speaker C)',
+            'timestamp': DateTime.now().toString(),
+          }
+        };
+        _transcript.add(newItem);
+        _onSearch(_searchQuery);
+        _saveHistory(); // Save history for each new segment
+        
+        // Auto scroll to bottom
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_transcriptScrollController.hasClients) {
+            _transcriptScrollController.animateTo(
+              _transcriptScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      });
+      count++;
+    });
   }
 
   Widget _buildToggleItem(String title, bool value) {
@@ -1142,22 +1356,54 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
-  Widget _buildActionBtn(String title, String desc, VoidCallback onTap) {
+  Widget _buildActionBtn(String title, String desc, VoidCallback onTap, {bool isSelected = false}) {
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.pink.withOpacity(0.1)),
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? Colors.pink[50] : Colors.white,
+          border: Border.all(
+            color: isSelected ? Colors.pink : Colors.pink.withOpacity(0.1),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected ? [
+            BoxShadow(color: Colors.pink.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))
+          ] : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-            Text(desc, style: const TextStyle(fontSize: 9, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title, 
+                    style: TextStyle(
+                      fontSize: 14, 
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.pink : Colors.black87,
+                    )
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(Icons.check_circle, size: 16, color: Colors.pink),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc, 
+              style: TextStyle(
+                fontSize: 10, 
+                color: isSelected ? Colors.pink[300] : Colors.grey[600],
+              ), 
+              maxLines: 2, 
+              overflow: TextOverflow.ellipsis
+            ),
           ],
         ),
       ),
@@ -1404,35 +1650,67 @@ class _EditStepState extends State<EditStep> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isOriginal ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        isOriginal ? 'Speaker $speaker' : 'AI 生成',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isOriginal ? Colors.blue : Colors.pink,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isOriginal ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          isOriginal ? 'Speaker $speaker' : 'AI 生成',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isOriginal ? Colors.blue : Colors.pink,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      time,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[500],
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          time,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (editTrace != null && editTrace['type'] != null)
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.amber[50],
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.amber[200]!),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.auto_awesome, size: 10, color: Colors.amber[700]),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  editTrace['type'],
+                                  style: TextStyle(fontSize: 9, color: Colors.amber[800], fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     if (isTts && !confirmed)
                       TextButton.icon(
                         onPressed: () => _confirmTtsSegment(itemIndex),
@@ -1469,43 +1747,6 @@ class _EditStepState extends State<EditStep> {
               ],
             ),
             const SizedBox(height: 10),
-            if (editTrace != null && isOriginal) ...[
-              Container(
-                padding: const EdgeInsets.all(10),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.1)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.history, size: 12, color: Colors.blue[300]),
-                        const SizedBox(width: 4),
-                        Text('修改痕迹', style: TextStyle(fontSize: 10, color: Colors.blue[300], fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      editTrace['oldText'] ?? '',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[400],
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      editTrace['newText'] ?? '',
-                      style: TextStyle(fontSize: 13, color: Colors.blue[700], fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             Wrap(
               spacing: 0,
               runSpacing: 4,
