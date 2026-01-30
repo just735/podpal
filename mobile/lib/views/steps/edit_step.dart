@@ -15,6 +15,24 @@ class _EditStepState extends State<EditStep> {
   final List<String> _fillerWords = ['就是', '然后', '那个', '嗯', '啊', '你知道', '其实', '对吧', '可以说', '怎么说呢'];
   
   List<Map<String, dynamic>> _transcript = [];
+  List<Map<String, dynamic>> _voiceTasks = [
+    {
+      'id': '1',
+      'label': 'TTS 插入片段',
+      'note': '补充播客开场白，使用声线：智能男声',
+      'createdAt': '10:25',
+      'status': '已完成',
+      'inserted': true,
+    },
+    {
+      'id': '2',
+      'label': '声线克隆任务',
+      'note': '基于 A 的 10s 样本生成',
+      'createdAt': '11:12',
+      'status': '处理中',
+      'inserted': false,
+    },
+  ];
 
   @override
   void initState() {
@@ -109,25 +127,25 @@ class _EditStepState extends State<EditStep> {
 
   List<Map<String, dynamic>> _parseTranscriptToTokens(String text) {
     final List<Map<String, dynamic>> tokens = [];
-    // 仅按空白字符拆分，保留标点符号在单词内，避免换行问题
-    final wordPattern = RegExp(r'(\s+)');
-    int lastIndex = 0;
     
-    for (final match in wordPattern.allMatches(text)) {
-      if (match.start > lastIndex) {
-        _addTokenToTokens(text.substring(lastIndex, match.start), tokens);
+    // 正则匹配：中文单词、英文单词、数字、标点符号、空白字符
+    final pattern = RegExp(r'([\u4e00-\u9fa5]+|[a-zA-Z0-9]+|[^\w\s\u4e00-\u9fa5]+|[\s]+)');
+    
+    final matches = pattern.allMatches(text);
+    for (final match in matches) {
+      final part = match.group(0)!;
+      if (RegExp(r'^\s+$').hasMatch(part)) {
+        tokens.add({'type': 'space', 'text': part});
+      } else if (RegExp(r'^[^\w\s\u4e00-\u9fa5]+$').hasMatch(part)) {
+        tokens.add({'type': 'punctuation', 'text': part});
+      } else {
+        _addTokenToTokens(part, tokens);
       }
-      tokens.add({'type': 'space', 'text': match.group(0)});
-      lastIndex = match.end;
     }
     
-    if (lastIndex < text.length) {
-      _addTokenToTokens(text.substring(lastIndex), tokens);
-    }
-    
-    // Check for fillers in the parsed tokens
+    // 标记语气词
     for (var token in tokens) {
-      if (token['type'] == 'text' && _fillerWords.contains(token['text'])) {
+      if ((token['type'] == 'text' || token['type'] == 'stutter') && _fillerWords.contains(token['text'])) {
         token['type'] = 'filler';
       }
     }
@@ -223,6 +241,7 @@ class _EditStepState extends State<EditStep> {
         
         for (var token in tokens) {
           if (token['type'] == 'filler' || token['type'] == 'stutter') {
+            token['oldType'] = token['type'];
             token['type'] = 'deleted';
             modified = true;
           }
@@ -280,36 +299,256 @@ class _EditStepState extends State<EditStep> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('智能 Shownotes'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B9D).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.description, color: Color(0xFFFF6B9D), size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text('智能 Shownotes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: SizedBox(
-          width: double.maxFinite,
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              const Text('推荐标题：', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 8),
-              _buildTitleItem('AI 时代的播客创作：从灵感到分发的全流程解析'),
-              _buildTitleItem('如何利用 PodPal 打造你的第一个爆款播客？'),
-              const SizedBox(height: 16),
-              const Text('内容摘要：', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[200]!),
+          width: MediaQuery.of(context).size.width * 0.9,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('推荐标题：', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                const SizedBox(height: 8),
+                _buildTitleItem('AI 时代的播客创作：从灵感到分发的全流程解析'),
+                _buildTitleItem('如何利用 PodPal 打造你的第一个爆款播客？'),
+                const SizedBox(height: 16),
+                const Text('内容摘要：', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: const Text(
+                    '本期节目我们深入探讨了人工智能在播客创作领域的应用。从早期的语音转写到如今的智能剪辑、内容生成，AI 正在重塑音频内容的生产流程。我们邀请了资深播客制作人，分享他们使用 PodPal 提升效率的实战经验...',
+                    style: TextStyle(fontSize: 13, height: 1.5, color: Colors.black54),
+                  ),
                 ),
-                child: const Text(
-                  '本期节目我们深入探讨了人工智能在播客创作领域的应用。从早期的语音转写到如今的智能剪辑、内容生成，AI 正在重塑音频内容的生产流程。我们邀请了资深播客制作人，分享他们使用 PodPal 提升效率的实战经验...',
-                  style: TextStyle(fontSize: 13, height: 1.5),
+                const SizedBox(height: 16),
+                const Text('时间轴要点：', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                const SizedBox(height: 8),
+                _buildTimestampItem('00:00', '节目开场及主题介绍'),
+                _buildTimestampItem('02:15', 'AI 语音转写技术的演进历程'),
+                _buildTimestampItem('05:30', 'PodPal 核心功能演示：智能去口癖'),
+                _buildTimestampItem('12:45', '嘉宾分享：如何利用 AI 缩短 50% 的后期时间'),
+                _buildTimestampItem('20:10', '未来展望：播客创作的下一个十年'),
+                const SizedBox(height: 20),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('思维导图：', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                    Container(
+                      height: 28,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          // 模拟生成逻辑
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('正在基于时间轴生成思维导图...'), duration: Duration(seconds: 1)),
+                          );
+                        },
+                        icon: const Icon(Icons.account_tree_outlined, size: 14),
+                        label: const Text('生成思维导图', style: TextStyle(fontSize: 11)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFFF6B9D),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          backgroundColor: const Color(0xFFFF6B9D).withOpacity(0.05),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildMindmapPreview(),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('确定', style: TextStyle(color: Color(0xFFFF6B9D), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMindmapPreview() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.pink.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.pink.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 根节点
+          _buildMindmapNode('AI 播客创作', time: '00:00', isRoot: true),
+          
+          const SizedBox(height: 20),
+          
+          // 子节点容器
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildMindmapNode('技术演进', time: '02:15', children: [
+                      {'label': '语音转写', 'time': '02:30'},
+                      {'label': '情感识别', 'time': '04:10'}
+                    ]),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildMindmapNode('实战应用', time: '05:30', children: [
+                      {'label': '智能剪辑', 'time': '06:45'},
+                      {'label': '后期提效', 'time': '12:15'}
+                    ]),
+                  ],
                 ),
               ),
             ],
           ),
+          
+          const SizedBox(height: 12),
+          
+          Row(
+            children: [
+              Expanded(
+                child: _buildMindmapNode('行业展望', time: '20:10', children: [
+                  {'label': '创作门槛', 'time': '21:00'},
+                  {'label': '未来趋势', 'time': '23:45'}
+                ]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMindmapNode(String label, {String? time, bool isRoot = false, List<Map<String, String>>? children}) {
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: isRoot ? 16 : 12, vertical: isRoot ? 10 : 8),
+          decoration: BoxDecoration(
+            color: isRoot ? const Color(0xFFFF6B9D).withOpacity(0.1) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isRoot ? const Color(0xFFFF6B9D).withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+            ),
+            boxShadow: [
+              if (!isRoot) BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isRoot ? 14 : 12,
+                  fontWeight: FontWeight.bold,
+                  color: isRoot ? const Color(0xFFFF6B9D) : Colors.black87,
+                ),
+              ),
+              if (time != null)
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isRoot ? const Color(0xFFFF6B9D).withOpacity(0.7) : Colors.grey,
+                  ),
+                ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('确定')),
+        if (children != null && children.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: children.map((child) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.grey.withOpacity(0.1)),
+              ),
+              child: Column(
+                children: [
+                  Text(child['label']!, style: const TextStyle(fontSize: 10, color: Colors.black54)),
+                  if (child['time'] != null)
+                    Text(child['time']!, style: const TextStyle(fontSize: 8, color: Colors.grey)),
+                ],
+              ),
+            )).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTimestampItem(String time, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            time,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFFF6B9D),
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              desc,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+          ),
         ],
       ),
     );
@@ -345,15 +584,12 @@ class _EditStepState extends State<EditStep> {
       if (token['type'] == 'space') return;
       
       if (token['type'] == 'deleted') {
-        // Revert (guess type)
-        if (_fillerWords.contains(token['text'])) {
-          token['type'] = 'filler';
-        } else if (RegExp(r'([\u4e00-\u9fa5A-Za-z])\1{1,}').hasMatch(token['text'])) {
-          token['type'] = 'stutter';
-        } else {
-          token['type'] = 'text';
-        }
+        // 恢复原始类型
+        token['type'] = token['oldType'] ?? 'text';
+        token.remove('oldType');
       } else {
+        // 标记删除，保存原始类型以便恢复
+        token['oldType'] = token['type'];
         token['type'] = 'deleted';
       }
       
@@ -791,6 +1027,7 @@ class _EditStepState extends State<EditStep> {
                       () async {
                         setModalState(() => selectedIndex = 1);
                         await Future.delayed(const Duration(milliseconds: 300));
+                        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
                         _applyOptimization('logic');
                       },
                       isSelected: selectedIndex == 1,
@@ -801,6 +1038,7 @@ class _EditStepState extends State<EditStep> {
                       () async {
                         setModalState(() => selectedIndex = 2);
                         await Future.delayed(const Duration(milliseconds: 300));
+                        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
                         _applyOptimization('highlights');
                       },
                       isSelected: selectedIndex == 2,
@@ -811,6 +1049,7 @@ class _EditStepState extends State<EditStep> {
                       () async {
                         setModalState(() => selectedIndex = 3);
                         await Future.delayed(const Duration(milliseconds: 300));
+                        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
                         _applyOptimization('bgm');
                       },
                       isSelected: selectedIndex == 3,
@@ -827,10 +1066,6 @@ class _EditStepState extends State<EditStep> {
   }
 
   void _applyOptimization(String type) {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
-    
     setState(() {
       if (type == 'logic') {
         // Mock logic optimization: add a tip or insert a transition segment
@@ -860,61 +1095,565 @@ class _EditStepState extends State<EditStep> {
     _saveHistory();
   }
 
-  void _generateVoice() {
-    showModalBottomSheet(
+  void _handleVoiceTool(String type) {
+    if (type == 'clone') {
+      _showVoiceCloningDialog();
+    } else if (type == 'multi') {
+      _showMultiRoleDialog();
+    } else if (type == 'tts') {
+      _showTTSDialog();
+    }
+  }
+
+  List<String> _getThemeRelevantSamples() {
+    // 优先从当前文稿中提取真实片段作为样例，保证绝对符合主题
+    List<String> realSamples = [];
+    if (_transcript.isNotEmpty) {
+      // 提取前几个片段中较短的句子
+      for (var item in _transcript.take(5)) {
+        String text = item['text'] ?? '';
+        if (text.length > 5 && text.length < 30) {
+          realSamples.add(text);
+        }
+      }
+    }
+
+    // 如果文稿内容不足，补充一些通用的主题相关句子
+    final List<String> fallbackSamples = [
+      "AI 正在重新定义播客创作的边界。",
+      "PodPal 让每个创作者都能拥有专业的音频处理能力。",
+      "技术的进步不应牺牲内容的真实性与自然度。",
+    ];
+
+    return (realSamples + fallbackSamples).take(4).toList();
+  }
+
+  void _addVoiceTask(String label, String content, String note) {
+    setState(() {
+      final id = (DateTime.now().millisecondsSinceEpoch % 10000).toString();
+      _voiceTasks.insert(0, {
+        'id': id,
+        'label': label,
+        'prompt': content, // 保存原始提示词
+        'note': '正在根据提示词生成...', // 初始状态显示生成中
+        'info': note,
+        'createdAt': '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+        'status': '处理中',
+        'inserted': false,
+      });
+    });
+    
+    // 模拟 AI 根据提示词生成完整句子的过程
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          final index = _voiceTasks.indexWhere((t) => t['status'] == '处理中');
+          if (index != -1) {
+            final task = _voiceTasks[index];
+            final prompt = task['prompt'] as String;
+            
+            // 模拟 AI 结合主题生成：保持用户输入的提示词为核心，增加自然的衔接
+            String generatedContent = '';
+            if (task['label'] == '声线克隆') {
+              generatedContent = '“$prompt” —— 这句话通过我的克隆声线说出来，听起来是不是非常自然？在我们的播客中，这种一致性非常重要。';
+            } else if (task['label'] == '多角色生成') {
+              generatedContent = '主持人：刚才提到“$prompt”，这引发了我的思考。\n嘉宾：没错，这确实是目前行业关注的焦点。';
+            } else {
+              generatedContent = '（AI 合成）$prompt'; // TTS 直接使用内容，不做额外修饰，保证纯净
+            }
+            
+            task['status'] = '已完成';
+            task['note'] = generatedContent; // 将 note 更新为 AI 生成的完整句子
+          }
+        });
+      }
+    });
+  }
+
+  void _showVoiceCloningDialog() {
+    final TextEditingController controller = TextEditingController();
+    final samples = _getThemeRelevantSamples();
+
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.pink,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('声线克隆', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('基于您的声音样本，生成自然流畅的克隆语音。', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                onChanged: (v) => setDialogState(() {}),
+                decoration: InputDecoration(
+                  hintText: '输入想要生成的文字内容...',
+                  hintStyle: const TextStyle(fontSize: 13),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.all(12),
                 ),
-                const SizedBox(width: 8),
-                const Text('语音生成', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
+              ),
+              const SizedBox(height: 12),
+              const Text('推荐样例 (点击使用):', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: samples.map((s) => InkWell(
+                  onTap: () {
+                    setDialogState(() {
+                      controller.text = s;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF0F5),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: const Color(0xFFFF6B9D).withOpacity(0.2)),
+                    ),
+                    child: Text(
+                      s,
+                      style: const TextStyle(fontSize: 11, color: Color(0xFFFF6B9D)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            TextButton(
+              onPressed: () {
+                final text = samples.isNotEmpty ? samples[0] : "AI 正在重新定义播客创作的边界。";
+                Navigator.pop(context);
+                _addVoiceTask('声线克隆', text, '声线：您的克隆声线');
+              },
+              child: const Text('直接生成示例', style: TextStyle(color: Color(0xFFFF6B9D))),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(child: _buildActionBtn('声线克隆', '根据当前项目的一段语音生成新的声线配置', () {})),
-                const SizedBox(width: 10),
-                Expanded(child: _buildActionBtn('多角色生成', '生成多个角色的对话语音', () {})),
-              ],
+            ElevatedButton(
+              onPressed: controller.text.trim().isEmpty ? null : () {
+                final text = controller.text.trim();
+                Navigator.pop(context);
+                _addVoiceTask('声线克隆', text, '声线：您的克隆声线');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B9D),
+                disabledBackgroundColor: Colors.grey[200],
+              ),
+              child: const Text('生成样例', style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(height: 20),
-            const Text('最近语音生成任务', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            _buildVoiceTaskItem('补录片段_01', '已完成', '2024-03-21 14:30'),
-            _buildVoiceTaskItem('金句补录_A', '生成中', '2024-03-21 15:00'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildVoiceTaskItem(String title, String status, String time) {
+  void _showMultiRoleDialog() {
+    final TextEditingController controller = TextEditingController();
+    final samples = _getThemeRelevantSamples();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('多角色生成', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('AI 自动识别并匹配多个角色的声线进行对话生成。', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                onChanged: (v) => setDialogState(() {}),
+                decoration: InputDecoration(
+                  hintText: '输入多角色对话内容...',
+                  hintStyle: const TextStyle(fontSize: 13),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text('推荐对话样例 (点击使用):', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  "主持人：关于 AI，大家怎么看？\n嘉宾：我觉得很有趣。",
+                  "A：这个功能太赞了！\nB：是的，我也这么认为。",
+                ].map((s) => InkWell(
+                  onTap: () {
+                    setDialogState(() {
+                      controller.text = s;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F7FF),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                    ),
+                    child: Text(
+                      s.replaceAll('\n', ' '),
+                      style: const TextStyle(fontSize: 11, color: Colors.blue),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            TextButton(
+              onPressed: () {
+                final text = "主持人：关于 AI，大家怎么看？\n嘉宾：我觉得很有趣。";
+                Navigator.pop(context);
+                _addVoiceTask('多角色生成', text, '声线：智能匹配多角色');
+              },
+              child: const Text('直接生成示例对话', style: TextStyle(color: Color(0xFFFF6B9D))),
+            ),
+            ElevatedButton(
+              onPressed: controller.text.trim().isEmpty ? null : () {
+                final text = controller.text.trim();
+                Navigator.pop(context);
+                _addVoiceTask('多角色生成', text, '声线：智能匹配多角色');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B9D),
+                disabledBackgroundColor: Colors.grey[200],
+              ),
+              child: const Text('生成样例', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTTSDialog() {
+    final TextEditingController textController = TextEditingController();
+    final samples = _getThemeRelevantSamples();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('TTS 合成', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: textController,
+                maxLines: 4,
+                onChanged: (v) => setDialogState(() {}),
+                decoration: InputDecoration(
+                  hintText: '请输入要转语音的文本内容...',
+                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('推荐样例 (点击使用):', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: samples.map((s) => InkWell(
+                  onTap: () {
+                    setDialogState(() {
+                      textController.text = s;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                    ),
+                    child: Text(
+                      s,
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text('选择声线:', style: TextStyle(fontSize: 13)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('默认 AI 女声', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () {
+                final text = samples.isNotEmpty ? samples[0] : "AI 正在重新定义播客创作的边界。";
+                Navigator.pop(context);
+                _addVoiceTask('TTS 合成', text, '声线：默认 AI 女声');
+              },
+              child: const Text('直接生成示例', style: TextStyle(color: Color(0xFFFF6B9D))),
+            ),
+            ElevatedButton(
+              onPressed: textController.text.trim().isEmpty ? null : () {
+                final text = textController.text.trim();
+                Navigator.pop(context);
+                _addVoiceTask('TTS 合成', text, '声线：默认 AI 女声');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B9D),
+                disabledBackgroundColor: Colors.grey[200],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('立即生成', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openTTSPreview(Map<String, dynamic> task) {
+    final TextEditingController editController = TextEditingController(text: task['note']);
+    bool isEditing = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Text('预览与编辑: ${task['label']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              IconButton(
+                icon: Icon(isEditing ? Icons.check_circle_outline : Icons.edit_outlined, size: 20, color: const Color(0xFFFF6B9D)),
+                onPressed: () {
+                  setDialogState(() {
+                    if (isEditing) {
+                      task['note'] = editController.text;
+                    }
+                    isEditing = !isEditing;
+                  });
+                },
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('文本内容', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    isEditing
+                        ? TextField(
+                            controller: editController,
+                            maxLines: 4,
+                            style: const TextStyle(fontSize: 13),
+                            decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                          )
+                        : Text(task['note'], style: const TextStyle(fontSize: 13, color: Color(0xFF1F2937))),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Row(
+                children: [
+                  Icon(Icons.play_circle_fill, color: Color(0xFFFF6B9D), size: 32),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('00:00 / 00:15', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: 0,
+                          backgroundColor: Color(0xFFF3F4F6),
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6B9D)),
+                          minHeight: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('关闭'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  task['inserted'] = true;
+                  // 插入到文字稿
+                  _transcript.insert(0, {
+                    'speaker': 'AI',
+                    'time': '00:00',
+                    'text': task['note'],
+                    'isOriginal': false,
+                    'isTts': true,
+                    'confirmed': true,
+                    'editTrace': {
+                      'type': task['label'],
+                      'timestamp': DateTime.now().millisecondsSinceEpoch,
+                    },
+                    'tokens': _parseTranscriptToTokens(task['note']),
+                  });
+                  // 强制同步搜索列表，确保界面刷新
+                  _onSearch(_searchQuery);
+                });
+                _saveHistory(); // 确保支持撤销插入
+                Navigator.pop(context);
+                Navigator.pop(context); // 关闭底栏
+                
+                // 如果在搜索模式，滚动到顶部查看新插入的内容
+                if (_searchQuery.isNotEmpty) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToSegment(0);
+                  });
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B9D),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('确认插入', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _generateVoice() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // 固定头部
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B9D),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('语音生成', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // 可滚动内容
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _buildActionBtn('声线克隆', '根据语音生成配置', () => _handleVoiceTool('clone'), icon: Icons.mic_rounded)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildActionBtn('多角色生成', 'AI 自动匹配声线', () => _handleVoiceTool('multi'), icon: Icons.groups_rounded)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildActionBtn('TTS 合成', '手动输入文本转语音', () => _handleVoiceTool('tts'), icon: Icons.text_fields_rounded)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      if (_voiceTasks.isNotEmpty) ...[
+                        const Text('最近语音生成任务', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const SizedBox(height: 12),
+                        ..._voiceTasks.map((task) => _buildVoiceTaskItem(task)),
+                      ],
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVoiceTaskItem(Map<String, dynamic> task) {
+    final bool isCompleted = task['status'] == '已完成';
+    final bool isInserted = task['inserted'] ?? false;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.pink.withOpacity(0.05),
-        border: Border.all(color: Colors.pink.withOpacity(0.1)),
+        color: const Color(0xFFFFF5F8),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFFFE4ED)),
       ),
       child: Row(
         children: [
@@ -922,32 +1661,87 @@ class _EditStepState extends State<EditStep> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        task['label'], 
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isCompleted ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        task['status'],
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: isCompleted ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  task['note'], 
+                  style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)), 
+                  maxLines: 1, 
+                  overflow: TextOverflow.ellipsis
+                ),
+                if (task['info'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    task['info'], 
+                    style: const TextStyle(fontSize: 9, color: Color(0xFF9CA3AF)), 
+                    maxLines: 1, 
+                    overflow: TextOverflow.ellipsis
+                  ),
+                ],
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: status == '已完成' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 10,
-                color: status == '已完成' ? Colors.green : Colors.orange,
-              ),
-            ),
+          const SizedBox(width: 12),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(task['createdAt'], style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF))),
+              const SizedBox(width: 8),
+              if (isCompleted)
+                SizedBox(
+                  height: 22,
+                  child: OutlinedButton(
+                    onPressed: () => _openTTSPreview(task),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isInserted ? const Color(0xFF2563EB) : const Color(0xFF1F2937),
+                      side: BorderSide(color: isInserted ? const Color(0xFF3B82F6) : const Color(0xFFFFD1E1)),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      backgroundColor: isInserted ? Colors.blue.withOpacity(0.05) : Colors.white,
+                    ),
+                    child: Text(isInserted ? '已插入' : '查看', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+            ],
           ),
-          if (status == '已完成')
-            TextButton(
-              onPressed: () => _insertTTS(title),
-              child: const Text('插入', style: TextStyle(fontSize: 12)),
-            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMetric(String label, int value) {
+    return Row(
+      children: [
+        Text('$label: ', style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+        Text('$value%', style: TextStyle(fontSize: 9, color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 
@@ -974,56 +1768,61 @@ class _EditStepState extends State<EditStep> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 4,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: Colors.indigo,
-                      borderRadius: BorderRadius.circular(2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.indigo,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('AI 专项剪辑', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildStrategyOption(0, 'AI 全剪辑', '一键全剪，处理所有冗余内容', setModalState),
+                  _buildStrategyOption(1, 'AI 口癖剪辑', '只处理口癖（如：嗯、呃、这个等）', setModalState),
+                  _buildStrategyOption(2, 'AI 口吃剪辑', '只处理口吃（如：重复字词、结巴等）', setModalState),
+                  _buildStrategyOption(3, '智能分段', '根据语义自动拆分长段落', setModalState),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _applySpecialCut();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF6B9D),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('立即生成剪辑建议'),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text('AI 专项剪辑', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 20),
-              _buildStrategyOption(0, 'AI 全剪辑', '一键全剪，处理所有冗余内容', setModalState),
-              _buildStrategyOption(1, 'AI 口癖剪辑', '只处理口癖（如：嗯、呃、这个等）', setModalState),
-              _buildStrategyOption(2, 'AI 口吃剪辑', '只处理口吃（如：重复字词、结巴等）', setModalState),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _applySpecialCut();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6B9D),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('立即生成剪辑建议'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1033,41 +1832,72 @@ class _EditStepState extends State<EditStep> {
       if (_selectedStrategy == 0) typeLabel = 'AI 全剪辑 (口癖+口吃)';
       else if (_selectedStrategy == 1) typeLabel = 'AI 口癖剪辑';
       else if (_selectedStrategy == 2) typeLabel = 'AI 口吃剪辑';
+      else if (_selectedStrategy == 3) typeLabel = '智能分段';
 
-      for (var item in _transcript) {
-        if (item['isOriginal'] != true) continue;
-        
-        final tokens = (item['tokens'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-        final oldText = _tokensToText(tokens);
-        bool modified = false;
-        
-        for (var token in tokens) {
-          if (_selectedStrategy == 0) {
-            if (token['type'] == 'filler' || token['type'] == 'stutter') {
-              token['type'] = 'deleted';
-              modified = true;
-            }
-          } else if (_selectedStrategy == 1) {
-            if (token['type'] == 'filler') {
-              token['type'] = 'deleted';
-              modified = true;
-            }
-          } else if (_selectedStrategy == 2) {
-            if (token['type'] == 'stutter') {
-              token['type'] = 'deleted';
-              modified = true;
-            }
+      if (_selectedStrategy == 3) {
+        // 模拟智能分段逻辑
+        final List<Map<String, dynamic>> newTranscript = [];
+        for (var item in _transcript) {
+          if (item['isOriginal'] == true && item['text'].length > 50) {
+            // 简单模拟拆分
+            final text = item['text'] as String;
+            final mid = text.length ~/ 2;
+            final part1 = text.substring(0, mid);
+            final part2 = text.substring(mid);
+            
+            newTranscript.add({
+              ...item,
+              'text': part1,
+              'tokens': _parseTranscriptToTokens(part1),
+              'editTrace': {'type': '智能分段', 'oldText': text, 'newText': part1, 'timestamp': DateTime.now().toString()}
+            });
+            newTranscript.add({
+              ...item,
+              'text': part2,
+              'tokens': _parseTranscriptToTokens(part2),
+              'editTrace': {'type': '智能分段', 'oldText': text, 'newText': part2, 'timestamp': DateTime.now().toString()}
+            });
+          } else {
+            newTranscript.add(item);
           }
         }
-        
-        if (modified) {
-          item['text'] = _tokensToText(tokens);
-          item['editTrace'] = {
-            'oldText': oldText,
-            'newText': item['text'],
-            'type': typeLabel,
-            'timestamp': DateTime.now().toString(),
-          };
+        _transcript = newTranscript;
+      } else {
+        for (var item in _transcript) {
+          if (item['isOriginal'] != true) continue;
+          
+          final tokens = (item['tokens'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          final oldText = _tokensToText(tokens);
+          bool modified = false;
+          
+          for (var token in tokens) {
+            if (_selectedStrategy == 0) {
+              if (token['type'] == 'filler' || token['type'] == 'stutter') {
+                token['type'] = 'deleted';
+                modified = true;
+              }
+            } else if (_selectedStrategy == 1) {
+              if (token['type'] == 'filler') {
+                token['type'] = 'deleted';
+                modified = true;
+              }
+            } else if (_selectedStrategy == 2) {
+              if (token['type'] == 'stutter') {
+                token['type'] = 'deleted';
+                modified = true;
+              }
+            }
+          }
+          
+          if (modified) {
+            item['text'] = _tokensToText(tokens);
+            item['editTrace'] = {
+              'oldText': oldText,
+              'newText': item['text'],
+              'type': typeLabel,
+              'timestamp': DateTime.now().toString(),
+            };
+          }
         }
       }
       _onSearch(_searchQuery);
@@ -1111,62 +1941,126 @@ class _EditStepState extends State<EditStep> {
   }
 
   void _semanticSearch() {
+    final List<Map<String, dynamic>> allSentences = [
+      {'content': 'AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。', 'time': '05:24', 'score': 95},
+      {'content': '未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。', 'time': '12:15', 'score': 88},
+      {'content': '播客的本质是陪伴，技术的加入是为了让这种陪伴更有温度。', 'time': '08:42', 'score': 92},
+      {'content': '好的内容是自带流量的，AI 只是帮我们把这份价值放大了。', 'time': '15:30', 'score': 90},
+      {'content': '创作不应该被繁琐的后期所束缚，我们要把时间留给更有价值的思考。', 'time': '21:10', 'score': 85},
+    ];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text('深度语义搜索与金句定位', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              decoration: InputDecoration(
-                hintText: '例如：搜索关于职场焦虑的对话片段',
-                hintStyle: const TextStyle(fontSize: 14),
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.send, color: Colors.pink),
-                  onPressed: () {},
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 15),
+      builder: (context) {
+        final TextEditingController searchController = TextEditingController();
+        List<Map<String, dynamic>> filteredSentences = List.from(allSentences);
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text('推荐金句', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Expanded(
-              child: ListView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildGoldenSentence('AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。', '05:24', 95),
-                  _buildGoldenSentence('未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。', '12:15', 88),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('深度语义搜索与金句定位', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: searchController,
+                    onChanged: (value) {
+                      setModalState(() {
+                        if (value.isEmpty) {
+                          filteredSentences = List.from(allSentences);
+                        } else {
+                          filteredSentences = allSentences
+                              .where((s) => s['content'].toString().toLowerCase().contains(value.toLowerCase()))
+                              .toList();
+                        }
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: '例如：搜索关于职场焦虑的对话片段',
+                      hintStyle: const TextStyle(fontSize: 14),
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchController.text.isNotEmpty 
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              setModalState(() {
+                                searchController.clear();
+                                filteredSentences = List.from(allSentences);
+                              });
+                            },
+                          )
+                        : null,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 15),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Colors.pink, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    searchController.text.isEmpty ? '推荐金句' : '搜索结果 (${filteredSentences.length})', 
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: filteredSentences.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search_off, size: 48, color: Colors.grey[300]),
+                              const SizedBox(height: 16),
+                              Text('未找到相关内容', style: TextStyle(color: Colors.grey[400])),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: filteredSentences.length,
+                          itemBuilder: (context, index) {
+                            final item = filteredSentences[index];
+                            return _buildGoldenSentence(item['content'], item['time'], item['score']);
+                          },
+                        ),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1416,53 +2310,52 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
-  Widget _buildActionBtn(String title, String desc, VoidCallback onTap, {bool isSelected = false}) {
+  Widget _buildActionBtn(String title, String desc, VoidCallback onTap, {bool isSelected = false, IconData? icon}) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.pink[50] : Colors.white,
+          color: isSelected ? const Color(0xFFFFF5F8) : Colors.white,
           border: Border.all(
-            color: isSelected ? Colors.pink : Colors.pink.withOpacity(0.1),
-            width: isSelected ? 2 : 1,
+            color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFFF3F4F6),
+            width: isSelected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: isSelected ? [
-            BoxShadow(color: Colors.pink.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))
-          ] : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title, 
-                    style: TextStyle(
-                      fontSize: 14, 
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.pink : Colors.black87,
-                    )
-                  ),
-                ),
-                if (isSelected)
-                  const Icon(Icons.check_circle, size: 16, color: Colors.pink),
-              ],
+            if (icon != null) ...[
+              Icon(icon, size: 20, color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFF9CA3AF)),
+              const SizedBox(height: 8),
+            ],
+            Text(
+              title, 
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13, 
+                fontWeight: FontWeight.bold,
+                color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFF374151),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               desc, 
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 10, 
-                color: isSelected ? Colors.pink[300] : Colors.grey[600],
-              ), 
-              maxLines: 2, 
-              overflow: TextOverflow.ellipsis
+                fontSize: 9, 
+                color: isSelected ? const Color(0xFFFF6B9D).withOpacity(0.7) : const Color(0xFF9CA3AF),
+              ),
             ),
           ],
         ),
@@ -1494,9 +2387,9 @@ class _EditStepState extends State<EditStep> {
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       SizedBox(width: 90, child: _buildToolBtn(Icons.description_outlined, '脚本优化', _optimizeScript)),
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.mic_none, '语音生成', _generateVoice)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.mic_none_outlined, '语音生成', _generateVoice)),
                       SizedBox(width: 90, child: _buildToolBtn(Icons.content_cut_outlined, 'AI专项剪辑', _aiSpecialCut)),
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.search, '深度搜索', _semanticSearch)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.search, '语义搜索', _semanticSearch)),
                       SizedBox(width: 90, child: _buildToolBtn(Icons.analytics_outlined, '语音转写', _voiceAnalysis)),
                       SizedBox(width: 90, child: _buildToolBtn(Icons.high_quality_outlined, '音频增强', _audioEnhance)),
                     ],
@@ -1608,7 +2501,7 @@ class _EditStepState extends State<EditStep> {
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
@@ -1617,8 +2510,10 @@ class _EditStepState extends State<EditStep> {
                         track['name'],
                         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
+                    const SizedBox(width: 2),
                     Icon(Icons.lock_outline, size: 10, color: Colors.grey[300]),
                   ],
                 ),
@@ -1628,8 +2523,10 @@ class _EditStepState extends State<EditStep> {
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 2,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 8),
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 3),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 6),
+                      // 减少 Slider 的默认内边距
+                      padding: EdgeInsets.zero,
                     ),
                     child: Slider(
                       value: 80,
@@ -1719,13 +2616,23 @@ class _EditStepState extends State<EditStep> {
                           color: isOriginal ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(
-                          isOriginal ? 'Speaker $speaker' : 'AI 生成',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isOriginal ? Colors.blue : Colors.pink,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!isOriginal)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 4),
+                                child: Icon(Icons.auto_awesome, size: 10, color: Colors.pink),
+                              ),
+                            Text(
+                              isOriginal ? 'Speaker $speaker' : 'AI 生成',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isOriginal ? Colors.blue : Colors.pink,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1888,7 +2795,10 @@ class _EditStepState extends State<EditStep> {
                     // 普通单词、语气词、重复词
                     return TextSpan(
                       text: text,
-                      recognizer: allowTokenEdit ? (LongPressGestureRecognizer()..onLongPress = () => _editTokenText(itemIndex, tokenIndex)) : null,
+                      recognizer: allowTokenEdit ? (TapGestureRecognizer()..onTap = () => _toggleTokenDelete(itemIndex, tokenIndex)) : null,
+                      onEnter: (event) {
+                        // 可以添加悬浮效果
+                      },
                       style: TextStyle(
                         fontSize: 16,
                         color: textColor,
@@ -1901,6 +2811,17 @@ class _EditStepState extends State<EditStep> {
                 ],
               ),
             ),
+            if (tokens.any((t) => t['type'] == 'deleted'))
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 12, color: Colors.grey[400]),
+                    const SizedBox(width: 4),
+                    Text('点击划线文字可恢复删除', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

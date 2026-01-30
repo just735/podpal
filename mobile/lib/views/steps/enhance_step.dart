@@ -28,7 +28,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
   Map<String, dynamic>? _shownotesResult;
 
   bool _isGeneratingVideo = false;
-  List<Map<String, String>> _generatedVideos = [];
+  List<Map<String, dynamic>> _generatedVideoTasks = []; // 改为更详细的结构
 
   bool _isGeneratingSocial = false;
   Map<String, String> _socialResults = {};
@@ -175,38 +175,214 @@ class _EnhanceStepState extends State<EnhanceStep> {
             const SizedBox(height: 16),
             const Text('推荐标题', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 8),
-            ...(_shownotesResult!['titles'] as List<String>).map((t) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: Text(t, style: const TextStyle(fontSize: 13))),
-                  const Icon(Icons.copy, size: 14, color: Color(0xFF818CF8)),
-                ],
-              ),
-            )),
-            const SizedBox(height: 12),
+            if (_shownotesResult!['titles'] != null)
+              ...(_shownotesResult!['titles'] as List).map((t) => _buildTitleItem(t.toString())),
+            const SizedBox(height: 16),
             const Text('摘要', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
               ),
               child: Text(
-                _shownotesResult!['summary'],
+                _shownotesResult!['summary']?.toString() ?? '',
                 style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF374151)),
               ),
             ),
+            const SizedBox(height: 16),
+            const Text('时间轴要点', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(height: 8),
+            if (_shownotesResult!['timestamps'] != null)
+              ...(_shownotesResult!['timestamps'] as List).map((item) {
+                final map = item as Map;
+                return _buildTimestampItem(map['time']?.toString() ?? '', map['desc']?.toString() ?? '');
+              }),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('思维导图预览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                TextButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('正在基于时间轴生成思维导图...'), duration: Duration(seconds: 1)),
+                    );
+                  },
+                  icon: const Icon(Icons.account_tree_outlined, size: 14),
+                  label: const Text('重新生成导图', style: TextStyle(fontSize: 11)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF818CF8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    backgroundColor: const Color(0xFF818CF8).withOpacity(0.05),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildMindmapPreview(_shownotesResult!['timestamps'] as List?),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildTitleItem(String title) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bookmark_border, size: 16, color: Color(0xFF818CF8)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 13))),
+          const Icon(Icons.copy, size: 14, color: Color(0xFF818CF8)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimestampItem(String time, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            time,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF818CF8),
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              desc,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMindmapPreview(List? timestamps) {
+    // 如果没有数据，使用默认展示
+    final List nodes = timestamps ?? [
+      {'time': '00:00', 'desc': '开场'},
+      {'time': '05:00', 'desc': '核心内容'},
+      {'time': '10:00', 'desc': '总结'}
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF818CF8).withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF818CF8).withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildMindmapNode('播客核心架构', time: 'TOPIC', isRoot: true),
+          const SizedBox(height: 24),
+          // 渲染思维导图节点
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            alignment: WrapAlignment.center,
+            children: nodes.take(4).map((n) {
+              final map = n as Map;
+              return _buildMindmapNode(
+                map['desc']?.toString() ?? '',
+                time: map['time']?.toString(),
+              );
+            }).toList(),
+          ),
+          if (nodes.length > 4) ...[
+            const SizedBox(height: 16),
+            const Text('更多节点已在思维导图中生成...', style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic)),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMindmapNode(String label, {String? time, bool isRoot = false, List<Map<String, String>>? children}) {
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: isRoot ? 16 : 12, vertical: isRoot ? 10 : 8),
+          decoration: BoxDecoration(
+            color: isRoot ? const Color(0xFF818CF8).withOpacity(0.1) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isRoot ? const Color(0xFF818CF8).withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isRoot ? 14 : 12,
+                  fontWeight: FontWeight.bold,
+                  color: isRoot ? const Color(0xFF818CF8) : const Color(0xFF374151),
+                ),
+              ),
+              if (time != null)
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isRoot ? const Color(0xFF818CF8).withOpacity(0.7) : Colors.grey,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (children != null && children.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: children.map((child) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.grey.withOpacity(0.1)),
+              ),
+              child: Column(
+                children: [
+                  Text(child['label']!, style: const TextStyle(fontSize: 10, color: Color(0xFF4B5563))),
+                  if (child['time'] != null)
+                    Text(child['time']!, style: const TextStyle(fontSize: 8, color: Colors.grey)),
+                ],
+              ),
+            )).toList(),
+          ),
+        ],
+      ],
     );
   }
 
@@ -222,6 +398,13 @@ class _EnhanceStepState extends State<EnhanceStep> {
           '播客创作避坑指南：我走过的那些弯路',
         ],
         'summary': '在本期节目中，我们深入探讨了播客创作的核心痛点。从选题策划到后期剪辑，分享了多个实用的技巧和工具。无论你是刚入门的新手，还是遇到瓶颈的资深创作者，都能从中获得启发。',
+        'timestamps': [
+          {'time': '00:00', 'desc': '节目开场及主题介绍'},
+          {'time': '02:15', 'desc': 'AI 语音转写技术的演进历程'},
+          {'time': '05:30', 'desc': 'PodPal 核心功能演示：智能去口癖'},
+          {'time': '12:45', 'desc': '嘉宾分享：如何利用 AI 缩短 50% 的后期时间'},
+          {'time': '20:10', 'desc': '未来展望：播客创作的下一个十年'},
+        ],
       };
     });
   }
@@ -283,55 +466,212 @@ class _EnhanceStepState extends State<EnhanceStep> {
             color: const Color(0xFFF472B6),
             onPressed: _isGeneratingVideo ? null : _generateVideoExample,
           ),
-          if (_generatedVideos.isNotEmpty) ...[
+          if (_generatedVideoTasks.isNotEmpty) ...[
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 16),
             const Text('已生成视频预览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 12),
-            ..._generatedVideos.map((v) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(6),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=200&q=80'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    child: const Icon(Icons.play_circle_fill, color: Colors.white, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(v['name']!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                        Text('时长: ${v['duration']} | 风格: ${v['style']}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.download_rounded, size: 20, color: Color(0xFFF472B6)),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
+            ..._generatedVideoTasks.map((task) => _buildVideoTaskItem(
+              task['name']?.toString() ?? '', 
+              task['content']?.toString() ?? '', 
+              task['desc']?.toString() ?? '', 
+              (task['segments'] as List?)?.map((e) => e.toString()).toList() ?? [],
+              viralPotential: task['viralPotential'] as int?,
+              logicScore: task['logicScore'] as int?,
             )),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildVideoTaskItem(String title, String content, String desc, List<String> segments, {int? viralPotential, int? logicScore}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF472B6).withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF472B6).withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF472B6), Color(0xFFC084FC)],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.movie_outlined, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      Text(desc, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.download_rounded, size: 20, color: Color(0xFFF472B6)),
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.yellow.shade50, Colors.orange.shade50],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.yellow.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      segments.isNotEmpty ? segments.first : '00:00', 
+                      style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500, fontFamily: 'monospace')
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow.shade200,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('金句', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  content,
+                  style: const TextStyle(
+                    fontSize: 13, 
+                    color: Colors.black87, 
+                    height: 1.5, 
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildMetric('传播潜力', viralPotential ?? 90),
+                    const SizedBox(width: 12),
+                    _buildMetric('逻辑完整度', logicScore ?? 85),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.segment, size: 12, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    const Text('对应片段:', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: segments.map((s) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.grey.withOpacity(0.05)),
+                    ),
+                    child: Text(
+                      s, 
+                      style: const TextStyle(
+                        fontSize: 10, 
+                        color: Colors.black54, 
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w500
+                      )
+                    ),
+                  )).toList(),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[600],
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('编辑脚本', style: TextStyle(fontSize: 11)),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF472B6).withOpacity(0.1),
+                    foregroundColor: const Color(0xFFF472B6),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('预览视频', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetric(String label, int value) {
+    return Row(
+      children: [
+        Text('$label: ', style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+        Text('$value%', style: TextStyle(fontSize: 9, color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 
@@ -340,10 +680,15 @@ class _EnhanceStepState extends State<EnhanceStep> {
     await Future.delayed(const Duration(seconds: 3));
     setState(() {
       _isGeneratingVideo = false;
-      _generatedVideos.add({
-        'name': '金句片段_${_generatedVideos.length + 1}',
-        'duration': '00:45',
-        'style': _videoTemplate,
+      _generatedVideoTasks.add({
+        'name': '金句片段_${_generatedVideoTasks.length + 1}',
+        'content': _generatedVideoTasks.isEmpty 
+          ? 'AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。'
+          : '未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。',
+        'desc': '时长: 00:45 | 风格: $_videoTemplate',
+        'segments': _generatedVideoTasks.isEmpty ? ['00:05 - 00:50'] : ['02:15 - 02:47'],
+        'viralPotential': _generatedVideoTasks.isEmpty ? 92 : 85,
+        'logicScore': _generatedVideoTasks.isEmpty ? 88 : 94,
       });
     });
   }
