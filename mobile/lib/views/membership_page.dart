@@ -17,11 +17,8 @@ class _MembershipPageState extends State<MembershipPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('我的会员', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        automaticallyImplyLeading: false,
+        title: const Text('会员计划', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -50,8 +47,8 @@ class _MembershipPageState extends State<MembershipPage> {
         boxShadow: [
           BoxShadow(
             color: const Color(0xFFFF6B9D).withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),

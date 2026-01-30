@@ -45,10 +45,7 @@ class _CloudLibraryPageState extends State<CloudLibraryPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: const Text('云端素材库', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
@@ -138,34 +135,50 @@ class _CloudLibraryPageState extends State<CloudLibraryPage> {
       onTap: () async {
         Navigator.pop(context);
         
-        // 显示正在上传的中间状态
+        // 直接显示上传成功
         showDialog(
           context: context,
-          barrierDismissible: false,
           builder: (context) => Center(
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text('正在准备$label...', style: const TextStyle(fontSize: 14)),
-                ],
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_outline, color: Colors.green, size: 60),
+                    SizedBox(height: 20),
+                    Text(
+                      '上传成功',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         );
 
-        // 模拟文件选择和上传过程
+        // 模拟后续流程
         await Future.delayed(const Duration(seconds: 1));
         
         if (context.mounted) {
-          Navigator.pop(context); // 关闭加载对话框
+          Navigator.pop(context); // 关闭成功对话框
           
           // 进入模拟的上传新素材页面
           Navigator.push(
@@ -182,7 +195,7 @@ class _CloudLibraryPageState extends State<CloudLibraryPage> {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: color, size: 32),
@@ -229,7 +242,7 @@ class _CloudLibraryPageState extends State<CloudLibraryPage> {
               onSelected: (selected) {
                 if (selected) setState(() => _filterType = type);
               },
-              selectedColor: const Color(0xFFFF6B9D).withValues(alpha: 0.1),
+              selectedColor: const Color(0xFFFF6B9D).withOpacity(0.1),
               labelStyle: TextStyle(
                 color: isSelected ? const Color(0xFFFF6B9D) : Colors.grey[600],
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -283,7 +296,7 @@ class _CloudLibraryPageState extends State<CloudLibraryPage> {
               border: Border.all(color: Colors.grey[100]!),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                  color: Colors.black.withOpacity(0.02),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),

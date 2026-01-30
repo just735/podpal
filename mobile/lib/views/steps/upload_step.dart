@@ -21,7 +21,7 @@ class _UploadStepState extends State<UploadStep> {
     });
 
     // 模拟上传延迟
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
       setState(() {
@@ -29,9 +29,49 @@ class _UploadStepState extends State<UploadStep> {
         _uploadingIndex = null;
       });
 
+      // 显示上传成功对话框
+      showDialog(
+        context: context,
+        builder: (context) => Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle_outline, color: Colors.green, size: 60),
+                  SizedBox(height: 20),
+                  Text(
+                    '上传成功',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
       // 延迟一小会儿后跳转到下一步
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(seconds: 1));
       if (mounted) {
+        Navigator.pop(context); // 关闭成功对话框
         widget.onNext();
       }
     }
@@ -57,10 +97,10 @@ class _UploadStepState extends State<UploadStep> {
                 border: Border.all(color: const Color(0xFFFF6B9D), width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B9D).withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
+                  color: const Color(0xFFFF6B9D).withOpacity(0.1),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
                 ],
               ),
               child: Column(
@@ -149,10 +189,10 @@ class _UploadStepState extends State<UploadStep> {
                             ),
                           ],
                         ),
-                        if (isCurrentUploading)
-                          const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                        // if (isCurrentUploading)
+                        //   const Center(
+                        //     child: CircularProgressIndicator(strokeWidth: 2),
+                        //   ),
                       ],
                     ),
                   ),

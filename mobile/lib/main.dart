@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'views/start_page.dart';
 import 'views/main_screen.dart';
 import 'views/login_page.dart';
 import 'views/register_page.dart';
-import 'views/editor_page.dart';
 
 void main() {
   runApp(const PodPalApp());
@@ -26,7 +24,10 @@ class PodPalApp extends StatelessWidget {
           secondary: const Color(0xFFC084FC),
           surface: Colors.white,
         ),
-        textTheme: GoogleFonts.notoSansTextTheme(),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(fontSize: 16, color: Colors.black87),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.black54),
+        ),
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,

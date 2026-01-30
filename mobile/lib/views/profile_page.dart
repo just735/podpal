@@ -16,6 +16,7 @@ class ProfilePage extends StatelessWidget {
         title: const Text('个人中心', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         elevation: 0,
         centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         child: Column(
