@@ -23,12 +23,15 @@ class _EnhanceStepState extends State<EnhanceStep> {
   String _videoTemplate = '简约风';
   bool _includeHighlights = true;
 
-  // 生成状态与数据
+  // 生成状态与数据 - 拆分Shownotes和思维导图
   bool _isGeneratingShownotes = false;
   Map<String, dynamic>? _shownotesResult;
 
+  bool _isGeneratingMindmap = false;
+  Map<String, dynamic>? _mindmapResult; // 思维导图独立数据
+
   bool _isGeneratingVideo = false;
-  List<Map<String, dynamic>> _generatedVideoTasks = []; // 改为更详细的结构
+  List<Map<String, dynamic>> _generatedVideoTasks = [];
 
   bool _isGeneratingSocial = false;
   Map<String, String> _socialResults = {};
@@ -49,10 +52,10 @@ class _EnhanceStepState extends State<EnhanceStep> {
                   _buildHeader(),
                   const SizedBox(height: 24),
                   
-                  // 1. Shownotes 生成
+                  // 1. Shownotes 生成（仅标题、摘要、时间轴）
                   _buildSectionTitle(
                     '智能 Shownotes', 
-                    '一键生成标题、摘要、时间轴要点', 
+                    '一键生成标题、摘要、时间轴要点（对外展示）', 
                     Icons.description_outlined,
                     const Color(0xFF818CF8),
                   ),
@@ -61,7 +64,19 @@ class _EnhanceStepState extends State<EnhanceStep> {
                   
                   const SizedBox(height: 32),
                   
-                  // 2. 视频播客生成
+                  // 2. 思维导图生成（独立模块，层级化内容架构）
+                  _buildSectionTitle(
+                    '内容思维导图', 
+                    '生成结构化的核心内容框架（创作梳理）', 
+                    Icons.account_tree_outlined,
+                    const Color(0xFF60A5FA),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildMindmapSection(),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // 3. 视频播客生成
                   _buildSectionTitle(
                     '视频播客生成', 
                     '包含金句选择与 AI 视频合成', 
@@ -73,7 +88,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
                   
                   const SizedBox(height: 32),
                   
-                  // 3. 多平台文案生成
+                  // 4. 多平台文案生成
                   _buildSectionTitle(
                     '多平台文案', 
                     '适配不同社交平台的推广素材', 
@@ -86,6 +101,38 @@ class _EnhanceStepState extends State<EnhanceStep> {
                   const SizedBox(height: 40),
                 ],
               ),
+            ),
+          ),
+          
+          // 底部导航按钮（补充之前缺失的按钮）
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: widget.onPrev,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('上一步'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: widget.onNext,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF6B9D),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('完成增值'),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -144,6 +191,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
     );
   }
 
+  // ========== 1. Shownotes 模块（仅标题、摘要、时间轴） ==========
   Widget _buildShownotesSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -169,15 +217,22 @@ class _EnhanceStepState extends State<EnhanceStep> {
             color: const Color(0xFF818CF8),
             onPressed: _isGeneratingShownotes ? null : _generateShownotesExample,
           ),
+          
+          // Shownotes 结果展示（仅标题、摘要、时间轴）
           if (_shownotesResult != null) ...[
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 16),
+            
+            // 推荐标题
             const Text('推荐标题', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 8),
             if (_shownotesResult!['titles'] != null)
               ...(_shownotesResult!['titles'] as List).map((t) => _buildTitleItem(t.toString())),
+            
             const SizedBox(height: 16),
+            
+            // 摘要
             const Text('摘要', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 8),
             Container(
@@ -192,7 +247,10 @@ class _EnhanceStepState extends State<EnhanceStep> {
                 style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF374151)),
               ),
             ),
+            
             const SizedBox(height: 16),
+            
+            // 时间轴要点
             const Text('时间轴要点', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 8),
             if (_shownotesResult!['timestamps'] != null)
@@ -200,100 +258,94 @@ class _EnhanceStepState extends State<EnhanceStep> {
                 final map = item as Map;
                 return _buildTimestampItem(map['time']?.toString() ?? '', map['desc']?.toString() ?? '');
               }),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('思维导图预览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                TextButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('正在基于时间轴生成思维导图...'), duration: Duration(seconds: 1)),
-                    );
-                  },
-                  icon: const Icon(Icons.account_tree_outlined, size: 14),
-                  label: const Text('重新生成导图', style: TextStyle(fontSize: 11)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF818CF8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    backgroundColor: const Color(0xFF818CF8).withOpacity(0.05),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildMindmapPreview(_shownotesResult!['timestamps'] as List?),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildTitleItem(String title) {
+  // ========== 2. 思维导图模块（独立、层级化内容） ==========
+  Widget _buildMindmapSection() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.bookmark_border, size: 16, color: Color(0xFF818CF8)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 13))),
-          const Icon(Icons.copy, size: 14, color: Color(0xFF818CF8)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimestampItem(String time, String desc) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            time,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF818CF8),
-              fontFamily: 'monospace',
-            ),
+          const Text('思维导图配置', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          _buildDropdown<String>(
+            value: _podcastType,
+            items: [
+              {'value': 'knowledge', 'label': '知识分享类 (按知识点分层)'},
+              {'value': 'companion', 'label': '情感陪伴类 (按情绪脉络分层)'},
+              {'value': 'interview', 'label': '访谈对话类 (按观点逻辑分层)'},
+            ],
+            onChanged: (val) => setState(() => _podcastType = val!),
+            enabled: false, // 与Shownotes共用播客类型，禁用修改
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              desc,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
-            ),
+          const SizedBox(height: 16),
+          _buildActionButton(
+            label: _isGeneratingMindmap ? '正在生成...' : (_mindmapResult == null ? '生成思维导图' : '重新生成'),
+            icon: _isGeneratingMindmap ? Icons.hourglass_empty : Icons.account_tree_outlined,
+            color: const Color(0xFF60A5FA),
+            onPressed: _isGeneratingMindmap ? null : _generateMindmapExample,
           ),
+          
+          // 思维导图结果展示（层级化架构）
+          if (_mindmapResult != null) ...[
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 16),
+            
+            const Text('核心内容架构', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(height: 12),
+            
+            // 渲染层级化思维导图
+            _buildHierarchicalMindmap(_mindmapResult!['nodes'] as List),
+            
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('思维导图已导出为PDF格式'), duration: Duration(seconds: 2)),
+                  );
+                },
+                icon: const Icon(Icons.download_outlined, size: 14),
+                label: const Text('导出思维导图', style: TextStyle(fontSize: 11)),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF60A5FA),
+                  backgroundColor: const Color(0xFF60A5FA).withOpacity(0.05),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildMindmapPreview(List? timestamps) {
-    // 如果没有数据，使用默认展示
-    final List nodes = timestamps ?? [
-      {'time': '00:00', 'desc': '开场'},
-      {'time': '05:00', 'desc': '核心内容'},
-      {'time': '10:00', 'desc': '总结'}
-    ];
+  // 层级化思维导图渲染（区分根节点、一级节点、二级节点）
+  Widget _buildHierarchicalMindmap(List nodes) {
+    // 根节点（仅1个）
+    final rootNode = nodes.firstWhere((n) => (n as Map)['level'] == 0);
+    // 一级节点
+    final level1Nodes = nodes.where((n) => (n as Map)['level'] == 1).toList();
+    // 二级节点
+    final level2Nodes = nodes.where((n) => (n as Map)['level'] == 2).toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF818CF8).withOpacity(0.1)),
+        border: Border.all(color: const Color(0xFF60A5FA).withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF818CF8).withOpacity(0.05),
+            color: const Color(0xFF60A5FA).withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -301,114 +353,107 @@ class _EnhanceStepState extends State<EnhanceStep> {
       ),
       child: Column(
         children: [
-          _buildMindmapNode('播客核心架构', time: 'TOPIC', isRoot: true),
-          const SizedBox(height: 24),
-          // 渲染思维导图节点
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            alignment: WrapAlignment.center,
-            children: nodes.take(4).map((n) {
-              final map = n as Map;
-              return _buildMindmapNode(
-                map['desc']?.toString() ?? '',
-                time: map['time']?.toString(),
-              );
-            }).toList(),
+          // 根节点
+          _buildMindmapNode(
+            (rootNode as Map)['label']?.toString() ?? '',
+            isRoot: true,
+            time: (rootNode)['time']?.toString(),
           ),
-          if (nodes.length > 4) ...[
-            const SizedBox(height: 16),
-            const Text('更多节点已在思维导图中生成...', style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic)),
-          ]
+          const SizedBox(height: 24),
+          
+          // 一级节点 + 二级节点
+          ...level1Nodes.map((level1) {
+            final level1Map = level1 as Map;
+            // 找到当前一级节点下的二级节点
+            final childNodes = level2Nodes.where((n) => (n as Map)['parent'] == level1Map['id']).toList();
+            
+            return Column(
+              children: [
+                _buildMindmapNode(
+                  level1Map['label']?.toString() ?? '',
+                  isRoot: false,
+                  level: 1,
+                  time: level1Map['time']?.toString(),
+                ),
+                if (childNodes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.start,
+                      children: childNodes.map((level2) {
+                        final level2Map = level2 as Map;
+                        return _buildMindmapNode(
+                          level2Map['label']?.toString() ?? '',
+                          isRoot: false,
+                          level: 2,
+                          time: level2Map['time']?.toString(),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+              ],
+            );
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildMindmapNode(String label, {String? time, bool isRoot = false, List<Map<String, String>>? children}) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: isRoot ? 16 : 12, vertical: isRoot ? 10 : 8),
-          decoration: BoxDecoration(
-            color: isRoot ? const Color(0xFF818CF8).withOpacity(0.1) : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isRoot ? const Color(0xFF818CF8).withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+  // 思维导图节点样式（区分层级）
+  Widget _buildMindmapNode(String label, {bool isRoot = false, int level = 0, String? time}) {
+    Color nodeColor = const Color(0xFF60A5FA);
+    double paddingH = isRoot ? 20 : (level == 1 ? 16 : 12);
+    double paddingV = isRoot ? 12 : (level == 1 ? 10 : 8);
+    double fontSize = isRoot ? 15 : (level == 1 ? 13 : 11);
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
+      decoration: BoxDecoration(
+        color: isRoot 
+            ? nodeColor.withOpacity(0.1) 
+            : (level == 1 ? Colors.grey[50] : Colors.white),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isRoot 
+              ? nodeColor.withOpacity(0.3) 
+              : (level == 1 ? nodeColor.withOpacity(0.2) : Colors.grey.withOpacity(0.1)),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: isRoot 
+                  ? nodeColor 
+                  : (level == 1 ? const Color(0xFF374151) : const Color(0xFF4B5563)),
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: isRoot ? 14 : 12,
-                  fontWeight: FontWeight.bold,
-                  color: isRoot ? const Color(0xFF818CF8) : const Color(0xFF374151),
-                ),
+          if (time != null)
+            Text(
+              time,
+              style: TextStyle(
+                fontSize: fontSize - 2,
+                color: isRoot 
+                    ? nodeColor.withOpacity(0.7) 
+                    : Colors.grey,
               ),
-              if (time != null)
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isRoot ? const Color(0xFF818CF8).withOpacity(0.7) : Colors.grey,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        if (children != null && children.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: children.map((child) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.grey.withOpacity(0.1)),
-              ),
-              child: Column(
-                children: [
-                  Text(child['label']!, style: const TextStyle(fontSize: 10, color: Color(0xFF4B5563))),
-                  if (child['time'] != null)
-                    Text(child['time']!, style: const TextStyle(fontSize: 8, color: Colors.grey)),
-                ],
-              ),
-            )).toList(),
-          ),
+            ),
         ],
-      ],
+      ),
     );
   }
 
-  void _generateShownotesExample() async {
-    setState(() => _isGeneratingShownotes = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isGeneratingShownotes = false;
-      _shownotesResult = {
-        'titles': [
-          '为什么你的播客没人听？揭秘内容创作的底层逻辑',
-          '从0到1：新手播客如何打造爆款内容',
-          '播客创作避坑指南：我走过的那些弯路',
-        ],
-        'summary': '在本期节目中，我们深入探讨了播客创作的核心痛点。从选题策划到后期剪辑，分享了多个实用的技巧和工具。无论你是刚入门的新手，还是遇到瓶颈的资深创作者，都能从中获得启发。',
-        'timestamps': [
-          {'time': '00:00', 'desc': '节目开场及主题介绍'},
-          {'time': '02:15', 'desc': 'AI 语音转写技术的演进历程'},
-          {'time': '05:30', 'desc': 'PodPal 核心功能演示：智能去口癖'},
-          {'time': '12:45', 'desc': '嘉宾分享：如何利用 AI 缩短 50% 的后期时间'},
-          {'time': '20:10', 'desc': '未来展望：播客创作的下一个十年'},
-        ],
-      };
-    });
-  }
-
+  // ========== 3. 视频播客模块 ==========
   Widget _buildVideoSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -481,6 +526,128 @@ class _EnhanceStepState extends State<EnhanceStep> {
               logicScore: task['logicScore'] as int?,
             )),
           ],
+        ],
+      ),
+    );
+  }
+
+  // ========== 4. 多平台文案模块 ==========
+  Widget _buildSocialSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('目标平台', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _platforms.map((p) => _buildChip(p)).toList(),
+          ),
+          const SizedBox(height: 20),
+          _buildActionButton(
+            label: _isGeneratingSocial ? 'AI 正在创作...' : '生成全平台文案',
+            icon: _isGeneratingSocial ? Icons.hourglass_empty : Icons.bolt,
+            color: const Color(0xFFFB923C),
+            onPressed: _isGeneratingSocial ? null : _generateSocialExample,
+          ),
+          if (_socialResults.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text('文案预览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                const Spacer(),
+                DropdownButton<String>(
+                  value: _currentSocialPlatform,
+                  underline: const SizedBox(),
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 16),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFFFB923C), fontWeight: FontWeight.bold),
+                  items: _socialResults.keys.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                  onChanged: (val) => setState(() => _currentSocialPlatform = val!),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _socialResults[_currentSocialPlatform] ?? '',
+                    style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF374151)),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.copy, size: 14),
+                      label: const Text('复制文案', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFFFB923C)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ========== 工具方法 ==========
+  Widget _buildTitleItem(String title) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bookmark_border, size: 16, color: Color(0xFF818CF8)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 13))),
+          const Icon(Icons.copy, size: 14, color: Color(0xFF818CF8)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimestampItem(String time, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            time,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF818CF8),
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              desc,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+            ),
+          ),
         ],
       ),
     );
@@ -675,112 +842,6 @@ class _EnhanceStepState extends State<EnhanceStep> {
     );
   }
 
-  void _generateVideoExample() async {
-    setState(() => _isGeneratingVideo = true);
-    await Future.delayed(const Duration(seconds: 3));
-    setState(() {
-      _isGeneratingVideo = false;
-      _generatedVideoTasks.add({
-        'name': '金句片段_${_generatedVideoTasks.length + 1}',
-        'content': _generatedVideoTasks.isEmpty 
-          ? 'AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。'
-          : '未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。',
-        'desc': '时长: 00:45 | 风格: $_videoTemplate',
-        'segments': _generatedVideoTasks.isEmpty ? ['00:05 - 00:50'] : ['02:15 - 02:47'],
-        'viralPotential': _generatedVideoTasks.isEmpty ? 92 : 85,
-        'logicScore': _generatedVideoTasks.isEmpty ? 88 : 94,
-      });
-    });
-  }
-
-  Widget _buildSocialSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('目标平台', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _platforms.map((p) => _buildChip(p)).toList(),
-          ),
-          const SizedBox(height: 20),
-          _buildActionButton(
-            label: _isGeneratingSocial ? 'AI 正在创作...' : '生成全平台文案',
-            icon: _isGeneratingSocial ? Icons.hourglass_empty : Icons.bolt,
-            color: const Color(0xFFFB923C),
-            onPressed: _isGeneratingSocial ? null : _generateSocialExample,
-          ),
-          if (_socialResults.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text('文案预览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const Spacer(),
-                DropdownButton<String>(
-                  value: _currentSocialPlatform,
-                  underline: const SizedBox(),
-                  icon: const Icon(Icons.keyboard_arrow_down, size: 16),
-                  style: const TextStyle(fontSize: 12, color: Color(0xFFFB923C), fontWeight: FontWeight.bold),
-                  items: _socialResults.keys.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-                  onChanged: (val) => setState(() => _currentSocialPlatform = val!),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _socialResults[_currentSocialPlatform] ?? '',
-                    style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF374151)),
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.copy, size: 14),
-                      label: const Text('复制文案', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(foregroundColor: const Color(0xFFFB923C)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _generateSocialExample() async {
-    setState(() => _isGeneratingSocial = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isGeneratingSocial = false;
-      _socialResults = {
-        '公众号': '【本期必听】为什么你的播客没人听？揭秘内容创作的底层逻辑。\n\n在本期节目中，我们邀请到了资深播客制作人，深入探讨了从选题到分发的全流程技巧。无论你是新手还是老手，这篇干货分享都不容错过！\n\n👇 点击下方卡片收听完整节目',
-        '小红书': '播客新手必看！3个技巧让你的内容更有吸引力 ✨\n\n最近很多小伙伴问我怎么做播客，今天就把压箱底的干货分享给大家：\n1️⃣ 选题要有共鸣\n2️⃣ 剪辑要快节奏\n3️⃣ 标题要抓人眼球\n\n详细内容都在我的最新一期播客里啦，大家快去听！\n\n#播客推荐 #内容创作 #自媒体干货 #Podpal',
-        '微博': '做播客真的不难，难的是坚持。今天和大家聊聊播客创作中的那些坑，希望能帮到正在努力的你。🔗 网页链接 #播客# #内容创业#',
-        '短视频': '播客创作避坑指南：我走过的那些弯路！从0到1教你打造爆款播客内容。#播客 #干货分享 #自媒体',
-      };
-      _currentSocialPlatform = '公众号';
-    });
-  }
-
   Widget _buildChip(String label) {
     bool isSelected = _platformSelection[label] ?? false;
     return GestureDetector(
@@ -864,6 +925,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
     required T value,
     required List<Map<String, String>> items,
     required ValueChanged<String?> onChanged,
+    bool enabled = true,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -877,12 +939,17 @@ class _EnhanceStepState extends State<EnhanceStep> {
           value: value.toString(),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1F2937)),
+          style: TextStyle(
+            fontSize: 14, 
+            color: enabled ? const Color(0xFF1F2937) : Colors.grey[500]
+          ),
           items: items.map((e) => DropdownMenuItem(
             value: e['value'], 
             child: Text(e['label'] ?? '')
           )).toList(),
-          onChanged: onChanged,
+          onChanged: enabled ? onChanged : null,
+          disabledHint: Text(items.firstWhere((e) => e['value'] == value.toString())['label'] ?? '', 
+            style: TextStyle(color: Colors.grey[500])),
         ),
       ),
     );
@@ -909,5 +976,92 @@ class _EnhanceStepState extends State<EnhanceStep> {
         ],
       ),
     );
+  }
+
+  // ========== 生成示例数据 ==========
+  void _generateShownotesExample() async {
+    setState(() => _isGeneratingShownotes = true);
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _isGeneratingShownotes = false;
+      _shownotesResult = {
+        'titles': [
+          '为什么你的播客没人听？揭秘内容创作的底层逻辑',
+          '从0到1：新手播客如何打造爆款内容',
+          '播客创作避坑指南：我走过的那些弯路',
+        ],
+        'summary': '在本期节目中，我们深入探讨了播客创作的核心痛点。从选题策划到后期剪辑，分享了多个实用的技巧和工具。无论你是刚入门的新手，还是遇到瓶颈的资深创作者，都能从中获得启发。',
+        'timestamps': [
+          {'time': '00:00', 'desc': '节目开场及主题介绍'},
+          {'time': '02:15', 'desc': 'AI 语音转写技术的演进历程'},
+          {'time': '05:30', 'desc': 'PodPal 核心功能演示：智能去口癖'},
+          {'time': '12:45', 'desc': '嘉宾分享：如何利用 AI 缩短 50% 的后期时间'},
+          {'time': '20:10', 'desc': '未来展望：播客创作的下一个十年'},
+        ],
+      };
+    });
+  }
+
+  void _generateMindmapExample() async {
+    setState(() => _isGeneratingMindmap = true);
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _isGeneratingMindmap = false;
+      _mindmapResult = {
+        'nodes': [
+          // 根节点
+          {'id': 'root', 'level': 0, 'label': '播客创作核心方法论', 'time': '全片'},
+          // 一级节点
+          {'id': '1', 'level': 1, 'label': '前期准备', 'time': '00:00-05:00', 'parent': 'root'},
+          {'id': '2', 'level': 1, 'label': '中期制作', 'time': '05:00-15:00', 'parent': 'root'},
+          {'id': '3', 'level': 1, 'label': '后期优化', 'time': '15:00-20:00', 'parent': 'root'},
+          // 二级节点（前期准备）
+          {'id': '1-1', 'level': 2, 'label': '选题策划', 'time': '00:00-02:00', 'parent': '1'},
+          {'id': '1-2', 'level': 2, 'label': '嘉宾沟通', 'time': '02:00-03:30', 'parent': '1'},
+          {'id': '1-3', 'level': 2, 'label': '设备调试', 'time': '03:30-05:00', 'parent': '1'},
+          // 二级节点（中期制作）
+          {'id': '2-1', 'level': 2, 'label': '录音技巧', 'time': '05:00-08:00', 'parent': '2'},
+          {'id': '2-2', 'level': 2, 'label': 'AI转写', 'time': '08:00-10:00', 'parent': '2'},
+          {'id': '2-3', 'level': 2, 'label': '初剪成型', 'time': '10:00-15:00', 'parent': '2'},
+          // 二级节点（后期优化）
+          {'id': '3-1', 'level': 2, 'label': '去口癖处理', 'time': '15:00-17:00', 'parent': '3'},
+          {'id': '3-2', 'level': 2, 'label': '音效添加', 'time': '17:00-18:30', 'parent': '3'},
+          {'id': '3-3', 'level': 2, 'label': '导出发布', 'time': '18:30-20:00', 'parent': '3'},
+        ]
+      };
+    });
+  }
+
+  void _generateVideoExample() async {
+    setState(() => _isGeneratingVideo = true);
+    await Future.delayed(const Duration(seconds: 3));
+    setState(() {
+      _isGeneratingVideo = false;
+      _generatedVideoTasks.add({
+        'name': '金句片段_${_generatedVideoTasks.length + 1}',
+        'content': _generatedVideoTasks.isEmpty 
+          ? 'AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。'
+          : '未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。',
+        'desc': '时长: 00:45 | 风格: $_videoTemplate',
+        'segments': _generatedVideoTasks.isEmpty ? ['00:05 - 00:50'] : ['02:15 - 02:47'],
+        'viralPotential': _generatedVideoTasks.isEmpty ? 92 : 85,
+        'logicScore': _generatedVideoTasks.isEmpty ? 88 : 94,
+      });
+    });
+  }
+
+  void _generateSocialExample() async {
+    setState(() => _isGeneratingSocial = true);
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _isGeneratingSocial = false;
+      _socialResults = {
+        '公众号': '【本期必听】为什么你的播客没人听？揭秘内容创作的底层逻辑。\n\n在本期节目中，我们邀请到了资深播客制作人，深入探讨了从选题到分发的全流程技巧。无论你是新手还是老手，这篇干货分享都不容错过！\n\n👇 点击下方卡片收听完整节目',
+        '小红书': '播客新手必看！3个技巧让你的内容更有吸引力 ✨\n\n最近很多小伙伴问我怎么做播客，今天就把压箱底的干货分享给大家：\n1️⃣ 选题要有共鸣\n2️⃣ 剪辑要快节奏\n3️⃣ 标题要抓人眼球\n\n详细内容都在我的最新一期播客里啦，大家快去听！\n\n#播客推荐 #内容创作 #自媒体干货 #Podpal',
+        '微博': '做播客真的不难，难的是坚持。今天和大家聊聊播客创作中的那些坑，希望能帮到正在努力的你。🔗 网页链接 #播客# #内容创业#',
+        '短视频': '播客创作避坑指南：我走过的那些弯路！从0到1教你打造爆款播客内容。#播客 #干货分享 #自媒体',
+      };
+      _currentSocialPlatform = '公众号';
+    });
   }
 }
