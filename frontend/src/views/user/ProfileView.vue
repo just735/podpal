@@ -159,16 +159,16 @@
                 <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
                   <div class="flex items-center justify-between mb-2">
                     <div class="text-sm font-bold text-gray-700">训练状态</div>
-                    <div v-if="isTraining" class="text-xs text-pink-500 animate-pulse">{{ trainingProgress }}%</div>
+                    <div v-if="isTraining" class="text-sm text-pink-500 font-bold animate-pulse">{{ trainingProgress }}%</div>
                   </div>
                   <div class="flex items-center gap-3">
-                    <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
                       <div 
                         class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] transition-all duration-300" 
                         :style="{ width: trainingProgress + '%' }"
                       ></div>
                     </div>
-                    <span class="text-xs font-bold" :class="isTraining ? 'text-pink-600' : 'text-gray-400'">
+                    <span class="text-sm font-bold" :class="isTraining ? 'text-pink-600' : 'text-gray-400'">
                       {{ trainingStatusText }}
                     </span>
                   </div>
@@ -209,8 +209,8 @@
               </div>
               <div v-else class="space-y-4 animate-fade-in">
                 <textarea 
-                  placeholder="请输入你想要克隆读出的文字内容..." 
-                  class="w-full h-32 p-4 bg-gray-50 border border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm"
+                  placeholder="转写文本..." 
+                  class="w-full h-32 p-4 bg-gray-50 border border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm resize-none"
                 ></textarea>
                 <button class="w-full py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-xl font-bold hover:shadow-lg transition-all">
                   立即克隆并播放
@@ -319,10 +319,10 @@
             <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
               <div class="text-sm text-gray-500 mb-2">本月剪辑用量</div>
               <div class="text-2xl font-bold text-gray-900 mb-2">{{ usedClipMinutes }} / {{ monthlyClipMinutes }} 分钟</div>
-              <div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
                 <div class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC]" :style="{ width: clipPercent + '%' }"></div>
               </div>
-              <div class="text-xs text-gray-500 mt-2">已用 {{ clipPercent }}%</div>
+              <div class="text-sm font-bold text-gray-500 mt-2">已用 {{ clipPercent }}%</div>
             </div>
             <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
               <div class="text-sm text-gray-500 mb-2">项目总数</div>

@@ -169,10 +169,10 @@
                 </div>
                 <div v-else class="space-y-3">
                   <div class="text-sm text-gray-900">正在上传: {{ inlineFilename }}</div>
-                  <div class="h-2 w-full bg-pink-100 rounded-full overflow-hidden">
+                  <div class="h-3 w-full bg-pink-100 rounded-full overflow-hidden">
                     <div class="h-full bg-pink-500 rounded-full transition-all" :style="{ width: inlineProgress + '%' }"></div>
                   </div>
-                  <div class="text-xs text-gray-500">请稍候...</div>
+                  <div class="text-sm font-bold text-gray-500">请稍候...</div>
                 </div>
               </div>
            </div>
@@ -298,6 +298,12 @@
                     @click.stop
                   />
                   <div class="mt-2 flex justify-end gap-2">
+                    <div v-if="segment.warning" class="mr-auto text-[10px] text-amber-600 flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      {{ segment.warning }}
+                    </div>
                     <button 
                       @click.stop="confirmTTS(index)"
                       class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -2000,12 +2006,14 @@ const toggleTokenDelete = (segment, tokenIndex) => {
 
 // 插入 TTS 片段（待确认）
 const insertTTS = (index) => {
-  const baseEnd = mockTranscript.value[index]?.endTime ?? 0
+  const baseSeg = mockTranscript.value[index]
+  const baseEnd = baseSeg?.endTime ?? 0
   const newSeg = {
     startTime: baseEnd,
     endTime: baseEnd + 5,
     speaker: 'AI',
     text: '[TTS]请输入合成文本...',
+    originalText: baseSeg?.text || '', // 保存原文参考
     confirmed: false
   }
   mockTranscript.value.splice(index + 1, 0, newSeg)
@@ -2016,6 +2024,19 @@ const insertTTS = (index) => {
 const confirmTTS = (index) => {
   const seg = mockTranscript.value[index]
   if (!seg || !seg.text.startsWith('[TTS]')) return
+  
+  // 校验逻辑：确保生成的 TTS 文案与原始文稿内容在语义上保持一致
+  // 在实际场景中，这里可以调用 AI 接口进行语义相似度校验
+  const originalText = seg.originalText || ''
+  const ttsText = seg.text.replace('[TTS]', '')
+  
+  if (originalText && ttsText !== originalText) {
+    console.warn(`TTS 文案与原文不一致: 原文="${originalText}", TTS="${ttsText}"`)
+    seg.warning = '文案与原文内容不一致，请确认是否继续'
+  } else {
+    delete seg.warning
+  }
+  
   seg.confirmed = true
   editingSegmentId.value = null
 }

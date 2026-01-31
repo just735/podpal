@@ -12,7 +12,7 @@ class EditStep extends StatefulWidget {
 }
 
 class _EditStepState extends State<EditStep> {
-  final List<String> _fillerWords = ['就是', '然后', '那个', '嗯', '啊', '你知道', '其实', '对吧', '可以说', '怎么说呢'];
+  final List<String> _fillerWords = ['就是', '然后', '那个', '嗯', '啊', '额', '你知道', '其实', '对吧', '可以说', '怎么说呢'];
   
   List<Map<String, dynamic>> _transcript = [];
   List<Map<String, dynamic>> _voiceTasks = [
@@ -53,74 +53,94 @@ class _EditStepState extends State<EditStep> {
       {
         'speaker': 'A',
         'time': '00:00 - 07.50',
-        'text': '大家好，欢迎来到今天的播客节目。那个，今天我们要聊的话题是关于人工智能在创作领域的应用。'
+        'text': '大家好，欢迎来到今天的播客节目。额额，那个，就是，今天我们要聊的话题是关于人工智能在创作领域的应用。'
       },
       {
         'speaker': 'B',
         'time': '07.50 - 16.00',
-        'text': '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。嗯，比如自动去除口癖。'
+        'text': '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。嗯嗯，就是，额，比如自动去除口癖。'
       },
       {
         'speaker': 'A',
         'time': '16.00 - 24.00',
-        'text': '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。其实，它还能识别口吃。'
+        'text': '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。其实，那个，啊啊，它还能识别口吃。'
       },
       {
         'speaker': 'B',
         'time': '24.00 - 32.50',
-        'text': '而且它它它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。你知道，这很有用。'
+        'text': '而且它它它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。你知道，那个，嗯，这很有用。'
       },
       {
         'speaker': 'A',
         'time': '32.50 - 40.00',
-        'text': '这种个性化的处理方式确实很智能。怎么说呢，那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
+        'text': '这种个性化的处理方式确实很智能。怎么说呢，然后，额，那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
       },
       {
         'speaker': 'B',
         'time': '40.00 - 47.50',
-        'text': '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中解放出来。这就是播客创作的未来，让技术服务于创意。'
+        'text': '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中解放出来。这就是播客创作的未来，那个，啊，让技术服务于创意。'
       },
       {
         'speaker': 'A',
         'time': '47.50 - 55.00',
-        'text': '说得太好了。其实，创作的本质在于真实性的表达，这才是真正能打动听众的关键所在。'
+        'text': '说得太好了。其实，然后，额，创作的本质在于真实性的表达，这才是真正能打动听众的关键所在。'
       },
       {
         'speaker': 'B',
         'time': '55.00 - 62.50',
-        'text': '没错，我们不应该为了追求完美而牺牲了内容的自然流动。技术的进步应当是无感的，让听众更专注于内容本身。'
+        'text': '没错，我们不应该为了追求完美而牺牲了内容的自然流动。那个，就是，嗯，技术的进步应当是无感的，让听众更专注于内容本身。'
       },
       {
         'speaker': 'A',
         'time': '62.50 - 70.00',
-        'text': '这种理念非常契合我们产品的初衷。怎么说呢，技术只是工具，创意才是播客灵魂。'
+        'text': '这种理念非常契合我们产品的初衷。怎么说呢，然后，额，技术只是工具，创意才是播客灵魂。'
       },
       {
         'speaker': 'A',
         'time': '70.00 - 82.00',
-        'text': '继续刚才的话题，我们来结合一个实际的剪辑案例，那个，看看如何提升听感。'
+        'text': '继续刚才的话题，我们来结合一个实际的剪辑案例，那个，就是，啊，看看如何提升听感。'
       },
       {
         'speaker': 'B',
         'time': '82.00 - 97.00',
-        'text': '首先，去除口癖会让信息更凝练，比如把“就是说、然后呢、那个那个”等词清理掉。'
+        'text': '首先，去除口癖会让信息更凝练，比如把“就是说、然后呢、那个那个”等词清理掉。其实，那个，额，很有必要。'
       },
       {
         'speaker': 'A',
         'time': '97.00 - 111.00',
-        'text': '其次，补充过渡句可以减少语义跳跃，让让让听众更容易跟上思路。'
+        'text': '其次，补充过渡句可以减少语义跳跃，然后，额，让让让听众更容易跟上思路。'
       },
     ];
 
-    _transcript = rawData.map((item) {
+    _transcript = rawData.asMap().entries.map((entry) {
+      final index = entry.key;
+      final item = entry.value;
+      final tokens = _parseTranscriptToTokens(item['text'] as String);
+      
+      // 模拟前两段已经由 AI 进行了部分口癖优化
+      if (index < 2) {
+        for (var token in tokens) {
+          if (token['text'] == '额额' || token['text'] == '嗯嗯') {
+            token['oldType'] = token['type'];
+            token['type'] = 'deleted';
+          }
+        }
+      }
+
       return {
         'speaker': item['speaker'],
         'time': item['time'],
-        'text': item['text'],
+        'text': _tokensToText(tokens),
         'isOriginal': true,
         'isTts': false,
         'confirmed': true,
-        'tokens': _parseTranscriptToTokens(item['text'] as String),
+        'tokens': tokens,
+        'editTrace': index < 2 ? {
+          'oldText': item['text'],
+          'newText': _tokensToText(tokens),
+          'type': 'AI 自动优化 (去除口癖)',
+          'timestamp': DateTime.now().toString(),
+        } : null,
       };
     }).toList();
   }
@@ -1129,6 +1149,23 @@ class _EditStepState extends State<EditStep> {
   }
 
   void _addVoiceTask(String label, String content, String note) {
+    // 校验逻辑：检查生成内容是否与当前文稿相关
+    String warning = '';
+    bool isConsistent = false;
+    
+    // 简单校验：如果生成内容包含提示词，则认为是一致的
+    // 在实际 AI 流程中，这里会通过 API 返回一致性评分
+    for (var item in _transcript) {
+      if ((item['text'] as String).contains(content)) {
+        isConsistent = true;
+        break;
+      }
+    }
+    
+    if (!isConsistent && content.length > 5) {
+      warning = '注意：生成内容可能与原文稿存在偏差';
+    }
+
     setState(() {
       final id = (DateTime.now().millisecondsSinceEpoch % 10000).toString();
       _voiceTasks.insert(0, {
@@ -1137,6 +1174,7 @@ class _EditStepState extends State<EditStep> {
         'prompt': content, // 保存原始提示词
         'note': '正在根据提示词生成...', // 初始状态显示生成中
         'info': note,
+        'warning': warning, // 记录一致性警告
         'createdAt': '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
         'status': '处理中',
         'inserted': false,
@@ -1696,6 +1734,23 @@ class _EditStepState extends State<EditStep> {
                   maxLines: 1, 
                   overflow: TextOverflow.ellipsis
                 ),
+                if (task['warning'] != null && (task['warning'] as String).isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, size: 10, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          task['warning'], 
+                          style: const TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold), 
+                          maxLines: 1, 
+                          overflow: TextOverflow.ellipsis
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (task['info'] != null) ...[
                   const SizedBox(height: 2),
                   Text(

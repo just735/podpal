@@ -134,9 +134,9 @@ class _EditorPageState extends State<EditorPage> {
                         children: [
                           Text(
                             _currentStep == 1 ? '内容增值' : '确认发布',
-                            style: const TextStyle(color: Color(0xFFFF6B9D), fontWeight: FontWeight.bold, fontSize: 12)
+                            style: const TextStyle(color: Color(0xFFFF6B9D), fontWeight: FontWeight.bold, fontSize: 16)
                           ),
-                          const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFFFF6B9D)),
+                          const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFFF6B9D)),
                         ],
                       ),
                     ),
@@ -183,7 +183,7 @@ class _EditorPageState extends State<EditorPage> {
                 Text(
                   steps[index],
                   style: TextStyle(
-                    fontSize: 10, // 减小字体大小
+                    fontSize: 14, // 进一步增大字体大小
                     fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                     color: isCurrent ? const Color(0xFFFF6B9D) : Colors.grey,
                   ),

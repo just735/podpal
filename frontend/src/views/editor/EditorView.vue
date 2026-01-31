@@ -203,6 +203,7 @@
         <div v-show="activeTab === 'clips'" class="flex-1 overflow-auto">
           <SmartClipView
             :clips="clips"
+            :transcript="transcript"
             @update="handleClipsUpdate"
           />
         </div>
@@ -357,7 +358,8 @@ const startSmartClip = async () => {
   error.value = ''
   try {
     const response = await api.post(`/projects/${projectId.value}/smart-clip`, {
-      podcastType: project.value?.podcastType || 'knowledge'
+      podcastType: project.value?.podcastType || 'knowledge',
+      transcript: transcript.value // 传递当前文稿内容以确保生成文案的一致性
     })
     clips.value = response.data.clips || []
     // 自动保存

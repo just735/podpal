@@ -93,6 +93,10 @@ const props = defineProps({
   clips: {
     type: Array,
     required: true
+  },
+  transcript: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -128,7 +132,8 @@ const handleDeleteClip = (index) => {
 const handleAutoClip = async () => {
   try {
     const response = await api.post('/ai/auto-clip', {
-      template: clipTemplate.value || null
+      template: clipTemplate.value || null,
+      transcript: props.transcript // 发送当前文稿以确保生成一致性
     })
     emit('update', response.data.clips)
   } catch (error) {
@@ -139,7 +144,9 @@ const handleAutoClip = async () => {
 
 const handleRemoveRedundancy = async () => {
   try {
-    const response = await api.post('/ai/remove-redundancy')
+    const response = await api.post('/ai/remove-redundancy', {
+      transcript: props.transcript // 发送当前文稿以确保生成一致性
+    })
     emit('update', response.data.clips)
   } catch (error) {
     console.error('去冗余失败:', error)
