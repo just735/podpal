@@ -3,6 +3,7 @@ import 'membership_page.dart';
 import 'cloud_library_page.dart';
 import 'edit_history_page.dart';
 import 'settings_page.dart';
+import 'voice_clone_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -71,6 +72,8 @@ class ProfilePage extends StatelessWidget {
               child: Column(
                 children: [
                   _buildMenuItem(context, Icons.workspace_premium, '我的会员', Colors.amber, const MembershipPage()),
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  _buildMenuItem(context, Icons.mic_none, '训练音色模型', Colors.pink, const VoiceClonePage()),
                   const Divider(height: 1, color: Color(0xFFEEEEEE)),
                   _buildMenuItem(context, Icons.cloud_outlined, '云端素材库', Colors.blue, const CloudLibraryPage()),
                   const Divider(height: 1, color: Color(0xFFEEEEEE)),

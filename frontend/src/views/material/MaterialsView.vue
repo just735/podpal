@@ -108,6 +108,12 @@
             >
               {{ material.type === 'audio' ? '音频' : '视频' }}
             </span>
+            <span
+              v-if="material.status === 'processing'"
+              class="px-2 py-1 rounded text-xs bg-pink-100 text-pink-700 border border-pink-300 animate-pulse"
+            >
+              制作中
+            </span>
             <span v-if="material.duration" class="text-xs text-gray-500">
               时长: {{ formatDuration(material.duration) }}
             </span>
@@ -309,6 +315,15 @@ onMounted(async () => {
         size: 15 * 1024 * 1024, 
         duration: 1200, 
         createdAt: new Date().toISOString() 
+      },
+      {
+        id: 6,
+        name: '新剪辑音频_20240131.mp3',
+        type: 'audio',
+        size: 2 * 1024 * 1024,
+        duration: 45,
+        status: 'processing',
+        createdAt: new Date().toISOString()
       },
       { 
         id: 2, 

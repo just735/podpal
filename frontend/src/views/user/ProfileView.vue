@@ -131,6 +131,144 @@
           </div>
         </div>
 
+        <!-- 训练个人音色模型 -->
+        <div v-else-if="activeTab === 'voice-clone'" class="space-y-8 animate-fade-in">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h2 class="text-3xl font-bold bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent">
+                训练个人音色模型
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">通过少量录音克隆你的专属音色，用于 AI 语音合成</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 步骤 1: 训练模型 -->
+            <div class="glass-card rounded-2xl p-8 border-2 border-pink-100 bg-white hover:border-pink-300 transition-all duration-300 shadow-sm">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center text-2xl">
+                  1️⃣
+                </div>
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900">第一步：训练音色模型</h3>
+                  <p class="text-xs text-gray-500">录制或上传 1-3 分钟的高质量音频</p>
+                </div>
+              </div>
+              
+              <div class="space-y-4 mb-8">
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="text-sm font-bold text-gray-700">训练状态</div>
+                    <div v-if="isTraining" class="text-xs text-pink-500 animate-pulse">{{ trainingProgress }}%</div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] transition-all duration-300" 
+                        :style="{ width: trainingProgress + '%' }"
+                      ></div>
+                    </div>
+                    <span class="text-xs font-bold" :class="isTraining ? 'text-pink-600' : 'text-gray-400'">
+                      {{ trainingStatusText }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                @click="startTraining"
+                :disabled="isTraining"
+                class="w-full py-4 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-2xl font-bold hover:shadow-xl hover:shadow-pink-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="!isTraining">🎙️ 开始录音训练</span>
+                <span v-else>⏳ 正在训练中...</span>
+              </button>
+            </div>
+
+            <!-- 步骤 2: 添加内容 -->
+            <div 
+              class="glass-card rounded-2xl p-8 border-2 transition-all duration-300"
+              :class="trainingProgress === 100 ? 'border-pink-100 bg-white' : 'border-gray-100 bg-gray-50/50 opacity-60'"
+            >
+              <div class="flex items-center gap-4 mb-6">
+                <div 
+                  class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+                  :class="trainingProgress === 100 ? 'bg-pink-100' : 'bg-gray-200'"
+                >
+                  2️⃣
+                </div>
+                <div>
+                  <h3 class="text-xl font-bold" :class="trainingProgress === 100 ? 'text-gray-900' : 'text-gray-400'">第二步：添加克隆内容</h3>
+                  <p class="text-xs" :class="trainingProgress === 100 ? 'text-gray-500' : 'text-gray-400'">训练完成后添加文本即可克隆读出</p>
+                </div>
+              </div>
+              
+              <div v-if="trainingProgress < 100" class="p-4 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center py-10">
+                <span class="text-3xl mb-2">📝</span>
+                <span class="text-sm text-gray-400">请先完成第一步训练</span>
+              </div>
+              <div v-else class="space-y-4 animate-fade-in">
+                <textarea 
+                  placeholder="请输入你想要克隆读出的文字内容..." 
+                  class="w-full h-32 p-4 bg-gray-50 border border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm"
+                ></textarea>
+                <button class="w-full py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-xl font-bold hover:shadow-lg transition-all">
+                  立即克隆并播放
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 历史训练记录 -->
+          <div class="glass-card rounded-2xl p-8 border-2 border-pink-100 bg-white">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-xl font-bold text-gray-900">历史训练记录</h3>
+              <span class="text-xs text-gray-500">共 {{ voiceHistory.length }} 条记录</span>
+            </div>
+            <div class="space-y-4">
+              <div v-if="voiceHistory.length === 0" class="text-center py-8 text-gray-400">
+                暂无训练记录
+              </div>
+              <div 
+                v-for="record in voiceHistory" 
+                :key="record.id"
+                class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-pink-200 transition-all group"
+              >
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-600">
+                    🎙️
+                  </div>
+                  <div>
+                    <div class="font-bold text-gray-900">{{ record.name }}</div>
+                    <div class="text-xs text-gray-500">{{ record.date }}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                    {{ record.status }}
+                  </span>
+                  <button class="text-pink-500 text-sm font-bold opacity-0 group-hover:opacity-100 transition-all">
+                    使用此音色
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明事项 -->
+          <div class="rounded-2xl bg-amber-50 border border-amber-100 p-6">
+            <h4 class="text-amber-800 font-bold mb-3 flex items-center gap-2">
+              <span>💡</span> 训练指南
+            </h4>
+            <ul class="space-y-2 text-sm text-amber-700/80">
+              <li>• 请在安静的环境下录音，避免背景噪音。</li>
+              <li>• 建议录制 3 分钟以上，音色还原度更高。</li>
+              <li>• 模型训练通常需要 5-10 分钟，完成后我们将通过邮件通知您。</li>
+              <li>• 严禁克隆他人音色，仅限个人使用。</li>
+            </ul>
+          </div>
+        </div>
+
         <!-- 其他标签页内容（简化版，可根据需要扩展） -->
         <div v-else-if="activeTab === 'membership'" class="space-y-6 animate-fade-in">
           <div class="flex items-center justify-between mb-2">
@@ -441,6 +579,7 @@ const projectStore = useProjectStore()
 
 const tabs = [
   { key: 'basic', label: '基本信息', icon: '👤' },
+  { key: 'voice-clone', label: '训练音色', icon: '🎙️' },
   { key: 'membership', label: '会员中心', icon: '⭐' },
   { key: 'statistics', label: '数据统计', icon: '📊' },
   { key: 'projects', label: '播客项目', icon: '📁' },
@@ -454,6 +593,49 @@ const showCreateProject = ref(false)
 const showEditModal = ref(false)
 const securityForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const twoFAEnabled = ref(false)
+const isTraining = ref(false)
+const trainingProgress = ref(0)
+const trainingStatusText = ref('未开始')
+const voiceHistory = ref([
+  { id: 1, name: '我的默认音色', date: '2024-01-20', status: '已完成' },
+  { id: 2, name: '专业播报音色', date: '2024-01-15', status: '已完成' }
+])
+
+const startTraining = () => {
+  if (isTraining.value) return
+  
+  isTraining.value = true
+  trainingProgress.value = 0
+  trainingStatusText.value = '准备中...'
+  
+  const interval = setInterval(() => {
+    trainingProgress.value += Math.floor(Math.random() * 10) + 5
+    
+    if (trainingProgress.value < 30) {
+      trainingStatusText.value = '上传音频中...'
+    } else if (trainingProgress.value < 70) {
+      trainingStatusText.value = '模型训练中...'
+    } else if (trainingProgress.value < 100) {
+      trainingStatusText.value = '音色生成中...'
+    }
+    
+    if (trainingProgress.value >= 100) {
+      trainingProgress.value = 100
+      trainingStatusText.value = '训练完成'
+      isTraining.value = false
+      clearInterval(interval)
+      
+      // 添加到历史记录
+      voiceHistory.value.unshift({
+        id: Date.now(),
+        name: `新训练音色_${dayjs().format('MMDD')}`,
+        date: dayjs().format('YYYY-MM-DD'),
+        status: '已完成'
+      })
+    }
+  }, 500)
+}
+
 const supportForm = ref({ subject: '', message: '' })
 const editForm = ref({
   username: '',
