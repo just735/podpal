@@ -2604,114 +2604,131 @@ class _EditStepState extends State<EditStep> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isOriginal ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!isOriginal)
-                              const Padding(
-                                padding: EdgeInsets.only(right: 4),
-                                child: Icon(Icons.auto_awesome, size: 10, color: Colors.pink),
-                              ),
-                            Text(
-                              isOriginal ? 'Speaker $speaker' : 'AI 生成',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isOriginal ? Colors.blue : Colors.pink,
-                              ),
+            ClipRect(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isOriginal ? Colors.blue.withOpacity(0.1) : Colors.pink.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (!isOriginal)
+                                  const Icon(Icons.auto_awesome, size: 10, color: Colors.pink),
+                                if (!isOriginal) const SizedBox(width: 2),
+                                Flexible(
+                                  child: Text(
+                                    isOriginal ? 'Speaker $speaker' : 'AI 生成',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: isOriginal ? Colors.blue : Colors.pink,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
+                        const SizedBox(width: 4),
+                        Text(
                           time,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 9,
                             color: Colors.grey[500],
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (editTrace != null && editTrace['type'] != null)
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          margin: const EdgeInsets.only(right: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.amber[50],
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.amber[200]!),
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (editTrace != null && editTrace['type'] != null)
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                              margin: const EdgeInsets.only(right: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber[50],
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(color: Colors.amber[200]!),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.auto_awesome, size: 7, color: Colors.amber[700]),
+                                  const SizedBox(width: 1),
+                                  Flexible(
+                                    child: Text(
+                                      editTrace['type'],
+                                      style: TextStyle(fontSize: 7, color: Colors.amber[800], fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
+                        if (isTts && !confirmed)
+                          TextButton(
+                            onPressed: () => _confirmTtsSegment(itemIndex),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.check_circle_outline, size: 9),
+                                const SizedBox(width: 1),
+                                const Text('确认', style: TextStyle(fontSize: 8)),
+                              ],
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(horizontal: 1),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        if (!isOriginal)
+                          IconButton(
+                            onPressed: () => _deleteSegment(itemIndex),
+                            icon: const Icon(Icons.delete_outline, size: 12, color: Colors.red),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        TextButton(
+                          onPressed: isTts && !confirmed ? null : () => _editSegmentText(itemIndex),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.auto_awesome, size: 10, color: Colors.amber[700]),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  editTrace['type'],
-                                  style: TextStyle(fontSize: 9, color: Colors.amber[800], fontWeight: FontWeight.w500),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              const Icon(Icons.edit_outlined, size: 10),
+                              const SizedBox(width: 1),
+                              const Text('编辑', style: TextStyle(fontSize: 8)),
                             ],
                           ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey[700],
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                         ),
-                      ),
-                    if (isTts && !confirmed)
-                      TextButton.icon(
-                        onPressed: () => _confirmTtsSegment(itemIndex),
-                        icon: const Icon(Icons.check_circle_outline, size: 14),
-                        label: const Text('确认', style: TextStyle(fontSize: 12)),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                    if (!isOriginal)
-                      IconButton(
-                        onPressed: () => _deleteSegment(itemIndex),
-                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                        tooltip: '删除 AI 段落',
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        constraints: const BoxConstraints(),
-                      ),
-                    TextButton.icon(
-                      onPressed: isTts && !confirmed ? null : () => _editSegmentText(itemIndex),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('编辑', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.grey[700],
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 10),
             RichText(
