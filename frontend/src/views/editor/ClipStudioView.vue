@@ -1118,10 +1118,31 @@
                             <h4 class="text-xs font-bold text-gray-500 uppercase">摘要</h4>
                             <p class="text-sm text-gray-700 bg-white p-3 rounded border border-gray-200 leading-relaxed">{{ shownotesData.summary }}</p>
                          </div>
-                         <div class="pt-2">
+                         <div v-if="shownotesData.timeline && shownotesData.timeline.length > 0" class="space-y-2">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase">节目时间轴</h4>
+                            <div class="space-y-2">
+                               <div v-for="(item, idx) in shownotesData.timeline" :key="idx" 
+                                  class="flex gap-3 group cursor-pointer hover:bg-white p-2 rounded transition-colors border border-transparent hover:border-pink-100"
+                                  @click="seekToTime(item.seconds)"
+                               >
+                                  <div class="flex-none font-mono text-xs text-pink-600 font-bold bg-pink-50 px-2 py-0.5 rounded h-fit group-hover:bg-pink-100">
+                                     {{ item.timestamp }}
+                                  </div>
+                                  <div class="space-y-0.5">
+                                     <div class="text-xs font-bold text-gray-800">{{ item.topic }}</div>
+                                     <div class="text-[10px] text-gray-500 leading-relaxed">{{ item.description }}</div>
+                                  </div>
+                               </div>
+                            </div>
+                         </div>
+                         <div class="pt-2 flex items-center justify-between border-t border-gray-100 mt-4">
                             <button @click="showMindMap = true" class="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1">
                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.553-.894L15 7m0 13V7" /></svg>
                                查看思维导图
+                            </button>
+                            <button @click="copyFullShownotes" class="text-xs bg-gray-100 text-gray-600 hover:bg-pink-50 hover:text-pink-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                               复制完整 Shownotes
                             </button>
                          </div>
                       </div>
@@ -1724,7 +1745,7 @@
                   <div class="text-xs font-medium text-gray-900">推荐金句</div>
                   <div v-for="sentence in goldenSentences" :key="sentence.id" 
                     class="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md transition"
-                    @click="seekToTime(sentence.startTime)"
+                    @click="scrollToGoldenSentence(sentence)"
                   >
                     <div class="flex items-start justify-between mb-1">
                       <span class="text-[10px] text-gray-600">{{ formatTime(sentence.startTime) }} - {{ formatTime(sentence.endTime) }}</span>
@@ -2308,10 +2329,21 @@ const isExtracting = ref(false)
 
 const loadSampleGoldenSentences = () => {
   goldenSentences.value = [
-    { id: 101, content: '播客的核心在于真实性的表达，这才是打动听众的关键。', startTime: 12.5, endTime: 18.2 },
-    { id: 102, content: '我们不应该为了追求完美而牺牲了内容的自然流动。', startTime: 45.8, endTime: 52.1 },
-    { id: 103, content: '技术只是工具，创意才是播客的灵魂所在。', startTime: 88.4, endTime: 94.7 }
+    { id: 101, content: '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中解放出来。这就是播客创作的未来，让技术服务于创意。', startTime: 512, endTime: 535, segmentIndex: 5, viralPotential: 92, logicScore: 88 },
+    { id: 102, content: '其实，创作的本质在于真实性的表达，这才是真正能打动听众的关键所在。', startTime: 780, endTime: 805, segmentIndex: 7, viralPotential: 95, logicScore: 94 },
+    { id: 103, content: '技术只是工具，创意才是播客的灵魂所在。', startTime: 1050, endTime: 1075, segmentIndex: 9, viralPotential: 89, logicScore: 91 }
   ]
+}
+
+const scrollToGoldenSentence = (sentence) => {
+  // 跳转音频时间
+  seekToTime(sentence.startTime)
+  
+  // 滚动文字稿到对应片段
+  const index = sentence.segmentIndex !== undefined ? sentence.segmentIndex : mockTranscript.value.findIndex(s => s.startTime === sentence.startTime)
+  if (index !== -1 && segmentRefs.value[index]) {
+    segmentRefs.value[index].scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
 }
 
 const generateShownotes = async () => {
@@ -2330,6 +2362,13 @@ const generateShownotes = async () => {
       '从零开始做播客：新手必看的 AI 工具指南'
     ],
     summary: '本期节目我们深入探讨了人工智能在播客创作领域的应用。从早期的语音转写到如今的智能剪辑、内容生成，AI 正在重塑音频内容的生产流程。我们邀请了资深播客制作人，分享他们使用 PodPal 提升效率的实战经验，并展望了未来播客行业的发展趋势。无论你是刚入门的新手，还是经验丰富的创作者，本期内容都将为你带来全新的启发。',
+    timeline: [
+      { timestamp: '00:00:00', seconds: 0, topic: '开场：AI 播客创作时代的到来', description: '介绍本期话题及背景，为什么每个创作者都该关注 AI。' },
+      { timestamp: '03:15:00', seconds: 195, topic: '前期策划：如何用 AI 找灵感', description: '分享使用 LLM 进行选题策划和脚本大纲撰写的实操技巧。' },
+      { timestamp: '12:30:00', seconds: 750, topic: '中期制作：智能录音与剪辑', description: '演示 PodPal 的 AI 降噪、自动剪辑口癖等黑科技功能。' },
+      { timestamp: '25:45:00', seconds: 1545, topic: '后期分发：Shownotes 与视频化', description: '探讨如何利用 AI 快速生成多平台分发文案，抢占流量。' },
+      { timestamp: '32:10:00', seconds: 1930, topic: 'Q&A：听众最关心的 AI 创作问题', description: '解答关于版权、原创性以及技术门槛的常见疑惑。' }
+    ],
     mindmap: {
       root: 'AI 播客创作',
       children: [
@@ -2420,6 +2459,21 @@ const copySocialCopy = () => {
   alert('文案已复制到剪贴板')
 }
 
+const copyFullShownotes = () => {
+  if (!shownotesData.value) return
+  
+  let content = `【${shownotesData.value.titles[0]}】\n\n`
+  content += `摘要：\n${shownotesData.value.summary}\n\n`
+  content += `节目时间轴：\n`
+  shownotesData.value.timeline.forEach(item => {
+    content += `${item.timestamp} ${item.topic}\n`
+    content += `${item.description}\n\n`
+  })
+  
+  navigator.clipboard.writeText(content)
+  alert('完整 Shownotes 已复制到剪贴板')
+}
+
 // 口癖 / 语气词列表，用于高亮和一键删除
 const fillerWords = ['就是', '然后', '那个', '嗯', '啊', '你知道', '其实', '对吧', '可以说', '怎么说呢']
 
@@ -2431,57 +2485,63 @@ const echoRemovalEnabled = ref(false)
 const mockTranscript = ref([
   {
     startTime: 0,
-    endTime: 7.5,
+    endTime: 15,
     speaker: 'A',
-    text: '大家好，欢迎来到今天的播客节目。那个，今天我们要聊的话题是关于人工智能在创作领域的应用。'
+    text: '大家好，欢迎来到今天的播客节目。今天我们要聊的话题是关于人工智能在创作领域的应用。'
   },
   {
-    startTime: 7.5,
-    endTime: 16,
+    startTime: 45,
+    endTime: 72,
     speaker: 'B', 
-    text: '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。嗯，比如自动去除口癖。'
+    text: '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。比如自动去除口癖。'
   },
   {
-    startTime: 16,
-    endTime: 24,
+    startTime: 112,
+    endTime: 128,
     speaker: 'A',
-    text: '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。其实，它还能识别口吃。'
+    text: '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。'
   },
   {
-    startTime: 24,
-    endTime: 32.5,
+    startTime: 245,
+    endTime: 262,
     speaker: 'B',
-    text: '而且它它它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。你知道，这很有用。'
+    text: '而且它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。'
   },
   {
-    startTime: 32.5,
-    endTime: 40,
+    startTime: 380,
+    endTime: 395,
     speaker: 'A',
-    text: '这种个性化的处理方式确实很智能。怎么说呢，那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
+    text: '这种个性化的处理方式确实很智能。那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
   },
   {
-    startTime: 40,
-    endTime: 47.5,
+    startTime: 512,
+    endTime: 535,
     speaker: 'B',
     text: '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中解放出来。这就是播客创作的未来，让技术服务于创意。'
   },
   {
-    startTime: 47.5,
-    endTime: 55,
+    startTime: 645,
+    endTime: 662,
+    speaker: 'A',
+    text: '在这个快速发展的时代，保持专注是非常难得的。我们需要更好的工具。'
+  },
+  {
+    startTime: 780,
+    endTime: 805,
     speaker: 'A',
     text: '说得太好了。其实，创作的本质在于真实性的表达，这才是真正能打动听众的关键所在。'
   },
   {
-    startTime: 55,
-    endTime: 62.5,
+    startTime: 920,
+    endTime: 945,
     speaker: 'B',
-    text: '没错，我们不应该为了追求完美而牺牲了内容的自然流动。技术的进步应当是无感的，让听众更专注于内容本身。'
+    text: '没错，我们不应该为了追求完美而牺牲了内容的自然流动。技术的进步应当是无感的。'
   },
   {
-    startTime: 62.5,
-    endTime: 70,
+    startTime: 1050,
+    endTime: 1075,
     speaker: 'A',
-    text: '这种理念非常契合我们产品的初衷。怎么说呢，技术只是工具，创意才是播客的灵魂所在。'
+    text: '这种理念非常契合我们产品的初衷。技术只是工具，创意才是播客的灵魂所在。'
   }
 ])
 
@@ -2516,22 +2576,22 @@ const startTranscription = async () => {
 
   const newSegments = [
     {
-      startTime: lastEnd + 0,
-      endTime: lastEnd + 12,
+      startTime: lastEnd + 120,
+      endTime: lastEnd + 135,
       speaker: 'A',
-      text: '继续刚才的话题，我们来结合一个实际的剪辑案例，那个，看看如何提升听感。'
+      text: '继续刚才的话题，我们来结合一个实际的剪辑案例，看看如何提升听感。'
     },
     {
-      startTime: lastEnd + 12,
-      endTime: lastEnd + 27,
+      startTime: lastEnd + 240,
+      endTime: lastEnd + 265,
       speaker: 'B',
       text: '首先，去除口癖会让信息更凝练，比如把“就是说、然后呢、那个那个”等词清理掉。'
     },
     {
-      startTime: lastEnd + 27,
-      endTime: lastEnd + 41,
+      startTime: lastEnd + 400,
+      endTime: lastEnd + 425,
       speaker: 'A',
-      text: '其次，补充过渡句可以减少语义跳跃，让让让听众更容易跟上思路。'
+      text: '其次，补充过渡句可以减少语义跳跃，让听众更容易跟上思路。'
     }
   ]
 
@@ -3648,9 +3708,10 @@ const extractGoldenSentences = async () => {
       if (hasKeyword) {
         results.push({
           id: `golden-${index}-${Date.now()}`,
-          content: segment.text.replace(/~~.*?~~/g, '').replace(/\[TTS\]/g, ''), // 移除标注和 TTS 前缀
+          content: segment.text, // 直接使用原始文本
           startTime: segment.startTime,
           endTime: segment.endTime,
+          segmentIndex: index, // 记录原始片段索引
           viralPotential: Math.floor(Math.random() * 15) + 80, // 80-95
           logicScore: Math.floor(Math.random() * 10) + 85 // 85-95
         })
