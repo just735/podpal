@@ -19,11 +19,34 @@ class StartPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(flex: 3),
-            // Logo & Title
+            // Logo
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/images/logo.jpg',
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Title
             const Text(
               'PodPal',
               style: TextStyle(
-                fontSize: 64,
+                fontSize: 48,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: 4,
