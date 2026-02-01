@@ -29,9 +29,10 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
     <div class="flex items-center gap-4">
       <RouterLink 
         to="/" 
-        class="text-xl font-bold transition hover:opacity-80 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent"
+        class="text-xl font-bold transition hover:opacity-80 flex items-center gap-2"
       >
-        PodPal
+        <img src="../assets/logo_1.jpg" alt="播客派" class="h-6 w-auto" />
+        <span class="bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent">播客派</span>
       </RouterLink>
       <div 
         v-if="isClipStudio"
