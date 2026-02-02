@@ -250,19 +250,20 @@
               </span>
             </div>
             <div class="space-y-3">
-              <div 
-                v-for="(segment, index) in mockTranscript" 
-                :key="index"
-                :ref="el => setSegmentRef(el, index)"
-                class="p-3 rounded-lg cursor-pointer transition-all duration-200 group relative"
-                :class="[
-                  isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : 'hover:bg-pink-50',
-                  isSegmentHighlighted(index) ? 'ring-2 ring-pink-400 ring-inset bg-pink-50/50' : '',
-                  segment.text.startsWith('[TTS]') && !segment.confirmed ? 'border border-dashed border-blue-300 bg-blue-50/30' : '',
-                  segment.text.startsWith('[TTS]') && segment.confirmed ? 'border border-blue-200 bg-blue-50' : ''
-                ]"
-                @click="seekToTime(segment.startTime)"
-              >
+                <div 
+                  v-for="(segment, index) in mockTranscript" 
+                  :key="index"
+                  :ref="el => setSegmentRef(el, index)"
+                  class="p-3 rounded-lg cursor-pointer transition-all duration-200 group relative"
+                  :class="[
+                    isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : 'hover:bg-pink-50',
+                    isSegmentHighlighted(index) ? 'ring-2 ring-pink-400 ring-inset bg-pink-50/50' : '',
+                    segment.text.startsWith('[TTS]') && !segment.confirmed ? 'border border-dashed border-blue-300 bg-blue-50/30' : '',
+                    segment.text.startsWith('[TTS]') && segment.confirmed ? 'border border-blue-200 bg-blue-50' : '',
+                    segment.isNew ? 'animate-highlightNew' : ''
+                  ]"
+                  @click="seekToTime(segment.startTime)"
+                >
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500 font-mono">{{ formatTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}</span>
@@ -382,6 +383,19 @@
                       :data-token-index="tIndex"
                       class="text-gray-400 line-through decoration-red-400 decoration-2 mx-0.5 cursor-pointer hover:text-gray-600 transition"
                     >
+                      {{ token.text }}
+                    </span>
+                    <!-- 修正后的 Token -->
+                    <span 
+                      v-else-if="token.type === 'corrected'"
+                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      :data-token-index="tIndex"
+                      class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-green-100 text-green-800 border border-green-200 cursor-pointer hover:bg-green-200 transition"
+                      title="点击撤回此项逻辑优化建议"
+                    >
+                      <svg class="w-3 h-3 mr-1 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       {{ token.text }}
                     </span>
                     <!-- 空白 Token -->
@@ -1528,6 +1542,51 @@
                 </button>
               </div>
               <div v-if="scriptOptimizeMessage" class="mt-2 text-[11px] text-gray-600">{{ scriptOptimizeMessage }}</div>
+
+              <!-- 脚本优化建议列表 -->
+              <div v-if="scriptSuggestions.length" class="mt-4 space-y-2">
+                <div v-for="s in scriptSuggestions" :key="s.id" class="p-3 bg-white border border-blue-200 rounded text-xs text-gray-700 flex flex-col gap-2 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <div class="font-medium text-gray-900 flex items-center gap-1">
+                      <svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {{ s.label }}
+                    </div>
+                    <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 text-[10px]">{{ s.tag }}</span>
+                  </div>
+                  <div class="text-[10px] text-gray-500 leading-relaxed italic">{{ s.preview }}</div>
+                  <div class="flex justify-end gap-2 mt-1">
+                    <button 
+                      @click="applyScriptSuggestion(s)"
+                      class="px-3 py-1 bg-blue-500 text-white rounded-full text-[10px] hover:bg-blue-600 transition shadow-sm"
+                    >确认</button>
+                    <button 
+                      @click="scriptSuggestions = scriptSuggestions.filter(item => item.id !== s.id)"
+                      class="px-3 py-1 bg-white text-gray-400 border border-gray-100 rounded-full text-[10px] hover:bg-gray-50 transition"
+                    >忽略</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 脚本预览展示 -->
+              <div v-if="scriptPreview.length" class="mt-4 space-y-3 pt-3 border-t border-blue-100">
+                <div class="text-xs font-bold text-gray-900 flex items-center gap-1">
+                  <svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  文稿优化预览
+                </div>
+                <div v-for="group in scriptPreview" :key="group.id" class="space-y-2">
+                  <div class="text-[10px] px-2 py-0.5 rounded bg-blue-50 border border-blue-100 text-blue-600 inline-block font-medium">{{ group.label }}</div>
+                  <div v-for="entry in group.entries" :key="entry.id" class="p-2.5 bg-white border border-blue-50 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="text-[10px] text-gray-400">{{ entry.speaker }} · {{ entry.time }}</div>
+                      <span class="text-[9px] px-1.5 py-0.5 rounded border bg-indigo-50 text-indigo-600 border-indigo-100">{{ entry.type }}</span>
+                    </div>
+                    <div class="text-[11px] text-gray-800 leading-snug">{{ entry.content }}</div>
+                    <div class="mt-1.5 flex flex-wrap gap-1">
+                      <span v-for="tag in entry.tags" :key="tag.text" class="text-[9px] px-1.5 py-0.5 rounded border bg-blue-50 text-blue-500 border-blue-100">{{ tag.text }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </section>
 
              <!-- 语音生成（示例交互） -->
@@ -1592,34 +1651,34 @@
                 AI 专项剪辑
               </h3>
               <div class="p-4 bg-white border border-pink-200 rounded-lg space-y-4">
-                <div class="text-xs font-medium text-gray-900 mb-2">请选择 AI 剪辑方案</div>
+                <div class="text-xs font-medium text-gray-900 mb-2">请选择 AI 音频剪辑方案</div>
                 <div class="space-y-2.5">
                   <label class="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer hover:text-pink-600 transition p-2 rounded hover:bg-pink-50 group">
-                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="all">
+                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="silence">
                     <div class="flex-1">
-                      <div class="font-medium">AI 全剪辑</div>
-                      <div class="text-xs text-gray-500 mt-0.5">一键全剪，处理所有冗余内容</div>
+                      <div class="font-medium">静音自动切除</div>
+                      <div class="text-xs text-gray-500 mt-0.5">自动识别并剔除超过 3s 的无效静音片段</div>
                     </div>
                   </label>
                   <label class="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer hover:text-pink-600 transition p-2 rounded hover:bg-pink-50 group">
-                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="filler">
+                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="pause">
                     <div class="flex-1">
-                      <div class="font-medium">AI 口癖剪辑</div>
-                      <div class="text-xs text-gray-500 mt-0.5">只处理口癖（如：嗯、呃、这个、那个等语气词）</div>
+                      <div class="font-medium">长停顿缩减</div>
+                      <div class="text-xs text-gray-500 mt-0.5">将语气间的长停顿缩减至自然停顿（约 0.5s）</div>
                     </div>
                   </label>
                   <label class="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer hover:text-pink-600 transition p-2 rounded hover:bg-pink-50 group">
-                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="stutter">
+                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="noise">
                     <div class="flex-1">
-                      <div class="font-medium">AI 口吃剪辑</div>
-                      <div class="text-xs text-gray-500 mt-0.5">只处理口吃（如：重复字词、结巴等）</div>
+                      <div class="font-medium">噪音/呼吸音清理</div>
+                      <div class="text-xs text-gray-500 mt-0.5">一键识别并清除底噪、喷麦音或明显的呼吸音</div>
                     </div>
                   </label>
                   <label class="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer hover:text-pink-600 transition p-2 rounded hover:bg-pink-50 group">
-                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="both">
+                    <input type="radio" name="cuttingStrategy" class="w-4 h-4 mt-0.5 border-2 border-pink-300 text-pink-600 focus:ring-2 focus:ring-pink-300 focus:ring-offset-0" v-model="cuttingStrategy" value="normalize">
                     <div class="flex-1">
-                      <div class="font-medium">AI 口癖&口吃剪辑</div>
-                      <div class="text-xs text-gray-500 mt-0.5">同时处理口癖和口吃，保留说话风格</div>
+                      <div class="font-medium">人声响度均衡</div>
+                      <div class="text-xs text-gray-500 mt-0.5">自动平衡不同嘉宾音量，统一导出标准响度</div>
                     </div>
                   </label>
                 </div>
@@ -1636,6 +1695,7 @@
                     <span>{{ isGenerating ? '生成中...' : '立即生成剪辑建议' }}</span>
                   </button>
                   <div class="mt-2 text-[10px] text-gray-500 text-center">该功能面向会员限时免费</div>
+                  <div v-if="audioOptimizeMessage" class="mt-2 text-[11px] text-pink-600 text-center bg-pink-50 py-1 rounded border border-pink-100 animate-pulse">{{ audioOptimizeMessage }}</div>
                 </div>
                 <div v-if="cutSuggestions.length" class="space-y-2">
                   <div v-for="s in cutSuggestions" :key="s.id" class="p-3 bg-white border border-pink-200 rounded text-xs text-gray-700 flex flex-col gap-2">
@@ -1657,19 +1717,32 @@
                   </div>
                 </div>
                 <div v-if="samplePreview.length" class="space-y-3 pt-2 border-t border-pink-100">
-                  <div class="text-xs font-bold text-gray-900">优化预览</div>
+                  <div class="text-xs font-bold text-gray-900 flex items-center gap-1">
+                    <svg class="w-3 h-3 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                    音频优化预览
+                  </div>
                   <div v-for="group in samplePreview" :key="group.id" class="space-y-2">
                     <div class="text-[11px] px-2 py-1 rounded bg-pink-50 border border-pink-200 text-pink-700 inline-block">{{ group.label }}</div>
                     <div v-for="entry in group.entries" :key="entry.id" class="p-3 bg-white border border-pink-200 rounded">
                       <div class="flex items-center justify-between">
                         <div class="text-[11px] text-gray-600">{{ entry.speaker }} · {{ entry.time }}</div>
                         <span class="text-[10px] px-2 py-0.5 rounded border"
-                          :class="entry.type === '口癖' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 'bg-cyan-100 text-cyan-800 border-cyan-200'">{{ entry.type }}</span>
+                          :class="{
+                            'bg-pink-100 text-pink-800 border-pink-200': entry.type === '静音',
+                            'bg-purple-100 text-purple-800 border-purple-200': entry.type === '停顿',
+                            'bg-amber-100 text-amber-800 border-amber-200': entry.type === '噪音',
+                            'bg-cyan-100 text-cyan-800 border-cyan-200': entry.type !== '静音' && entry.type !== '停顿' && entry.type !== '噪音'
+                          }">{{ entry.type }}</span>
                       </div>
                       <div class="mt-1 text-xs text-gray-900">{{ entry.content }}</div>
                       <div class="mt-1 flex flex-wrap gap-1">
                         <span v-for="tag in entry.tags" :key="tag.text" class="text-[10px] px-2 py-0.5 rounded border"
-                          :class="tag.type === '口癖' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 'bg-cyan-100 text-cyan-800 border-cyan-200'">{{ tag.text }}</span>
+                          :class="{
+                            'bg-pink-50 text-pink-700 border-pink-100': tag.type === '静音',
+                            'bg-purple-50 text-purple-700 border-purple-100': tag.type === '停顿',
+                            'bg-amber-50 text-amber-700 border-amber-100': tag.type === '噪音',
+                            'bg-cyan-50 text-cyan-700 border-cyan-100': tag.type !== '静音' && tag.type !== '停顿' && tag.type !== '噪音'
+                          }">{{ tag.text }}</span>
                       </div>
                     </div>
                   </div>
@@ -1793,6 +1866,84 @@
                 >
                   {{ isTranscribing ? '转写中...' : '开始转写' }}
                 </button>
+
+                <!-- 侧边栏：语音转写状态栏 -->
+                <div v-if="isTranscribing" class="mt-4 p-3 bg-pink-50 rounded-lg border border-pink-100 animate-pulse">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-4 h-4 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span class="text-[11px] font-medium text-pink-700 truncate w-32">{{ transcriptionStatus }}</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-pink-500">{{ Math.round(transcriptionProgress) }}%</span>
+                  </div>
+                  <div class="h-1 w-full bg-pink-100 rounded-full overflow-hidden">
+                    <div 
+                      class="h-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-300"
+                      :style="{ width: transcriptionProgress + '%' }"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- 侧边栏：智能转写分析面板 -->
+                <div v-if="showAnalysisPanel && !isTranscribing" class="mt-4 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 shadow-sm animate-fadeIn">
+                  <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-xs font-bold text-gray-800 flex items-center gap-2">
+                      <div class="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center text-white">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                      </div>
+                      AI 分析报告
+                    </h4>
+                    <button @click="showAnalysisPanel = false" class="text-gray-400 hover:text-gray-600">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                  
+                  <div class="space-y-3">
+                    <div>
+                      <div class="text-[9px] font-bold text-indigo-400 uppercase tracking-wider mb-1">核心摘要</div>
+                      <p class="text-[10px] text-gray-700 leading-relaxed">{{ transcriptionAnalysis.summary }}</p>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="tag in transcriptionAnalysis.keywords" :key="tag" class="px-1.5 py-0.5 bg-white border border-indigo-100 text-indigo-600 text-[9px] rounded-full">
+                        #{{ tag }}
+                      </span>
+                    </div>
+
+                    <div class="pt-2 border-t border-indigo-100/50 space-y-2">
+                      <div class="bg-white/50 p-2 rounded-lg">
+                        <div class="text-[9px] text-gray-500 mb-1">情感基调</div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] font-bold text-gray-800">{{ transcriptionAnalysis.sentiment.label }}</span>
+                          <div class="flex-1 h-0.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-green-400" :style="{ width: (transcriptionAnalysis.sentiment.score * 100) + '%' }"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 侧边栏：转写结果列表 -->
+                <div v-if="transcriptionResultSegments.length > 0 && !isTranscribing" class="mt-4 space-y-2">
+                  <div class="text-xs font-bold text-gray-900 flex items-center justify-between">
+                    <span>转写结果预览</span>
+                    <button @click="transcriptionResultSegments = []" class="text-[10px] font-normal text-gray-400 hover:text-gray-600">清空</button>
+                  </div>
+                  <div class="max-h-[300px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+                    <div 
+                      v-for="(seg, sIdx) in transcriptionResultSegments" 
+                      :key="sIdx"
+                      class="p-2 bg-gray-50 rounded border border-gray-100 hover:border-pink-200 transition"
+                    >
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-mono text-gray-400">{{ formatTime(seg.startTime) }}</span>
+                        <span class="px-1 py-0.5 bg-pink-100 text-pink-700 rounded text-[9px]">{{ seg.speaker === 'A' ? '主持人' : '嘉宾' }}</span>
+                      </div>
+                      <p class="text-[11px] text-gray-700 leading-snug">{{ seg.text }}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
             
@@ -1923,6 +2074,8 @@ const audioDuration = ref(3600)
 const cuttingStrategy = ref('all')
 const cutSuggestions = ref([])
 const samplePreview = ref([])
+const scriptSuggestions = ref([])
+const scriptPreview = ref([])
 const isGenerating = ref(false)
 
 // 文本编辑与同步相关状态
@@ -1976,7 +2129,7 @@ const parseSegmentText = (text) => {
     processText = text.substring(5)
   }
   const fillerRegex = fillerWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
-  const mainRegex = new RegExp(`(~~.*?~~|${fillerRegex})`, 'g')
+  const mainRegex = new RegExp(`(~~.*?~~|\\+\\+.*?\\+\\+|${fillerRegex})`, 'g')
   const parts = processText.split(mainRegex)
   parts.forEach(part => {
     if (!part) return
@@ -1984,25 +2137,57 @@ const parseSegmentText = (text) => {
       tokens.push({ type: 'deleted', text: part.substring(2, part.length - 2), isTTS })
       return
     }
+    if (part.startsWith('++') && part.endsWith('++')) {
+      tokens.push({ type: 'corrected', text: part.substring(2, part.length - 2), isTTS })
+      return
+    }
     if (new RegExp(`^(${fillerRegex})$`).test(part)) {
       tokens.push({ type: 'filler', text: part, isTTS })
       return
     }
     const wordRegex = /(\s+|[，。！？、；：,.!?…—-])/g
-    const subs = part.split(wordRegex)
-    const stutterRegex = /([\u4e00-\u9fa5A-Za-z])\1{1,}/
-    subs.forEach(sub => {
-      if (!sub) return
-      if (wordRegex.test(sub)) {
-        tokens.push({ type: 'space', text: sub, isTTS })
-      } else {
-        if (stutterRegex.test(sub)) {
-          tokens.push({ type: 'stutter', text: sub, isTTS })
-        } else {
-          tokens.push({ type: 'text', text: sub, isTTS })
-        }
-      }
-    })
+                const subs = part.split(wordRegex)
+                // 改进的口吃匹配：匹配连续重复的单字，如“我我我”、“这这”
+                const stutterPattern = /([\u4e00-\u9fa5A-Za-z])\1+/g
+                
+                subs.forEach(sub => {
+                  if (!sub) return
+                  if (wordRegex.test(sub)) {
+                    tokens.push({ type: 'space', text: sub, isTTS })
+                  } else {
+                    // 对每一个子段落，进一步拆分出口吃部分
+                    let lastIndex = 0
+                    let match
+                    const subText = sub
+                    
+                    while ((match = stutterPattern.exec(subText)) !== null) {
+                      // 匹配前的正常文本
+                      if (match.index > lastIndex) {
+                        tokens.push({ 
+                          type: 'text', 
+                          text: subText.substring(lastIndex, match.index), 
+                          isTTS 
+                        })
+                      }
+                      // 口吃部分
+                      tokens.push({ 
+                        type: 'stutter', 
+                        text: match[0], 
+                        isTTS 
+                      })
+                      lastIndex = stutterPattern.lastIndex
+                    }
+                    
+                    // 剩余的正常文本
+                    if (lastIndex < subText.length) {
+                      tokens.push({ 
+                        type: 'text', 
+                        text: subText.substring(lastIndex), 
+                        isTTS 
+                      })
+                    }
+                  }
+                })
   })
   return tokens
 }
@@ -2012,6 +2197,14 @@ const toggleTokenDelete = (segment, tokenIndex) => {
   const tokens = parseSegmentText(segment.text)
   const token = tokens[tokenIndex]
   if (!token || token.type === 'space') return
+  
+  if (token.type === 'corrected') {
+    // 撤回逻辑纠错：移除 ++ 标记，恢复原文
+    const rawText = segment.text.replace(/\+\+([^+]+)\+\+/g, '$1')
+    segment.text = rawText
+    return
+  }
+
   if (token.type === 'deleted') {
     token.type = 'text'
   } else {
@@ -2487,43 +2680,43 @@ const mockTranscript = ref([
     startTime: 0,
     endTime: 15,
     speaker: 'A',
-    text: '大家好，欢迎来到今天的播客节目。今天我们要聊的话题是关于人工智能在创作领域的应用。'
+    text: '大家大家大家好，嗯，欢迎来到今天的播客节目。今天我们要聊的话题是，那个，关于人工智能在创作领域的应用。'
   },
   {
     startTime: 45,
     endTime: 72,
     speaker: 'B', 
-    text: '是的，这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。比如自动去除口癖。'
+    text: '是的，这这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。比如，啊，自动去除口癖。'
   },
   {
     startTime: 112,
     endTime: 128,
     speaker: 'A',
-    text: '没错，比如我们现在使用的这个PodPal平台，就能够智能识别语音内容，自动生成剪辑建议。'
+    text: '没错，比如我们现在使用的这个PodPal平台，就是，就能够智能识别语音内容，自动生成剪辑建议。'
   },
   {
     startTime: 245,
     endTime: 262,
     speaker: 'B',
-    text: '而且它还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，采用不同的剪辑策略。'
+    text: '而且它还还还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，那个，采用不同的剪辑策略。'
   },
   {
     startTime: 380,
     endTime: 395,
     speaker: 'A',
-    text: '这种个性化的处理方式确实很智能。那么你觉得AI剪辑的优势主要体现在哪些方面呢？'
+    text: '这种个性化的处理方式确实很智能。那么你觉得，嗯，AI剪辑的优势主要体现在哪些方面呢？'
   },
   {
     startTime: 512,
     endTime: 535,
     speaker: 'B',
-    text: '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中解放出来。这就是播客创作的未来，让技术服务于创意。'
+    text: '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中，那个，解放出来。这就是播客创作的未来，让技术服务于创意。'
   },
   {
     startTime: 645,
     endTime: 662,
     speaker: 'A',
-    text: '在这个快速发展的时代，保持专注是非常难得的。我们需要更好的工具。'
+    text: '在这个快速发展的时代，保持保持专注是非常难得的。我们需要更好的工具。'
   },
   {
     startTime: 780,
@@ -2547,7 +2740,24 @@ const mockTranscript = ref([
 
 // 语音转写状态与新增计数
 const isTranscribing = ref(false)
+const transcriptionProgress = ref(0)
+const transcriptionStatus = ref('')
 const transcribeNewCount = ref(0)
+const transcriptionResultSegments = ref([]) // 侧边栏展示的转写结果片段
+const transcriptionOptions = ref({
+  language: 'zh-CN',
+  diarization: true,
+  punctuation: true
+})
+
+// 语音转写与分析结果 Mock 数据
+const transcriptionAnalysis = ref({
+  summary: '',
+  keywords: [],
+  sentiment: { label: '', score: 0 },
+  speakers: []
+})
+const showAnalysisPanel = ref(false)
 
 // 确保当前时间在时间轴视窗内可见，并同步标尺与轨道滚动
 const ensureVisibleCurrentTime = () => {
@@ -2564,11 +2774,30 @@ const ensureVisibleCurrentTime = () => {
   }
 }
 
-// 开始语音转写（前端示例：渐进添加片段）
+// 开始语音转写（增强版：包含状态流转与进度反馈）
 const startTranscription = async () => {
   if (isTranscribing.value) return
   isTranscribing.value = true
   transcribeNewCount.value = 0
+  transcriptionProgress.value = 0
+  
+  const stages = [
+    { name: '上传音频指纹...', duration: 800, progress: 15 },
+    { name: 'AI 引擎初始化...', duration: 600, progress: 30 },
+    { name: '正在识别说话人 (Diarization)...', duration: 1200, progress: 55 },
+    { name: '文本转写与标点纠偏...', duration: 1500, progress: 85 },
+    { name: '结果最终校对中...', duration: 800, progress: 100 }
+  ]
+
+  for (const stage of stages) {
+    transcriptionStatus.value = stage.name
+    const step = (stage.progress - transcriptionProgress.value) / 10
+    for (let i = 0; i < 10; i++) {
+      await new Promise(resolve => setTimeout(resolve, stage.duration / 10))
+      transcriptionProgress.value += step
+    }
+    transcriptionProgress.value = stage.progress
+  }
 
   const lastEnd = mockTranscript.value.length
     ? mockTranscript.value[mockTranscript.value.length - 1].endTime
@@ -2579,29 +2808,46 @@ const startTranscription = async () => {
       startTime: lastEnd + 120,
       endTime: lastEnd + 135,
       speaker: 'A',
-      text: '继续刚才的话题，我们来结合一个实际的剪辑案例，看看如何提升听感。'
+      text: '继续刚才的话题，我们结合一个实际的剪辑案例，看看如何提升听感。',
+      isNew: true
     },
     {
       startTime: lastEnd + 240,
       endTime: lastEnd + 265,
       speaker: 'B',
-      text: '首先，去除口癖会让信息更凝练，比如把“就是说、然后呢、那个那个”等词清理掉。'
+      text: '首先，去除口癖会让信息更凝练，比如把“就是说、然后呢”等冗余词汇清理掉。',
+      isNew: true
     },
     {
       startTime: lastEnd + 400,
       endTime: lastEnd + 425,
       speaker: 'A',
-      text: '其次，补充过渡句可以减少语义跳跃，让听众更容易跟上思路。'
+      text: '其次，补充过渡句可以减少语义跳跃，让听众更容易跟上思路。',
+      isNew: true
     }
   ]
 
-  for (const seg of newSegments) {
-    await new Promise(resolve => setTimeout(resolve, 600))
-    mockTranscript.value.push(seg)
-    transcribeNewCount.value += 1
-  }
+  transcriptionResultSegments.value = newSegments
+  transcribeNewCount.value = newSegments.length
 
-  isTranscribing.value = false
+  transcriptionStatus.value = '转写完成'
+  
+  // 模拟 AI 内容分析
+  transcriptionAnalysis.value = {
+    summary: '本段对话主要围绕 AI 技术在播客剪辑中的应用展开。嘉宾讨论了如何通过去除口癖、增加过渡句等方式提升音频内容的听感，并强调了 PodPal 平台在智能化剪辑方面的核心优势。',
+    keywords: ['AI 剪辑', '口癖清理', '内容连贯性', 'PodPal', '听感提升'],
+    sentiment: { label: '积极/专业', score: 0.85 },
+    speakers: [
+      { id: 'A', name: '主持人', turnCount: 2, totalTime: '40s' },
+      { id: 'B', name: '技术专家', turnCount: 1, totalTime: '25s' }
+    ]
+  }
+  showAnalysisPanel.value = true
+
+  setTimeout(() => {
+    isTranscribing.value = false
+    // 转写结果现在侧边栏展示，主区域滚动逻辑移除
+  }, 1000)
 }
 
 // 场景自适应设置
@@ -2861,61 +3107,104 @@ const removeFiller = (segment, word) => {
 
 // 脚本优化按钮交互：对当前页面数据做「可见」的示例性修改
 const applyScriptOptimization = (type) => {
-  // 去口语冗余：自动删除所有片段里的口癖
+  // 去口语冗余：自动删除所有片段里的口癖（留痕模式）
   if (type === 'filler') {
     let hasChanges = false
-    const newTranscript = mockTranscript.value.map(seg => {
-      const originalText = seg.text || ''
-      const newText = fillerWords.reduce((txt, w) => txt.split(w).join(''), originalText)
-      if (originalText !== newText) hasChanges = true
-      return { ...seg, text: newText }
+    mockTranscript.value.forEach(seg => {
+      const tokens = parseSegmentText(seg.text)
+      let changed = false
+      const newTokens = tokens.map(token => {
+        // 针对识别出的“口癖”和“口吃” Token 进行留痕删除，清理口语冗余
+        if ((token.type === 'filler' || token.type === 'stutter') && token.type !== 'deleted') {
+          changed = true
+          hasChanges = true
+          return { ...token, type: 'deleted' }
+        }
+        return token
+      })
+      
+      if (changed) {
+        let prefix = seg.text.startsWith('[TTS]') ? '[TTS]' : ''
+        seg.text = prefix + newTokens.map(t => {
+          if (t.type === 'deleted') return `~~${t.text}~~`
+          return t.text
+        }).join('')
+      }
     })
 
     if (hasChanges) {
-      mockTranscript.value = newTranscript
-      // 同时给剪辑建议里追加一条说明
-      cutSuggestions.value.unshift({
+      // 同时给脚本优化建议里追加一条说明
+      scriptSuggestions.value.unshift({
         id: Date.now(),
-        label: '已应用口癖清理建议',
-        preview: '自动删除常见语气词（嗯、然后、就是等），可以在文字稿中查看效果。',
+        label: '已应用口语冗余清理',
+        preview: '自动识别并留痕删除了常见口癖（嗯、然后、就是等）以及重复口吃。',
         tag: '口癖优化'
       })
-      scriptOptimizeMessage.value = '已清理文字稿中的常见口癖，可在上方文字稿查看高亮与删除效果。'
+      scriptOptimizeMessage.value = '已对文字稿中的冗余口癖和重复口吃进行留痕删除，提升内容精炼度。'
     } else {
-      scriptOptimizeMessage.value = '未检测到明显的口语冗余，文稿保持原样。'
+      scriptOptimizeMessage.value = '未检测到明显的口语冗余或口吃，文稿保持原样。'
     }
     return
   }
 
-  // 逻辑纠错：在剪辑建议中插入一条「建议补充过渡句」
+  // 逻辑纠错：对文稿中的逻辑断层或病句进行修正（留痕模式）
   if (type === 'logic') {
-    cutSuggestions.value.unshift({
-      id: Date.now(),
-      label: '建议补充过渡句',
-      preview: '在 00:32 前后语义跳跃明显，建议补一句过渡说明，增强逻辑连贯性。',
-      tag: '逻辑优化'
-    })
-    scriptOptimizeMessage.value = '已在剪辑建议中添加逻辑优化提示，建议补充过渡句。'
+    let hasChanges = false
+    // 示例：修正第 3 个片段（索引为 2）的逻辑连贯性
+    if (mockTranscript.value[2] && !mockTranscript.value[2].text.includes('++')) {
+      const seg = mockTranscript.value[2]
+      const originalText = seg.text
+      // 模拟纠错 1：增加过渡词，使句子更连贯
+      seg.text = originalText.replace('自动生成剪辑建议', '++极大提高了工作效率，并++自动生成剪辑建议')
+      hasChanges = true
+    }
+
+    // 示例：修正第 6 个片段（索引为 5）的病句
+    if (mockTranscript.value[5] && !mockTranscript.value[5].text.includes('++')) {
+      const seg = mockTranscript.value[5]
+      const originalText = seg.text
+      // 模拟纠错 2：修正表达
+      seg.text = originalText.replace('主要体现在哪些方面呢', '++具体的竞争优势++主要体现在哪些方面呢')
+      hasChanges = true
+    }
+
+    if (hasChanges) {
+      scriptSuggestions.value.unshift({
+        id: Date.now(),
+        label: '已应用逻辑纠错建议',
+        preview: '识别到话语逻辑较为生硬，已自动添加补位过渡词。如果不满意，可直接点击文字稿中的绿色高亮部分撤回。',
+        tag: '逻辑优化'
+      })
+      scriptOptimizeMessage.value = '已在文稿中应用逻辑纠错建议，新增内容已用绿色高亮标注。点击高亮内容可一键撤回。'
+    } else {
+      scriptOptimizeMessage.value = '未检测到明显的逻辑断层，文稿逻辑基本通顺。'
+    }
     return
   }
 
-  // 一键精华提取：直接复用已有 samplePreview 中「高光合集」分组
+  // 一键精华提取：直接复用已有 scriptPreview 中「高光合集」分组
   if (type === 'highlights') {
     // 确保已有示例预览数据
-    if (!samplePreview.value.length) {
-      buildSamplePreview()
+    if (!scriptPreview.value.length) {
+      // 模拟生成脚本预览数据
+      scriptPreview.value = [
+        {
+          id: 'g-highlights',
+          strategy: 'highlights',
+          label: '高光合集提取',
+          description: '从全文中提取出的金句与核心论点。',
+          entries: [
+            { id: 'h1', speaker: '嘉宾 A', time: '02:15', type: '高光', content: '播客不仅仅是音频，它是深度社交的一种新形态。', tags: [{ text: '金句', type: '高光' }] },
+            { id: 'h2', speaker: '嘉宾 B', time: '15:40', type: '高光', content: '未来的内容竞争，本质上是注意力的精准分配。', tags: [{ text: '核心论点', type: '高光' }] }
+          ]
+        }
+      ]
     }
-    // 将高光相关分组移动到最前面，方便用户查看
-    samplePreview.value = [...samplePreview.value].sort((a, b) => {
-      if (a.label.includes('高光') || a.tag === '高光') return -1
-      if (b.label.includes('高光') || b.tag === '高光') return 1
-      return 0
-    })
-    scriptOptimizeMessage.value = '已优先展示高光合集，便于快速查看精华片段。'
+    scriptOptimizeMessage.value = '已生成高光精华预览，便于快速查看核心内容。'
     return
   }
 
-  // BGM 智能匹配：在示例预览下方追加一组背景音乐推荐
+  // BGM 智能匹配：在脚本预览下方追加一组背景音乐推荐
   if (type === 'bgm') {
     const bgmGroup = {
       id: `g-bgm-${Date.now()}`,
@@ -2929,11 +3218,11 @@ const applyScriptOptimization = (type) => {
       ]
     }
     // 如果之前已经有 BGM 分组，先移除，再插入最新的一组在最前面
-    samplePreview.value = [
+    scriptPreview.value = [
       bgmGroup,
-      ...samplePreview.value.filter(g => g.strategy !== 'bgm')
+      ...scriptPreview.value.filter(g => g.strategy !== 'bgm')
     ]
-    scriptOptimizeMessage.value = '已生成 BGM 推荐结果（LoFi、Ambient 等），可在预览列表中查看。'
+    scriptOptimizeMessage.value = '已生成 BGM 推荐结果，可在预览列表中查看。'
   }
 }
 
@@ -3018,6 +3307,7 @@ const doExport = async () => {
 
 // 脚本优化反馈提示
 const scriptOptimizeMessage = ref('')
+const audioOptimizeMessage = ref('')
 const onProgressHover = (event) => {
   const rect = event.currentTarget.getBoundingClientRect()
   const x = event.clientX - rect.left
@@ -3487,41 +3777,55 @@ const generateCutSuggestions = async () => {
   isGenerating.value = true
   
   // 模拟API调用延迟
-  await new Promise(resolve => setTimeout(resolve, 800))
+  await new Promise(resolve => setTimeout(resolve, 1200))
   
   const suggestions = []
-  mockTranscript.value.forEach((segment, segmentIndex) => {
-    const tokens = parseSegmentText(segment.text)
-    
-    // 找出该片段中的口癖与口吃
-    const targetTokens = tokens.filter(t => {
-      if (cuttingStrategy.value === 'filler' && t.type === 'filler') return true
-      if (cuttingStrategy.value === 'stutter' && t.type === 'stutter') return true
-      if (cuttingStrategy.value === 'both' && (t.type === 'filler' || t.type === 'stutter')) return true
-      if (cuttingStrategy.value === 'all' && (t.type === 'filler' || t.type === 'stutter')) return true
-      return false
+  
+  if (cuttingStrategy.value === 'silence') {
+    suggestions.push({
+      id: `silence-1`,
+      label: '建议切除：超长静音',
+      previewHtml: '检测到 <span class="text-pink-600 font-bold">5.2s</span> 的无效静音片段 (01:12 - 01:17)',
+      tag: '静音',
+      type: 'silence',
+      action: 'remove'
     })
-
-    if (targetTokens.length > 0) {
-      // 生成预览文本：标注出要删除的部分
-      const previewHtml = tokens.map(t => {
-        const isTarget = targetTokens.some(target => target === t)
-        if (isTarget) {
-          return `<span class="text-red-400 line-through mx-0.5">${t.text}</span>`
-        }
-        return `<span>${t.text}</span>`
-      }).join('')
-
-      suggestions.push({
-        id: `sug-${segmentIndex}-${Date.now()}`,
-        segmentIndex,
-        label: `建议优化片段 ${formatTime(segment.startTime)}`,
-        previewHtml,
-        tag: targetTokens.some(t => t.type === 'stutter') ? '口吃' : '口癖',
-        targetTokenTexts: targetTokens.map(t => t.text)
-      })
-    }
-  })
+    suggestions.push({
+      id: `silence-2`,
+      label: '建议切除：环境噪音片段',
+      previewHtml: '检测到 <span class="text-pink-600 font-bold">3.8s</span> 的底噪过大片段 (03:45 - 03:49)',
+      tag: '静音',
+      type: 'silence',
+      action: 'remove'
+    })
+  } else if (cuttingStrategy.value === 'pause') {
+    suggestions.push({
+      id: `pause-1`,
+      label: '建议缩减：尴尬停顿',
+      previewHtml: '说话人 A 与 B 之间的停顿过长 (<span class="text-blue-600 font-bold">2.5s</span>)，建议缩减至 0.6s',
+      tag: '停顿',
+      type: 'pause',
+      action: 'shorten'
+    })
+  } else if (cuttingStrategy.value === 'noise') {
+    suggestions.push({
+      id: `noise-1`,
+      label: '建议清理：明显呼吸音',
+      previewHtml: '检测到 3 处明显的深呼吸音，建议应用 <span class="text-purple-600 font-bold">AI 降噪滤镜</span>',
+      tag: '噪音',
+      type: 'noise',
+      action: 'filter'
+    })
+  } else if (cuttingStrategy.value === 'normalize') {
+    suggestions.push({
+      id: `norm-1`,
+      label: '建议优化：响度不均',
+      previewHtml: '说话人 B 音量较小（-18 LUFS），建议整体提升 <span class="text-emerald-600 font-bold">+4dB</span> 以匹配说话人 A',
+      tag: '均衡',
+      type: 'normalize',
+      action: 'gain'
+    })
+  }
   
   cutSuggestions.value = suggestions
   isGenerating.value = false
@@ -3529,87 +3833,74 @@ const generateCutSuggestions = async () => {
 
 // 应用剪辑建议
 const applyCutSuggestion = (suggestion) => {
-  const segment = mockTranscript.value[suggestion.segmentIndex]
-  if (!segment) return
-
-  // 对文字稿进行处理：将建议删除的 token 包装在 ~~ 中（留痕模式）
-  const tokens = parseSegmentText(segment.text)
-  const updatedText = tokens.map(t => {
-    // 简单的文本匹配，在实际项目中可能需要更精确的索引匹配
-    if (suggestion.targetTokenTexts.includes(t.text) && (t.type === 'filler' || t.type === 'stutter')) {
-      return `~~${t.text}~~`
-    }
-    if (t.type === 'deleted') return `~~${t.text}~~`
-    return t.text
-  }).join('')
-
-  segment.text = (segment.text.startsWith('[TTS]') ? '[TTS]' : '') + updatedText
-  
   // 从建议列表中移除
   cutSuggestions.value = cutSuggestions.value.filter(s => s.id !== suggestion.id)
+  
+  // 模拟应用后的反馈
+  let feedback = ''
+  switch (suggestion.type) {
+    case 'silence': feedback = '已自动切除静音片段并重新编排时间轴。'; break;
+    case 'pause': feedback = '已缩减语气停顿，衔接更加自然。'; break;
+    case 'noise': feedback = '已应用 AI 降噪滤镜，音频更清澈。'; break;
+    case 'normalize': feedback = '已均衡响度，整体听感更一致。'; break;
+    default: feedback = '已应用剪辑建议。';
+  }
+  
+  audioOptimizeMessage.value = feedback
+}
+
+// 应用脚本优化建议
+const applyScriptSuggestion = (suggestion) => {
+  // 从建议列表中移除
+  scriptSuggestions.value = scriptSuggestions.value.filter(s => s.id !== suggestion.id)
+  scriptOptimizeMessage.value = `已确认: ${suggestion.label}`
 }
 
 const buildSamplePreview = () => {
   const groups = [
     {
-      id: 'g-filler',
-      strategy: 'filler',
-      label: 'AI 口癖剪辑',
-      description: '自动识别并标记无意义语气词（如：嗯、呃、这个、那个）',
+      id: 'g-silence',
+      strategy: 'silence',
+      label: '静音自动切除',
+      description: '自动识别并标记无效静音片段',
       entries: [
-        { id: 'e1', speaker: '说话人 1', time: '00:08-00:14', type: '口癖', content: '嗯...所以这个研究的路径吧，它聚焦在技术窗口... -> 所以这个研究的路径吧，它聚焦在技术窗口... (已删除“嗯”)', tags: [{ text: '嗯', type: '口癖' }, { text: '这个', type: '口癖' }] },
-        { id: 'e2', speaker: '说话人 2', time: '00:36-00:41', type: '口癖', content: '然后呢...这个第四点呢... -> 第四点是... (已精简冗余“然后呢/这个”)', tags: [{ text: '然后呢', type: '口癖' }] },
-        { id: 'e2b', speaker: '说话人 1', time: '01:15-01:18', type: '口癖', content: '就是那个...怎么说呢...我觉得 -> 我觉得 (已移除无意义连接词)', tags: [{ text: '就是那个', type: '口癖' }, { text: '怎么说呢', type: '口癖' }] },
-        { id: 'e2c', speaker: '说话人 2', time: '01:45-01:50', type: '口癖', content: '基本上...呃...你知道吧... -> (已完全删除无效片段)', tags: [{ text: '基本上', type: '口癖' }, { text: '你知道吧', type: '口癖' }] }
+        { id: 'e1', speaker: '系统', time: '01:12-01:17', type: '静音', content: '此处存在 5.2s 的完全静音，建议移除以保持节奏。', tags: [{ text: '无效静音', type: '静音' }] },
+        { id: 'e2', speaker: '系统', time: '03:45-03:49', type: '噪音', content: '背景存在明显的电流噪声，建议静音处理。', tags: [{ text: '环境噪声', type: '静音' }] }
       ]
     },
     {
-      id: 'g-stutter',
-      strategy: 'stutter',
-      label: 'AI 口吃剪辑',
-      description: '智能修复重复字词与结巴现象',
+      id: 'g-pause',
+      strategy: 'pause',
+      label: '长停顿缩减',
+      description: '智能优化说话间的尴尬停顿',
       entries: [
-        { id: 'e3', speaker: '说话人 3', time: '01:02-01:07', type: '口吃', content: '我我我...觉得这个方向... -> 我觉得这个方向... (已合并重复字)', tags: [{ text: '我我我', type: '口吃' }] },
-        { id: 'e4', speaker: '说话人 1', time: '01:20-01:24', type: '口吃', content: '那那...那个问题... -> 那个问题... (已修复口吃)', tags: [{ text: '那那 那个', type: '口吃' }] }
+        { id: 'e3', speaker: '对话', time: '00:25', type: '停顿', content: '说话人 A 提问后存在 2.5s 停顿，建议缩减至 0.6s。', tags: [{ text: '尴尬停顿', type: '停顿' }] }
       ]
     },
     {
-      id: 'g-both',
-      strategy: 'both',
-      label: 'AI 口癖&口吃剪辑',
-      description: '综合处理口癖与口吃，保留自然说话风格',
+      id: 'g-noise',
+      strategy: 'noise',
+      label: '噪音/呼吸音清理',
+      description: '一键提升人声纯净度',
       entries: [
-        { id: 'e5', speaker: '说话人 2', time: '02:10-02:16', type: '口癖', content: '就是说...我们可能需要补充的是，嗯... -> 我们可能需要补充的是... (已删除连词)', tags: [{ text: '就是说', type: '口癖' }, { text: '嗯', type: '口癖' }] },
-        { id: 'e6', speaker: '说话人 1', time: '02:40-02:45', type: '口吃', content: '所以所以...我们从这个角度... -> 所以我们从这个角度... (已合并重复)', tags: [{ text: '所以所以', type: '口吃' }] }
-      ]
-    },
-    {
-      id: 'g-all',
-      strategy: 'all',
-      label: 'AI 全剪辑',
-      description: '一键深度清理，最大程度提升信息密度',
-      entries: [
-        { id: 'e7', speaker: '说话人 1', time: '03:03-03:10', type: '口癖', content: '其实就是那个...嗯...核心观点 -> 核心观点 (已删除严重冗余)', tags: [{ text: '那个', type: '口癖' }, { text: '嗯', type: '口癖' }] },
-        { id: 'e7b', speaker: '说话人 2', time: '04:15-04:20', type: '口癖', content: '怎么说呢...某种意义上...是吧 -> (已优化：删除无效废话)', tags: [{ text: '怎么说呢', type: '口癖' }] },
-        { id: 'e8', speaker: '说话人 3', time: '03:25-03:31', type: '口吃', content: '我我...我们这期就到这里 -> 我们这期就到这里 (已修复)', tags: [{ text: '我我', type: '口吃' }] }
+        { id: 'e4', speaker: '说话人 A', time: '00:12', type: '噪音', content: '检测到明显的深呼吸音，已准备好 AI 修复方案。', tags: [{ text: '呼吸音', type: '噪音' }] }
       ]
     }
   ]
   
   // 根据选择的策略过滤并显示对应的示例预览
   switch (cuttingStrategy.value) {
-    case 'filler':
-      samplePreview.value = groups.filter(g => g.strategy === 'filler')
+    case 'silence':
+      samplePreview.value = groups.filter(g => g.strategy === 'silence')
       break
-    case 'stutter':
-      samplePreview.value = groups.filter(g => g.strategy === 'stutter')
+    case 'pause':
+      samplePreview.value = groups.filter(g => g.strategy === 'pause')
       break
-    case 'both':
-      samplePreview.value = groups.filter(g => g.strategy === 'both')
+    case 'noise':
+      samplePreview.value = groups.filter(g => g.strategy === 'noise')
       break
-    case 'all':
     default:
-      samplePreview.value = groups.filter(g => g.strategy === 'all')
+      samplePreview.value = [groups[0]]
       break
   }
 }
@@ -3863,5 +4154,12 @@ input[type="range"]::-moz-range-thumb {
 .track-content-area {
   position: relative;
   z-index: 0;
+}
+@keyframes highlightNew {
+  0% { background-color: rgba(236, 72, 153, 0.2); transform: scale(1.02); }
+  100% { background-color: transparent; transform: scale(1); }
+}
+.animate-highlightNew {
+  animation: highlightNew 2s ease-out;
 }
 </style>

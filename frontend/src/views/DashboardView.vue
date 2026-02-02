@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿<template>
   <div class="min-h-screen bg-white pt-24 pb-12 px-6">
     <div class="container mx-auto max-w-7xl">
       <!-- 欢迎区域 -->
