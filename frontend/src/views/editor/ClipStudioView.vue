@@ -104,13 +104,19 @@
           <div 
             v-for="asset in assets" 
             :key="asset.id" 
-            class="p-3 bg-white rounded-lg border border-pink-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer group transition-all duration-200"
+            class="relative p-3 bg-white rounded-lg border border-pink-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer group transition-all duration-200"
             @click="selectAsset(asset)"
             draggable="true"
             @dragstart="handleAssetDragStart($event, asset)"
           >
+            <!-- 多选复选框 -->
+            <label class="absolute top-2 left-2 w-4 h-4 flex items-center justify-center rounded-sm border border-pink-300 bg-white shadow-sm">
+              <input type="checkbox" class="appearance-none w-3 h-3 rounded-sm bg-white border border-pink-300 checked:bg-pink-500 checked:border-pink-500"
+                     :checked="selectedAssetIds.includes(asset.id)"
+                     @click.stop="toggleAssetSelect(asset)" />
+            </label>
             <div class="flex items-start justify-between mb-2">
-              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
                 <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" :class="asset.type === 'audio' ? 'bg-blue-500/20' : 'bg-orange-500/20'">
                   <svg v-if="asset.type === 'audio'" class="w-4 h-4" :class="asset.type === 'audio' ? 'text-blue-400' : 'text-orange-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
@@ -121,9 +127,24 @@
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm text-gray-900 font-medium truncate">{{ asset.name }}</div>
-                  <div class="text-xs text-gray-600 mt-0.5">{{ asset.duration }}</div>
+                    <div class="text-xs text-gray-600 mt-0.5">
+                      {{ asset.duration }}
+                      <span v-if="asset.category" class="ml-2 px-1.5 py-0.5 text-[10px] rounded border bg-gray-50 text-gray-600 border-gray-200">{{ asset.category }}</span>
+                    </div>
                 </div>
               </div>
+                <button 
+                  class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition"
+                  @click.stop="asset.playing = !asset.playing"
+                  :title="asset.playing ? '暂停预听' : '预听'"
+                >
+                  <svg v-if="!asset.playing" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-8.197-4.905A1 1 0 005 7.105v9.79a1 1 0 001.555.832l8.197-4.905a1 1 0 000-1.664z" />
+                  </svg>
+                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6" />
+                  </svg>
+                </button>
               <button 
                 class="p-1.5 text-gray-600 hover:text-pink-600 hover:bg-pink-100 rounded opacity-0 group-hover:opacity-100 transition"
                 @click.stop="showAssetMenu(asset)"
@@ -133,8 +154,33 @@
                 </svg>
               </button>
             </div>
+            <!-- AI 摘要与关键词 -->
+            <div class="mt-2 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] text-gray-500">AI 摘要</span>
+                <div class="flex items-center gap-1">
+                  <button class="text-[10px] px-1.5 py-0.5 rounded border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                          @click.stop="generateAssetMeta(asset)">AI 生成</button>
+                  <button class="text-[10px] px-1.5 py-0.5 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                          @click.stop="asset.editingSummary = !asset.editingSummary">{{ asset.editingSummary ? '收起' : '编辑' }}</button>
+                </div>
+              </div>
+              <div v-if="!asset.editingSummary" class="text-[11px] text-gray-800 leading-snug">
+                {{ asset.summary || '（暂无摘要）' }}
+              </div>
+              <div v-else class="flex items-center gap-2">
+                <input v-model="asset.summary" class="flex-1 text-[11px] border border-pink-200 rounded px-2 py-1" placeholder="编辑摘要..." />
+                <button class="text-[10px] px-2 py-0.5 rounded bg-pink-500 text-white" @click.stop="asset.editingSummary=false">保存</button>
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <span v-for="t in asset.tags" :key="t" class="text-[10px] px-1.5 py-0.5 rounded border bg-pink-50 text-pink-700 border-pink-200">#{{ t }}</span>
+              </div>
+            </div>
             <div class="flex items-center justify-between text-xs mt-2 pt-2 border-t border-pink-100">
-              <span class="text-gray-600">{{ asset.duration }}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-600">{{ asset.duration }}</span>
+                <span v-if="asset.used" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">已使用</span>
+              </div>
               <span class="bg-pink-100 px-2 py-0.5 rounded text-pink-700 border border-pink-200">{{ asset.format }}</span>
             </div>
           </div>
@@ -175,6 +221,111 @@
                   <div class="text-sm font-bold text-gray-500">请稍候...</div>
                 </div>
               </div>
+              
+              <!-- 文本引擎 / 智能转写（前置配置） -->
+              <section v-if="hasUploaded" class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden p-6">
+                <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
+                  文本引擎 / 智能转写
+                </h3>
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                    <span class="text-sm text-gray-900">说话人分离</span>
+                    <button class="w-10 h-5 bg-blue-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute right-1 top-1"></div></button>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                    <span class="text-sm text-gray-900">智能情绪提取</span>
+                    <button class="w-10 h-5 bg-gray-600 rounded-full relative transition"><div class="w-3 h-3 bg-white rounded-full absolute left-1 top-1"></div></button>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-white border border-pink-200 rounded-lg">
+                    <span class="text-sm text-gray-900">转写语言</span>
+                    <select class="bg-white text-xs text-gray-900 rounded px-2 py-1 border border-pink-200 focus:ring-2 focus:ring-pink-300">
+                      <option>自动识别</option>
+                      <option>中文</option>
+                      <option>English</option>
+                      <option>中英混合</option>
+                    </select>
+                  </div>
+                  <button 
+                    @click="startTranscription"
+                    :disabled="isTranscribing"
+                    class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] hover:shadow-lg hover:scale-105 text-sm text-white rounded transition disabled:opacity-50 disabled:hover:scale-100"
+                  >
+                    {{ isTranscribing ? '转写中...' : '开始转写' }}
+                  </button>
+                </div>
+              </section>
+
+              <!-- 声效修复 / 音质重塑（前置配置） -->
+              <section v-if="hasUploaded" class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden p-6">
+                <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <span class="w-1 h-4 bg-green-500 rounded-full"></span>
+                  声效修复 / 音质重塑
+                </h3>
+                <div class="space-y-4">
+                  <div class="space-y-1">
+                    <div class="flex justify-between text-xs text-gray-600"><span>智能降噪</span><span>80%</span></div>
+                    <div class="h-0.5 w-3/4 bg-pink-100 rounded-full overflow-hidden">
+                      <div class="w-[80%] h-full bg-green-500"></div>
+                    </div>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="flex justify-between text-xs text-gray-600"><span>音量均衡</span><span>On</span></div>
+                    <div class="flex items-center gap-2">
+                      <button
+                        class="text-[10px] px-2 py-0.5 rounded border text-gray-900 hover:bg-pink-50"
+                        :class="voiceEnhanceEnabled ? 'bg-pink-500 border-pink-500 text-white' : 'bg-white border-pink-200'"
+                        @click="toggleVoiceEnhance"
+                      >
+                        人声增强
+                      </button>
+                      <button
+                        class="text-[10px] px-2 py-0.5 rounded border text-gray-900 hover:bg-pink-50"
+                        :class="echoRemovalEnabled ? 'bg-pink-500 border-pink-500 text-white' : 'bg-white border-pink-200'"
+                        @click="toggleEchoRemoval"
+                      >
+                        去回声
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+           </div>
+           
+           <!-- 预处理小弹窗 -->
+           <div v-if="showPreprocessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+             <div class="bg-white rounded-xl shadow-2xl w-[560px] p-6 border border-pink-200">
+               <div class="flex items-center justify-between mb-3">
+                 <h3 class="text-lg font-bold text-gray-900">上传完成 · 前置预处理</h3>
+                 <button class="text-gray-400 hover:text-gray-600" @click="showPreprocessModal = false">
+                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                 </button>
+               </div>
+               <div class="space-y-3">
+                 <label class="flex items-center gap-3 p-3 border border-pink-200 rounded-lg bg-pink-50/30">
+                   <input type="checkbox" v-model="preTranscribe" class="rounded border-pink-300 text-pink-600 focus:ring-pink-500">
+                   <div class="flex-1">
+                     <div class="text-sm text-gray-900 font-medium">语音转写</div>
+                     <div class="text-[11px] text-gray-600">说话人分离、情绪提取、关键词</div>
+                   </div>
+                 </label>
+                 <div class="p-3 border border-pink-200 rounded-lg bg-pink-50/30">
+                   <div class="text-sm text-gray-900 font-medium mb-2">音质增强</div>
+                   <div class="flex items-center gap-2">
+                     <label class="flex items-center gap-2 text-xs text-gray-700">
+                       <input type="checkbox" v-model="preVoiceEnhance" class="rounded border-pink-300 text-pink-600 focus:ring-pink-500"> 人声增强
+                     </label>
+                     <label class="flex items-center gap-2 text-xs text-gray-700">
+                       <input type="checkbox" v-model="preEchoRemoval" class="rounded border-pink-300 text-pink-600 focus:ring-pink-500"> 去回声
+                     </label>
+                   </div>
+                 </div>
+               </div>
+               <div class="flex justify-end gap-2 mt-4">
+                 <button class="px-3 py-1.5 text-sm rounded border border-gray-200 hover:bg-gray-50 text-gray-700" @click="showPreprocessModal=false">跳过</button>
+                 <button class="px-4 py-1.5 text-sm rounded bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white hover:shadow-lg" @click="startPreprocess">开始处理</button>
+               </div>
+             </div>
            </div>
         </div>
         <!-- Editor View -->
@@ -1505,11 +1656,34 @@
           
           <!-- Tab 1: 智能剪辑 (Feature 3) -->
           <div v-if="activeToolTab === 'edit'" class="space-y-6 animate-fadeIn">
+            <div class="flex items-center gap-2 bg-white/60 p-2 rounded-lg border border-pink-200 sticky top-0 z-10">
+              <button 
+                class="flex-1 px-3 py-1.5 text-xs rounded border transition"
+                :class="openRightPanel==='content' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                @click="openRightPanel='content'"
+              >
+                内容润色 / 高光金句库
+              </button>
+              <button 
+                class="flex-1 px-3 py-1.5 text-xs rounded border transition"
+                :class="openRightPanel==='voice' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                @click="openRightPanel='voice'"
+              >
+                声演实验室
+              </button>
+              <button 
+                class="flex-1 px-3 py-1.5 text-xs rounded border transition"
+                :class="openRightPanel==='post' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                @click="openRightPanel='post'"
+              >
+                后期大师 · 智能降噪与剪裁
+              </button>
+            </div>
             <!-- 脚本优化 -->
-            <section>
+            <section v-show="openRightPanel==='content'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
-                脚本优化
+                内容润色 / 脚本精修
               </h3>
               <div class="grid grid-cols-2 gap-2">
                 <button
@@ -1590,10 +1764,10 @@
             </section>
 
              <!-- 语音生成（示例交互） -->
-             <section>
+             <section v-show="openRightPanel==='voice'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-pink-500 rounded-full"></span>
-                语音生成
+                声演实验室
               </h3>
                <div class="space-y-3">
                  <div class="grid grid-cols-2 gap-2">
@@ -1645,10 +1819,10 @@
                </div>
             </section>
 
-            <section>
+            <section v-show="openRightPanel==='post'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>
-                AI 专项剪辑
+                后期大师 · 智能降噪与剪裁
               </h3>
               <div class="p-4 bg-white border border-pink-200 rounded-lg space-y-4">
                 <div class="text-xs font-medium text-gray-900 mb-2">请选择 AI 音频剪辑方案</div>
@@ -1751,10 +1925,10 @@
             </section>
 
             <!-- 深度语义搜索与金句定位 -->
-            <section>
+            <section v-show="openRightPanel==='content'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>
-                深度语义搜索与金句定位
+                高光提取 / 智能金句库
               </h3>
               <div class="p-4 bg-white border border-pink-200 rounded-lg space-y-3">
                 <div class="space-y-2">
@@ -1816,18 +1990,34 @@
                 </button>
                 <div v-if="goldenSentences.length" class="space-y-2 pt-2 border-t border-pink-100">
                   <div class="text-xs font-medium text-gray-900">推荐金句</div>
-                  <div v-for="sentence in goldenSentences" :key="sentence.id" 
-                    class="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md transition"
-                    @click="scrollToGoldenSentence(sentence)"
-                  >
+                  <div v-for="sentence in goldenSentences" :key="sentence.id" class="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg hover:shadow-md transition">
                     <div class="flex items-start justify-between mb-1">
-                      <span class="text-[10px] text-gray-600">{{ formatTime(sentence.startTime) }} - {{ formatTime(sentence.endTime) }}</span>
-                      <span class="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded text-[10px] font-medium">金句</span>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-gray-600">{{ formatTime(sentence.startTime) }} - {{ formatTime(sentence.endTime) }}</span>
+                        <span class="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded text-[10px] font-medium">金句</span>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <button class="p-1 rounded hover:bg-yellow-200 text-gray-600" @click.stop="sentence.editing = !sentence.editing" title="编辑">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H7a2 2 0 00-2 2v4m0 0h4m-4 0l9 9m4-13a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/></svg>
+                        </button>
+                        <button class="p-1 rounded hover:bg-red-100 text-red-600" @click.stop="deleteGoldenSentence(sentence.id)" title="删除">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                      </div>
                     </div>
-                    <div class="text-xs text-gray-900 font-medium">{{ sentence.content }}</div>
-                    <div class="flex items-center gap-2 mt-2">
-                      <span class="text-[10px] text-gray-600">传播潜力: {{ sentence.viralPotential }}%</span>
+                    <div v-if="!sentence.editing" class="text-xs text-gray-900 font-medium cursor-pointer" @click="scrollToGoldenSentence(sentence)">{{ sentence.content }}</div>
+                    <div v-else class="flex items-center gap-2">
+                      <input v-model="sentence.content" class="flex-1 text-xs border border-yellow-300 rounded px-2 py-1" />
+                      <button class="text-[10px] px-2 py-0.5 bg-yellow-400 text-white rounded" @click="sentence.editing=false">保存</button>
+                      <button class="text-[10px] px-2 py-0.5 bg-white border border-gray-200 rounded" @click="sentence.editing=false">取消</button>
+                    </div>
+                    <div class="flex items-center gap-3 mt-2">
+                      <span class="text-[10px] text-gray-600 flex items-center gap-1">
+                        <svg class="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2l2.39 4.848 5.34.777-3.87 3.772.914 5.33L10 14.771 4.227 16.727l.914-5.33L1.27 7.624l5.34-.777L10 2z"/></svg>
+                        热度: {{ sentence.viralPotential }}%
+                      </span>
                       <span class="text-[10px] text-gray-600">逻辑完整度: {{ sentence.logicScore }}%</span>
+                      <button class="ml-auto text-[10px] px-2 py-0.5 rounded border border-yellow-300 bg-white hover:bg-yellow-50" @click.stop="addGoldenSentenceManual(sentence.startTime)">手动标记+</button>
                     </div>
                   </div>
                 </div>
@@ -1835,7 +2025,7 @@
             </section>
 
             <!-- 语音分析 -->
-            <section>
+            <section v-if="false">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
                 语音转写与分析
@@ -1948,7 +2138,7 @@
             </section>
             
             <!-- 音频优化 -->
-             <section>
+             <section v-if="false">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-green-500 rounded-full"></span>
                 音频画质增强
@@ -2077,6 +2267,7 @@ const samplePreview = ref([])
 const scriptSuggestions = ref([])
 const scriptPreview = ref([])
 const isGenerating = ref(false)
+const openRightPanel = ref('content')
 
 // 文本编辑与同步相关状态
 const editingSegmentId = ref(null)
@@ -2533,9 +2724,15 @@ const scrollToGoldenSentence = (sentence) => {
   seekToTime(sentence.startTime)
   
   // 滚动文字稿到对应片段
-  const index = sentence.segmentIndex !== undefined ? sentence.segmentIndex : mockTranscript.value.findIndex(s => s.startTime === sentence.startTime)
-  if (index !== -1 && segmentRefs.value[index]) {
-    segmentRefs.value[index].scrollIntoView({ behavior: 'smooth', block: 'center' })
+  const index = sentence.segmentIndex !== undefined && sentence.segmentIndex !== null && sentence.segmentIndex >= 0
+    ? sentence.segmentIndex
+    : mockTranscript.value.findIndex(s => s.startTime <= sentence.startTime && s.endTime >= sentence.startTime)
+  if (index !== -1) {
+    scrollToSegment(index)
+    highlightedTranscriptIndices.value = [index]
+    setTimeout(() => {
+      highlightedTranscriptIndices.value = []
+    }, 1500)
   }
 }
 
@@ -2896,9 +3093,9 @@ const togglePlatform = (platform) => {
 
 // 素材库 Mock Data (Feature 2)
 const assets = ref([
-  { id: 1, name: '原始录音_Track1.wav', type: 'audio', duration: '45:20', format: 'WAV' },
-  { id: 2, name: '背景音乐_Jazz.mp3', type: 'audio', duration: '03:15', format: 'MP3' },
-  { id: 3, name: 'Intro_Video.mp4', type: 'video', duration: '00:15', format: 'MP4' },
+  { id: 1, name: '原始录音_Track1.wav', type: 'audio', duration: '45:20', format: 'WAV', category: '人声', used: false, playing: false, summary: '嘉宾与主持围绕 AI 剪辑展开的长对话录音。', tags: ['访谈', 'AI', '剪辑'], editingSummary: false },
+  { id: 2, name: '背景音乐_Jazz.mp3', type: 'audio', duration: '03:15', format: 'MP3', category: '背景音', used: false, playing: false, summary: '轻柔爵士 BGM，适合对话段落的低侵入背景。', tags: ['轻柔', '爵士', '低侵入'], editingSummary: false },
+  { id: 3, name: 'Intro_Video.mp4', type: 'video', duration: '00:15', format: 'MP4', category: '效果音', used: false, playing: false, summary: '片头视频短片，包含品牌开场动画与音乐。', tags: ['片头', '品牌'], editingSummary: false },
 ])
 
 // 工具栏 Tabs
@@ -2947,6 +3144,36 @@ const inlineUploading = ref(false)
 const inlineProgress = ref(0)
 const inlineFilename = ref('')
 const triggerInlineUpload = () => inlineFileInput.value?.click()
+// 上传后预处理弹窗
+const showPreprocessModal = ref(false)
+const preTranscribe = ref(true)
+const preVoiceEnhance = ref(true)
+const preEchoRemoval = ref(false)
+// 素材多选
+const selectedAssetIds = ref([])
+const toggleAssetSelect = (asset) => {
+  const idx = selectedAssetIds.value.indexOf(asset.id)
+  if (idx >= 0) selectedAssetIds.value.splice(idx, 1)
+  else selectedAssetIds.value.push(asset.id)
+}
+// 生成素材 AI 摘要与标签（模拟）
+const generateAssetMeta = (asset) => {
+  if (!asset) return
+  asset.summary = asset.summary || '围绕播客主题的核心内容片段，建议用于预告与社交片段。'
+  if (!asset.tags || asset.tags.length === 0) {
+    asset.tags = ['高光', '人声', '安静底噪']
+  }
+}
+// 开始预处理
+const startPreprocess = () => {
+  voiceEnhanceEnabled.value = !!preVoiceEnhance.value
+  echoRemovalEnabled.value = !!preEchoRemoval.value
+  if (preTranscribe.value) {
+    startTranscription()
+  }
+  showPreprocessModal.value = false
+  activeToolTab.value = 'edit'
+}
 
 const handleAssetDragStart = (e, asset) => {
   e.dataTransfer.setData('assetId', asset.id)
@@ -2972,11 +3199,17 @@ const handleInlineDrop = async (e) => {
       name: f.name,
       type: f.type.startsWith('video') ? 'video' : 'audio',
       duration: '00:00',
-      format: f.name.split('.').pop().toUpperCase()
+      format: f.name.split('.').pop().toUpperCase(),
+      category: f.type.startsWith('video') ? '效果音' : '人声',
+      used: false,
+      playing: false,
+      summary: '',
+      tags: [],
+      editingSummary: false
     })
     hasUploaded.value = true
     inlineUploading.value = false
-    activeToolTab.value = 'edit'
+    showPreprocessModal.value = true
     return
   }
   
@@ -2992,9 +3225,10 @@ const handleInlineDrop = async (e) => {
         await new Promise(r => setTimeout(r, 80))
         inlineProgress.value = i
       }
+      asset.used = true
       hasUploaded.value = true
       inlineUploading.value = false
-      activeToolTab.value = 'edit'
+      showPreprocessModal.value = true
     }
   }
 }
@@ -3014,11 +3248,17 @@ const handleInlineSelect = async (e) => {
     name: f.name,
     type: f.type.startsWith('video') ? 'video' : 'audio',
     duration: '00:00',
-    format: f.name.split('.').pop().toUpperCase()
+    format: f.name.split('.').pop().toUpperCase(),
+    category: f.type.startsWith('video') ? '效果音' : '人声',
+    used: false,
+    playing: false,
+    summary: '',
+    tags: [],
+    editingSummary: false
   })
   hasUploaded.value = true
   inlineUploading.value = false
-  activeToolTab.value = 'edit'
+  showPreprocessModal.value = true
 }
 const useSampleAsset = async () => {
   inlineUploading.value = true
@@ -3033,11 +3273,17 @@ const useSampleAsset = async () => {
     name: '示例播客音频.mp3',
     type: 'audio',
     duration: '10:00',
-    format: 'MP3'
+    format: 'MP3',
+    category: '人声',
+    used: false,
+    playing: false,
+    summary: '',
+    tags: [],
+    editingSummary: false
   })
   hasUploaded.value = true
   inlineUploading.value = false
-  activeToolTab.value = 'edit'
+  showPreprocessModal.value = true
 }
 
 // Methods
@@ -3284,13 +3530,42 @@ const confirmTTSInsertToTranscript = () => {
     endTime: baseEnd + Math.max(3, Math.min(15, Math.ceil(text.length / 8))), // 简单估时
     speaker: 'AI',
     text: '[TTS]' + text,
-    confirmed: true
+    confirmed: true,
+    isNew: true
   }
   if (idx >= 0) {
     mockTranscript.value.splice(idx + 1, 0, newSeg)
   } else {
     mockTranscript.value.push(newSeg)
   }
+  // 在时间轴上为 AI 文本插入一个占位槽位
+  let aiTrack = tracks.value.find(t => t.name.includes('AI'))
+  if (!aiTrack) {
+    aiTrack = {
+      id: Date.now(),
+      name: 'AI 合成',
+      type: '音频',
+      color: 'bg-[#8B5CF6]',
+      muted: false,
+      solo: false,
+      volume: 80,
+      pan: 0,
+      collapsed: false,
+      locked: false,
+      recording: false,
+      clips: []
+    }
+    tracks.value.push(aiTrack)
+  }
+  aiTrack.clips.push({
+    id: Date.now() + 1,
+    name: 'AI 补录',
+    start: newSeg.startTime,
+    end: newSeg.endTime,
+    color: 'bg-gradient-to-r from-[#8B5CF6]/80 to-[#A78BFA]/80 border-[#A78BFA]',
+    fadeIn: false,
+    fadeOut: false
+  })
   if (currentTTSTask.value) {
     currentTTSTask.value.inserted = true
   }
@@ -3303,6 +3578,20 @@ const doExport = async () => {
   showExportSuccess.value = false
   await new Promise(r => setTimeout(r, 500))
   showExportSuccess.value = true
+  // 写入作品仓库：记录最近一次导出，供“内容增值/作品仓库”读取
+  try {
+    const work = {
+      id: 'last-' + Date.now(),
+      title: currentProject.value?.name ? `${currentProject.value.name} · 最新导出` : '最新导出',
+      createdAt: new Date().toISOString(),
+      description: '来自剪辑工作台的成品音频',
+      tags: ['最新', '成品'],
+      audioUrl: '' // 可在后端接入真实地址
+    }
+    localStorage.setItem('lastExportedWork', JSON.stringify(work))
+  } catch (e) {
+    console.warn('无法写入本地作品仓库缓存', e)
+  }
 }
 
 // 脚本优化反馈提示
@@ -3907,15 +4196,22 @@ const buildSamplePreview = () => {
 
 const handleFileSelect = (event) => {
   const file = event.target.files[0]
-  if (file) {
-    assets.value.unshift({
-      id: Date.now(),
-      name: file.name,
-      type: file.type.startsWith('video') ? 'video' : 'audio',
-      duration: '00:00', // Mock duration
-      format: file.name.split('.').pop().toUpperCase()
-    })
-  }
+  if (!file) return
+  assets.value.unshift({
+    id: Date.now(),
+    name: file.name,
+    type: file.type.startsWith('video') ? 'video' : 'audio',
+    duration: '00:00',
+    format: file.name.split('.').pop().toUpperCase(),
+    category: file.type.startsWith('video') ? '效果音' : '人声',
+    used: false,
+    playing: false,
+    summary: '',
+    tags: [],
+    editingSummary: false
+  })
+  hasUploaded.value = true
+  showPreprocessModal.value = true
 }
 
 const selectAsset = (asset) => {
@@ -4012,6 +4308,23 @@ const extractGoldenSentences = async () => {
   
   goldenSentences.value = results.slice(0, 5) // 最多展示 5 条
   isExtracting.value = false
+}
+
+const deleteGoldenSentence = (id) => {
+  goldenSentences.value = goldenSentences.value.filter(s => s.id !== id)
+}
+
+const addGoldenSentenceManual = (startAt = currentTime.value) => {
+  const endAt = startAt + 8
+  goldenSentences.value.unshift({
+    id: 'manual-' + Date.now(),
+    content: '这里是我手动标记的精彩片段',
+    startTime: startAt,
+    endTime: endAt,
+    segmentIndex: -1,
+    viralPotential: 80,
+    logicScore: 85
+  })
 }
 
 // 视频化转化状态

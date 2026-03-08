@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:async';
+import 'dart:math' as math;
 
 class EditStep extends StatefulWidget {
   final VoidCallback onNext;
@@ -865,6 +866,30 @@ class _EditStepState extends State<EditStep> {
           child: Column(
             children: [
               _buildTimelineRuler(),
+              // 顶部波形预览（简化版条形波形）
+              SizedBox(
+                height: 28,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(80, (i) {
+                      final h = 8 + (i % 9) * 2;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
+                        child: Container(
+                          width: 2,
+                          height: h.toDouble(),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6B9D).withOpacity(0.6 - (i % 5) * 0.08),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
               Expanded(
                 child: ListView.builder(
                   itemCount: _tracks.length,
@@ -1012,7 +1037,7 @@ class _EditStepState extends State<EditStep> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text('脚本优化', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text('文稿医生', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     IconButton(
@@ -1115,13 +1140,13 @@ class _EditStepState extends State<EditStep> {
     _saveHistory();
   }
 
-  void _handleVoiceTool(String type) {
+  void _handleVoiceTool(String type, [String emotion = '平静', String emphasis = '']) {
     if (type == 'clone') {
-      _showVoiceCloningDialog();
+      _showVoiceCloningDialog(emotion: emotion, emphasis: emphasis);
     } else if (type == 'multi') {
-      _showMultiRoleDialog();
+      _showMultiRoleDialog(emotion: emotion, emphasis: emphasis);
     } else if (type == 'tts') {
-      _showTTSDialog();
+      _showTTSDialog(emotion: emotion, emphasis: emphasis);
     }
   }
 
@@ -1208,9 +1233,10 @@ class _EditStepState extends State<EditStep> {
     });
   }
 
-  void _showVoiceCloningDialog() {
+  void _showVoiceCloningDialog({String emotion = '平静', String emphasis = ''}) {
     final TextEditingController controller = TextEditingController();
     final samples = _getThemeRelevantSamples();
+    String selectedEmotion = emotion;
 
     showDialog(
       context: context,
@@ -1266,11 +1292,26 @@ class _EditStepState extends State<EditStep> {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            if (emotion != '平静' || emphasis.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF5F8),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFFFFE4ED)),
+                ),
+                child: Text(
+                  '情感: $emotion${emphasis.isNotEmpty ? " | 重读: $emphasis" : ""}',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFFFF6B9D)),
+                ),
+              ),
             TextButton(
               onPressed: () {
                 final text = samples.isNotEmpty ? samples[0] : "AI 正在重新定义播客创作的边界。";
                 Navigator.pop(context);
-                _addVoiceTask('声线克隆', text, '声线：您的克隆声线');
+                final note = '[情感:$emotion]${emphasis.isNotEmpty ? ' [重读:$emphasis]' : ''} 声线：您的克隆声线';
+                _addVoiceTask('声线克隆', text, note);
               },
               child: const Text('直接生成示例', style: TextStyle(color: Color(0xFFFF6B9D))),
             ),
@@ -1278,7 +1319,8 @@ class _EditStepState extends State<EditStep> {
               onPressed: controller.text.trim().isEmpty ? null : () {
                 final text = controller.text.trim();
                 Navigator.pop(context);
-                _addVoiceTask('声线克隆', text, '声线：您的克隆声线');
+                final note = '[情感:$emotion]${emphasis.isNotEmpty ? ' [重读:$emphasis]' : ''} 声线：您的克隆声线';
+                _addVoiceTask('声线克隆', text, note);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
@@ -1292,9 +1334,10 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
-  void _showMultiRoleDialog() {
+  void _showMultiRoleDialog({String emotion = '平静', String emphasis = ''}) {
     final TextEditingController controller = TextEditingController();
     final samples = _getThemeRelevantSamples();
+    String selectedEmotion = emotion;
 
     showDialog(
       context: context,
@@ -1353,11 +1396,26 @@ class _EditStepState extends State<EditStep> {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            if (emotion != '平静' || emphasis.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF5F8),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFFFFE4ED)),
+                ),
+                child: Text(
+                  '情感: $emotion${emphasis.isNotEmpty ? " | 重读: $emphasis" : ""}',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFFFF6B9D)),
+                ),
+              ),
             TextButton(
               onPressed: () {
                 final text = "主持人：关于 AI，大家怎么看？\n嘉宾：我觉得很有趣。";
                 Navigator.pop(context);
-                _addVoiceTask('多角色生成', text, '声线：智能匹配多角色');
+                final note = '[情感:$emotion]${emphasis.isNotEmpty ? ' [重读:$emphasis]' : ''} 声线：智能匹配多角色';
+                _addVoiceTask('多角色生成', text, note);
               },
               child: const Text('直接生成示例对话', style: TextStyle(color: Color(0xFFFF6B9D))),
             ),
@@ -1365,7 +1423,8 @@ class _EditStepState extends State<EditStep> {
               onPressed: controller.text.trim().isEmpty ? null : () {
                 final text = controller.text.trim();
                 Navigator.pop(context);
-                _addVoiceTask('多角色生成', text, '声线：智能匹配多角色');
+                final note = '[情感:$emotion]${emphasis.isNotEmpty ? ' [重读:$emphasis]' : ''} 声线：智能匹配多角色';
+                _addVoiceTask('多角色生成', text, note);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
@@ -1379,15 +1438,17 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
-  void _showTTSDialog() {
+  void _showTTSDialog({String emotion = '平静', String emphasis = ''}) {
     final TextEditingController textController = TextEditingController();
     final samples = _getThemeRelevantSamples();
+    String selectedEmotion = emotion;
+    final TextEditingController emphasisController = TextEditingController(text: emphasis);
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('TTS 合成', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          title: const Text('声演实验室 · 角色配音', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1400,6 +1461,102 @@ class _EditStepState extends State<EditStep> {
                   hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF1F5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFBCFE8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('情感语气', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFFF6B9D))),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildEmotionChip('平静', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                        _buildEmotionChip('兴奋', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                        _buildEmotionChip('坚定', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                        _buildEmotionChip('温柔', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                        _buildEmotionChip('幽默', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                        _buildEmotionChip('严肃', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                        _buildEmotionChip('亲切', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                        _buildEmotionChip('激昂', selectedEmotion, (v) => setDialogState(() => selectedEmotion = v)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F9FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('重读标注', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                    const SizedBox(height: 4),
+                    const Text('输入需要重读的关键词，用空格分隔', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: emphasisController,
+                      decoration: InputDecoration(
+                        hintText: '例如：重要 关键 核心',
+                        hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.all(10),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // 小型波形预览占位
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('波形预览', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 24,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: List.generate(50, (i) {
+                          final h = 6 + ((i * 7) % 12);
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            child: Container(
+                              width: 2,
+                              height: h.toDouble(),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF60A5FA).withOpacity(0.8 - (i % 4) * 0.1),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
@@ -1461,7 +1618,11 @@ class _EditStepState extends State<EditStep> {
               onPressed: () {
                 final text = samples.isNotEmpty ? samples[0] : "AI 正在重新定义播客创作的边界。";
                 Navigator.pop(context);
-                _addVoiceTask('TTS 合成', text, '声线：默认 AI 女声');
+                final emphasis = emphasisController.text.trim();
+                final note = '[情感:$selectedEmotion]'
+                    '${emphasis.isNotEmpty ? ' [重读:$emphasis]' : ''} '
+                    '（AI 合成）$text';
+                _addVoiceTask('音频补录', note, '声线：默认 AI 女声');
               },
               child: const Text('直接生成示例', style: TextStyle(color: Color(0xFFFF6B9D))),
             ),
@@ -1469,7 +1630,11 @@ class _EditStepState extends State<EditStep> {
               onPressed: textController.text.trim().isEmpty ? null : () {
                 final text = textController.text.trim();
                 Navigator.pop(context);
-                _addVoiceTask('TTS 合成', text, '声线：默认 AI 女声');
+                final emphasis = emphasisController.text.trim();
+                final note = '[情感:$selectedEmotion]'
+                    '${emphasis.isNotEmpty ? ' [重读:$emphasis]' : ''} '
+                    '（AI 合成）$text';
+                _addVoiceTask('音频补录', note, '声线：默认 AI 女声');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
@@ -1610,13 +1775,16 @@ class _EditStepState extends State<EditStep> {
   }
 
   void _generateVoice() {
+    String selectedEmotion = '平静';
+    final TextEditingController emphasisController = TextEditingController();
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.8,
+          height: MediaQuery.of(context).size.height * 0.85,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1637,7 +1805,7 @@ class _EditStepState extends State<EditStep> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('语音生成', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text('声演实验室', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close, size: 20, color: Colors.grey),
@@ -1654,14 +1822,89 @@ class _EditStepState extends State<EditStep> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 三个功能按钮
                       Row(
                         children: [
-                          Expanded(child: _buildActionBtn('声线克隆', '根据语音生成配置', () => _handleVoiceTool('clone'), icon: Icons.mic_rounded)),
+                          Expanded(child: _buildActionBtn('声线克隆', '根据语音生成配置', () => _handleVoiceTool('clone', selectedEmotion, emphasisController.text), icon: Icons.mic_rounded)),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildActionBtn('多角色生成', 'AI 自动匹配声线', () => _handleVoiceTool('multi'), icon: Icons.groups_rounded)),
+                          Expanded(child: _buildActionBtn('多角色生成', 'AI 自动匹配声线', () => _handleVoiceTool('multi', selectedEmotion, emphasisController.text), icon: Icons.groups_rounded)),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildActionBtn('TTS 合成', '手动输入文本转语音', () => _handleVoiceTool('tts'), icon: Icons.text_fields_rounded)),
+                          Expanded(child: _buildActionBtn('音频补录', '手动输入文本转语音', () => _handleVoiceTool('tts', selectedEmotion, emphasisController.text), icon: Icons.text_fields_rounded)),
                         ],
+                      ),
+                      const SizedBox(height: 20),
+                      // 情感参数选择
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF5F8),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFFE4ED)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.emoji_emotions_outlined, size: 16, color: const Color(0xFFFF6B9D)),
+                                const SizedBox(width: 6),
+                                const Text('情感参数', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFF6B9D))),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                _buildEmotionChip('平静', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                                _buildEmotionChip('兴奋', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                                _buildEmotionChip('坚定', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                                _buildEmotionChip('温柔', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                                _buildEmotionChip('幽默', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                                _buildEmotionChip('严肃', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                                _buildEmotionChip('亲切', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                                _buildEmotionChip('激昂', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // 重读标注
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F9FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.format_bold, size: 16, color: const Color(0xFF0284C7)),
+                                const SizedBox(width: 6),
+                                const Text('重读标注', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            const Text('输入需要重读的关键词，用空格分隔', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: emphasisController,
+                              decoration: InputDecoration(
+                                hintText: '例如：重要 关键 核心',
+                                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                filled: true,
+                                fillColor: Colors.white,
+                                prefixIcon: const Icon(Icons.edit_note, size: 20, color: Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
                       if (_voiceTasks.isNotEmpty) ...[
@@ -2038,7 +2281,7 @@ class _EditStepState extends State<EditStep> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text('深度语义搜索与金句定位', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const Text('金句定位', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       IconButton(
@@ -2048,6 +2291,51 @@ class _EditStepState extends State<EditStep> {
                     ],
                   ),
                   const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Text('字幕样式:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: DropdownButton<String>(
+                                value: '简洁白底',
+                                isExpanded: true,
+                                items: const [
+                                  DropdownMenuItem(value: '简洁白底', child: Text('简洁白底', style: TextStyle(fontSize: 12))),
+                                  DropdownMenuItem(value: '卡拉OK高亮', child: Text('卡拉OK高亮', style: TextStyle(fontSize: 12))),
+                                  DropdownMenuItem(value: '科技霓虹', child: Text('科技霓虹', style: TextStyle(fontSize: 12))),
+                                ],
+                                onChanged: (v) {},
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Text('BGM:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: DropdownButton<String>(
+                                value: 'LoFi Chill',
+                                isExpanded: true,
+                                items: const [
+                                  DropdownMenuItem(value: 'LoFi Chill', child: Text('LoFi Chill', style: TextStyle(fontSize: 12))),
+                                  DropdownMenuItem(value: 'Ambient Soft', child: Text('Ambient Soft', style: TextStyle(fontSize: 12))),
+                                  DropdownMenuItem(value: 'Conversation Bed', child: Text('Conversation Bed', style: TextStyle(fontSize: 12))),
+                                ],
+                                onChanged: (v) {},
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   TextField(
                     controller: searchController,
                     onChanged: (value) {
@@ -2106,7 +2394,43 @@ class _EditStepState extends State<EditStep> {
                           itemCount: filteredSentences.length,
                           itemBuilder: (context, index) {
                             final item = filteredSentences[index];
-                            return _buildGoldenSentence(item['content'], item['time'], item['score']);
+                            return Stack(
+                              children: [
+                                _buildGoldenSentence(item['content'], item['time'], item['score']),
+                                Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 16, color: Colors.orange),
+                                        onPressed: () async {
+                                          final ctrl = TextEditingController(text: item['content']);
+                                          await showDialog(
+                                            context: context,
+                                            builder: (_) => AlertDialog(
+                                              title: const Text('编辑金句'),
+                                              content: TextField(controller: ctrl, maxLines: 3),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+                                                TextButton(onPressed: () { Navigator.pop(context); }, child: const Text('保存')),
+                                              ],
+                                            ),
+                                          );
+                                          setModalState(() => item['content'] = ctrl.text);
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                                        onPressed: () => setModalState(() {
+                                          filteredSentences.removeAt(index);
+                                        }),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              ],
+                            );
                           },
                         ),
                   ),
@@ -2177,7 +2501,7 @@ class _EditStepState extends State<EditStep> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text('语音转写与分析', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('语音分析', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 20),
@@ -2225,6 +2549,218 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
+  // 作品预览中心（音频/视频/文案）
+  void _openPreviewCenter() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        int tab = 0;
+        return StatefulBuilder(
+          builder: (context, setSheet) => Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(width: 4, height: 16, decoration: BoxDecoration(color: const Color(0xFFFF6B9D), borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(width: 8),
+                    const Text('作品预览', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.grey)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    ChoiceChip(label: const Text('音频预览'), selected: tab == 0, onSelected: (_) => setSheet(() => tab = 0)),
+                    const SizedBox(width: 8),
+                    ChoiceChip(label: const Text('视频预览'), selected: tab == 1, onSelected: (_) => setSheet(() => tab = 1)),
+                    const SizedBox(width: 8),
+                    ChoiceChip(label: const Text('文案预览'), selected: tab == 2, onSelected: (_) => setSheet(() => tab = 2)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: IndexedStack(
+                    index: tab,
+                    children: [
+                      // 音频
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.play_circle_fill, size: 64, color: Color(0xFFFF6B9D)),
+                            const SizedBox(height: 8),
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 24),
+                              height: 40,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(60, (i) {
+                                  // 创建多个起伏波形，使用正弦波叠加
+                                  final x = i / 60.0 * 4 * 3.14159; // 2个完整周期
+                                  final wave1 = (math.sin(x) + 1) / 2; // 基础波形
+                                  final wave2 = (math.sin(x * 2.5) + 1) / 2 * 0.4; // 叠加高频小波
+                                  final wave3 = (math.sin(x * 0.5) + 1) / 2 * 0.3; // 叠加低频大波
+                                  final amplitude = (wave1 * 0.6 + wave2 + wave3 * 0.5).clamp(0.0, 1.0);
+                                  final h = 8 + amplitude * 28;
+                                  
+                                  // 渐变颜色
+                                  final gradientColors = [
+                                    const Color(0xFFFF6B9D),
+                                    const Color(0xFFFF8FB3),
+                                    const Color(0xFFFFB8D0),
+                                  ];
+                                  final colorIndex = (amplitude * (gradientColors.length - 1)).floor();
+                                  final color = gradientColors[colorIndex.clamp(0, gradientColors.length - 1)];
+                                  
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                                    child: Container(
+                                      width: 4,
+                                      height: h.toDouble(),
+                                      decoration: BoxDecoration(
+                                        color: color.withOpacity(0.7 + amplitude * 0.3),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text('00:00 / 15:00', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                      // 视频
+                      Center(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 24),
+                          height: 220,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFFF6B9D)),
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(colors: [Color(0xFFFFF0F5), Color(0xFFF5F3FF)]),
+                          ),
+                          child: const Center(child: Text('视频预览占位', style: TextStyle(color: Colors.grey))),
+                        ),
+                      ),
+                      // 文案
+                      ListView(
+                        padding: const EdgeInsets.all(8),
+                        children: _transcript.take(8).map((e) => ListTile(
+                          dense: true,
+                          title: Text((e['text'] as String), maxLines: 2, overflow: TextOverflow.ellipsis),
+                          subtitle: Text('${e['speaker']} · ${e['time']}', style: const TextStyle(fontSize: 11)),
+                        )).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 金句视频生成（角色头像/虚拟形象、字幕样式、AI BGM 推荐）
+  void _showGoldenVideoDialog() {
+    String subtitleStyle = '简洁白底';
+    String bgm = 'LoFi Chill';
+    String avatar = '使用虚拟形象';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheet) => Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(width: 4, height: 16, decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 8),
+                  const Text('金句视频', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.grey)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text('角色形象', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              DropdownButton<String>(
+                value: avatar,
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(value: '上传角色照片', child: Text('上传角色照片')),
+                  DropdownMenuItem(value: '使用虚拟形象', child: Text('使用虚拟形象')),
+                ],
+                onChanged: (v) => setSheet(() => avatar = v ?? avatar),
+              ),
+              const SizedBox(height: 8),
+              const Text('字幕样式', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              DropdownButton<String>(
+                value: subtitleStyle,
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(value: '简洁白底', child: Text('简洁白底')),
+                  DropdownMenuItem(value: '卡拉OK高亮', child: Text('卡拉OK高亮')),
+                  DropdownMenuItem(value: '科技霓虹', child: Text('科技霓虹')),
+                ],
+                onChanged: (v) => setSheet(() => subtitleStyle = v ?? subtitleStyle),
+              ),
+              const SizedBox(height: 8),
+              const Text('AI 推荐 BGM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              DropdownButton<String>(
+                value: bgm,
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(value: 'LoFi Chill', child: Text('LoFi Chill')),
+                  DropdownMenuItem(value: 'Ambient Soft', child: Text('Ambient Soft')),
+                  DropdownMenuItem(value: 'Conversation Bed', child: Text('Conversation Bed')),
+                ],
+                onChanged: (v) => setSheet(() => bgm = v ?? bgm),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B9D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('生成预览视频'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   void _startTranscription() {
     if (_isTranscribing) return;
     
@@ -2328,7 +2864,7 @@ class _EditStepState extends State<EditStep> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text('音频画质增强', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('音质增强', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 20),
@@ -2441,12 +2977,14 @@ class _EditStepState extends State<EditStep> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.description_outlined, '脚本优化', _optimizeScript)),
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.mic_none_outlined, '语音生成', _generateVoice)),
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.content_cut_outlined, 'AI专项剪辑', _aiSpecialCut)),
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.search, '语义搜索', _semanticSearch)),
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.analytics_outlined, '语音转写', _voiceAnalysis)),
-                      SizedBox(width: 90, child: _buildToolBtn(Icons.high_quality_outlined, '音频增强', _audioEnhance)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.description_outlined, '内容润色', _optimizeScript)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.mic_none_outlined, '声演实验室', _generateVoice)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.content_cut_outlined, '后期大师', _aiSpecialCut)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.search, '高光提取', _semanticSearch)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.analytics_outlined, '文本引擎', _voiceAnalysis)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.high_quality_outlined, '声效修复', _audioEnhance)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.movie_creation_outlined, '金句视频', _showGoldenVideoDialog)),
+                      SizedBox(width: 90, child: _buildToolBtn(Icons.visibility_outlined, '作品预览', _openPreviewCenter)),
                     ],
                   ),
                 ),
@@ -2925,6 +3463,31 @@ class _EditStepState extends State<EditStep> {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmotionChip(String emotion, String selectedEmotion, Function(String) onSelect) {
+    final bool isSelected = selectedEmotion == emotion;
+    return GestureDetector(
+      onTap: () => onSelect(emotion),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFF6B9D) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFFF6B9D) : Colors.grey.shade300,
+          ),
+        ),
+        child: Text(
+          emotion,
+          style: TextStyle(
+            fontSize: 12,
+            color: isSelected ? Colors.white : Colors.grey.shade700,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class PublishStep extends StatefulWidget {
   final VoidCallback onPrev;
-  const PublishStep({super.key, required this.onPrev});
+  final VoidCallback onPublishSuccess;
+  const PublishStep({super.key, required this.onPrev, required this.onPublishSuccess});
 
   @override
   State<PublishStep> createState() => _PublishStepState();
@@ -10,10 +11,22 @@ class PublishStep extends StatefulWidget {
 
 class _PublishStepState extends State<PublishStep> {
   String _selectedFormat = 'audio'; // audio, video_9_16, video_16_9
+  int _previewTab = 0; // 0: 音频, 1: 视频, 2: 文案
+  bool _isPlaying = false;
+  double _playbackProgress = 0.0;
+  
+  final List<Map<String, dynamic>> _platforms = [
+    {'name': '小宇宙', 'icon': Icons.rocket_launch, 'color': const Color(0xFFFBBF24), 'selected': false},
+    {'name': 'Apple 播客', 'icon': Icons.podcasts, 'color': const Color(0xFFFB923C), 'selected': false},
+    {'name': '微信听书', 'icon': Icons.wechat, 'color': const Color(0xFF16A34A), 'selected': false},
+    {'name': '抖音', 'icon': Icons.music_note, 'color': Colors.black, 'selected': false},
+    {'name': 'QQ 音乐', 'icon': Icons.queue_music, 'color': const Color(0xFF2563EB), 'selected': false},
+    {'name': '小红书', 'icon': Icons.camera_alt, 'color': const Color(0xFFDC2626), 'selected': false},
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,6 +45,53 @@ class _PublishStepState extends State<PublishStep> {
               _buildFormatOption('video_16_9', '横屏视频', Icons.stay_current_landscape),
             ],
           ),
+          const SizedBox(height: 24),
+          
+          // 预览区域
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      '内容预览',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                    ),
+                    const Spacer(),
+                    // 预览标签切换
+                    Row(
+                      children: [
+                        _buildPreviewTab(0, '音频', Icons.audiotrack),
+                        const SizedBox(width: 8),
+                        _buildPreviewTab(1, '视频', Icons.videocam),
+                        const SizedBox(width: 8),
+                        _buildPreviewTab(2, '文案', Icons.description),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // 预览内容
+                IndexedStack(
+                  index: _previewTab,
+                  children: [
+                    _buildAudioPreview(),
+                    _buildVideoPreview(),
+                    _buildTextPreview(),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
           const SizedBox(height: 32),
           const Text(
             '选择平台上传',
@@ -45,20 +105,32 @@ class _PublishStepState extends State<PublishStep> {
           const SizedBox(height: 16),
           
           // 平台列表
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 3,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.85,
-              children: [
-                _buildPlatformItem('小宇宙', Icons.rocket_launch, true, const Color(0xFFFBBF24)),
-                _buildPlatformItem('Apple 播客', Icons.podcasts, true, const Color(0xFFFB923C)),
-                _buildPlatformItem('微信听书', Icons.wechat, false, const Color(0xFF16A34A)),
-                _buildPlatformItem('抖音', Icons.music_note, false, Colors.black),
-                _buildPlatformItem('QQ 音乐', Icons.queue_music, false, const Color(0xFF2563EB)),
-                _buildPlatformItem('小红书', Icons.camera_alt, false, const Color(0xFFDC2626)),
-              ],
+          SizedBox(
+            height: 280,
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.85,
+              ),
+              itemCount: _platforms.length,
+              itemBuilder: (context, index) {
+                final platform = _platforms[index];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _platforms[index]['selected'] = !_platforms[index]['selected'];
+                    });
+                  },
+                  child: _buildPlatformItem(
+                    platform['name'],
+                    platform['icon'],
+                    platform['selected'],
+                    platform['color'],
+                  ),
+                );
+              },
             ),
           ),
           
@@ -67,9 +139,96 @@ class _PublishStepState extends State<PublishStep> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
+                final selectedPlatforms = _platforms.where((p) => p['selected'] == true).toList();
+                
+                if (selectedPlatforms.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请至少选择一个发布平台')),
+                  );
+                  return;
+                }
+                
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('正在发布中，请稍候...')),
                 );
+                
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  size: 48,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              const Text(
+                                '发布成功！',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1F2937),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '您的播客已成功发布到 ${selectedPlatforms.length} 个平台',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    widget.onPublishSuccess();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFF6B9D),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    '返回首页',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
+                });
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
@@ -117,14 +276,14 @@ class _PublishStepState extends State<PublishStep> {
     );
   }
 
-  Widget _buildPlatformItem(String name, IconData icon, bool isLinked, Color themeColor) {
+  Widget _buildPlatformItem(String name, IconData icon, bool isSelected, Color themeColor) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isLinked ? themeColor.withOpacity(0.3) : Colors.grey[200]!),
-        boxShadow: isLinked ? [
+        border: Border.all(color: isSelected ? themeColor.withOpacity(0.3) : Colors.grey[200]!),
+        boxShadow: isSelected ? [
           BoxShadow(
             color: themeColor.withOpacity(0.05),
             blurRadius: 10,
@@ -141,16 +300,16 @@ class _PublishStepState extends State<PublishStep> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: isLinked ? themeColor.withOpacity(0.1) : Colors.grey[100],
+                  color: isSelected ? themeColor.withOpacity(0.1) : Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
                   size: 24,
-                  color: isLinked ? themeColor : Colors.grey[400],
+                  color: isSelected ? themeColor : Colors.grey[400],
                 ),
               ),
-              if (isLinked)
+              if (isSelected)
                 Positioned(
                   right: -2,
                   bottom: -2,
@@ -171,7 +330,7 @@ class _PublishStepState extends State<PublishStep> {
             style: TextStyle(
               fontWeight: FontWeight.bold, 
               fontSize: 12,
-              color: isLinked ? Colors.black87 : Colors.grey[600],
+              color: isSelected ? Colors.black87 : Colors.grey[600],
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -179,10 +338,342 @@ class _PublishStepState extends State<PublishStep> {
           ),
           const SizedBox(height: 2),
           Text(
-            isLinked ? '已绑定' : '未绑定',
+            isSelected ? '已选择' : '未选择',
             style: TextStyle(
               fontSize: 9,
-              color: isLinked ? themeColor : Colors.grey[400],
+              color: isSelected ? themeColor : Colors.grey[400],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewTab(int index, String label, IconData icon) {
+    final isSelected = _previewTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _previewTab = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFF6B9D) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: isSelected ? Colors.white : Colors.grey.shade600),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAudioPreview() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF0F5), Color(0xFFF5F3FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.audiotrack, size: 64, color: const Color(0xFFFF6B9D)),
+                const SizedBox(height: 16),
+                const Text(
+                  '播客音频预览',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '时长: 15:30 | 格式: MP3 | 比特率: 128kbps',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '00:00',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'monospace'),
+                ),
+              ),
+              const Text('/', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              Expanded(
+                child: Text(
+                  '15:30',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'monospace'),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Slider(
+            value: _playbackProgress,
+            onChanged: (value) => setState(() => _playbackProgress = value),
+            activeColor: const Color(0xFFFF6B9D),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.replay_10),
+                onPressed: () {},
+                iconSize: 24,
+              ),
+              const SizedBox(width: 20),
+              GestureDetector(
+                onTap: () => setState(() => _isPlaying = !_isPlaying),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B9D),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isPlaying ? Icons.pause : Icons.play_arrow,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              IconButton(
+                icon: const Icon(Icons.forward_10),
+                onPressed: () {},
+                iconSize: 24,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            height: 200,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF0F5), Color(0xFFF5F3FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.play_circle_outline, size: 64, color: const Color(0xFFFF6B9D)),
+                const SizedBox(height: 12),
+                Text(
+                  _selectedFormat == 'video_9_16' ? '9:16 竖屏视频' : '16:9 横屏视频',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '点击播放预览',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildVideoInfo('分辨率', _selectedFormat == 'video_9_16' ? '1080x1920' : '1920x1080'),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildVideoInfo('帧率', '30fps'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildVideoInfo('格式', 'MP4'),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildVideoInfo('大小', '约 45MB'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoInfo(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextPreview() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '推荐标题',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'AI赋能：播客创作的新纪元',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF374151)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '内容摘要',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '在本期节目中，我们深入探讨了播客创作的核心痛点。从选题策划到后期剪辑，分享了多个实用的技巧和工具。无论你是刚入门的新手，还是遇到瓶颈的资深创作者，都能从中获得启发。',
+                    style: TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF374151)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '时间轴要点',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                ),
+                const SizedBox(height: 8),
+                _buildTimestampItem('00:00', '节目开场及主题介绍'),
+                _buildTimestampItem('02:15', 'AI 语音转写技术的演进历程'),
+                _buildTimestampItem('05:30', 'PodPal 核心功能演示：智能去口癖'),
+                _buildTimestampItem('12:45', '嘉宾分享：如何利用 AI 缩短 50% 的后期时间'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('编辑', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFFF6B9D),
+                    side: const BorderSide(color: Color(0xFFFF6B9D)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('复制', style: TextStyle(fontSize: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B9D),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimestampItem(String time, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            time,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFFF6B9D),
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              desc,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF374151)),
             ),
           ),
         ],

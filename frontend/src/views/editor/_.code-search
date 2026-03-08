@@ -1,0 +1,9 @@
+# Query: 示例
+# ContextLines: 1
+
+1 个结果 - 1 个文件
+
+frontend\src\views\editor\ClipStudioView.vue:
+  326                  <div v-if="samplePreview.length" class="space-y-3 pt-2 border-t border-pink-100">
+  327:                   <div class="text-xs font-bold text-gray-900">预览</div>
+  328                    <div v-for="group in samplePreview" :key="group.id" class="space-y-2">

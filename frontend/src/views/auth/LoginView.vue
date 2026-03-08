@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="min-h-screen flex items-center justify-center bg-white px-4">
     <div class="w-full max-w-md">
       <div class="glass-card rounded-2xl p-8 shadow-2xl bg-gradient-to-br from-pink-50/50 to-purple-50/50 border-2 border-pink-200/60">
@@ -9,13 +9,13 @@
 
         <form @submit.prevent="handleLogin" class="space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">邮箱或手机号</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
             <input
-              v-model="form.email"
+              v-model="form.username"
               type="text"
               required
               class="w-full px-4 py-3 bg-white border border-pink-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300 transition"
-              placeholder="请输入邮箱或手机号"
+              placeholder="请输入用户名"
             />
           </div>
 
@@ -96,7 +96,7 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const form = ref({
-  email: '',
+  username: '',
   password: '',
   remember: false
 })
@@ -114,7 +114,7 @@ async function handleLogin() {
 async function handleThirdPartyLogin(provider) {
   loading.value = true
   await userStore.login({
-    email: `${provider}@example.com`,
+    username: `${provider}_user`,
     password: 'mock'
   })
   const redirect = route.query.redirect || '/dashboard'

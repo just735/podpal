@@ -5,6 +5,7 @@ import 'steps/enhance_step.dart';
 import 'steps/publish_step.dart';
 import 'steps/upload_step.dart';
 import 'profile_page.dart';
+import 'template_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,6 +19,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const EditorPage(),
+    const TemplatePage(),
     const ProfilePage(),
   ];
 
@@ -51,6 +53,11 @@ class _MainScreenState extends State<MainScreen> {
               label: '剪辑',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_outlined),
+              activeIcon: Icon(Icons.dashboard),
+              label: '模板',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: '我的',
@@ -74,6 +81,10 @@ class _EditorPageState extends State<EditorPage> {
   bool _hasUploaded = false; // 追踪素材是否已上传
 
   void _goToStep(int index) {
+    // 确保索引在有效范围内
+    if (index < 0 || index > 3) {
+      return;
+    }
     if (index > 0 && !_hasUploaded) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请先上传或选择素材再进行下一步')),
@@ -90,6 +101,13 @@ class _EditorPageState extends State<EditorPage> {
       _hasUploaded = true;
     });
     _goToStep(1); // 上传成功后自动进入下一步
+  }
+
+  void _handlePublishSuccess() {
+    setState(() {
+      _hasUploaded = false;
+      _currentStep = 0;
+    });
   }
 
   @override
@@ -147,12 +165,12 @@ class _EditorPageState extends State<EditorPage> {
         ),
       ),
       body: IndexedStack(
-        index: _currentStep,
+        index: _currentStep.clamp(0, 3),
         children: [
           UploadStep(onNext: _handleUploadSuccess),
           EditStep(onPrev: () => _goToStep(0), onNext: () => _goToStep(2)),
           EnhanceStep(onPrev: () => _goToStep(1), onNext: () => _goToStep(3)),
-          PublishStep(onPrev: () => _goToStep(2)),
+          PublishStep(onPrev: () => _goToStep(2), onPublishSuccess: _handlePublishSuccess),
         ],
       ),
     );

@@ -198,7 +198,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
             const Text('推荐标题', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 8),
             if (_shownotesResult!['titles'] != null)
-              ...(_shownotesResult!['titles'] as List).map((t) => _buildTitleItem(t.toString())),
+              ...(_shownotesResult!['titles'] as List).asMap().entries.map((e) => _buildTitleItem(e.value.toString(), e.key)),
             
             const SizedBox(height: 16),
             
@@ -424,6 +424,21 @@ class _EnhanceStepState extends State<EnhanceStep> {
   }
 
   // ========== 3. 视频播客模块 ==========
+  String _videoAvatarType = 'virtual'; // 'virtual' 或 'upload'
+  String _videoSubtitleStyle = '简洁白底';
+  String _videoBGM = '';
+  final List<String> _subtitleStyles = ['简洁白底', '卡拉OK高亮', '科技霓虹', '文艺清新'];
+  final Map<String, String> _emotionBGMMap = {
+    '平静': 'LoFi Chill',
+    '兴奋': 'Upbeat Pop',
+    '坚定': 'Epic Orchestral',
+    '温柔': 'Acoustic Guitar',
+    '幽默': 'Quirky Fun',
+    '严肃': 'Minimal Piano',
+    '亲切': 'Warm Jazz',
+    '激昂': 'Motivational Rock',
+  };
+
   Widget _buildVideoSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -431,6 +446,53 @@ class _EnhanceStepState extends State<EnhanceStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 角色形象选择
+          const Text('角色形象', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAvatarOption(
+                  '使用虚拟形象',
+                  Icons.smart_toy_outlined,
+                  _videoAvatarType == 'virtual',
+                  () => setState(() => _videoAvatarType = 'virtual'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildAvatarOption(
+                  '上传角色照片',
+                  Icons.add_photo_alternate_outlined,
+                  _videoAvatarType == 'upload',
+                  () => setState(() => _videoAvatarType = 'upload'),
+                ),
+              ),
+            ],
+          ),
+          if (_videoAvatarType == 'upload') ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.cloud_upload_outlined, size: 32, color: Colors.grey[400]),
+                  const SizedBox(height: 8),
+                  Text('点击上传角色照片', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  const SizedBox(height: 4),
+                  Text('支持 JPG、PNG 格式', style: TextStyle(fontSize: 10, color: Colors.grey[400])),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          // 视频比例和字幕样式
           Row(
             children: [
               Expanded(
@@ -456,21 +518,56 @@ class _EnhanceStepState extends State<EnhanceStep> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('视觉风格', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    const Text('字幕样式', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     _buildDropdown<String>(
-                      value: _videoTemplate,
-                      items: [
-                        {'value': '简约风', 'label': '简约风'},
-                        {'value': '动态文字', 'label': '动态文字'},
-                        {'value': '播客演播室', 'label': '演播室'},
-                      ],
-                      onChanged: (val) => setState(() => _videoTemplate = val!),
+                      value: _videoSubtitleStyle,
+                      items: _subtitleStyles.map((s) => {'value': s, 'label': s}).toList(),
+                      onChanged: (val) => setState(() => _videoSubtitleStyle = val!),
                     ),
                   ],
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          // AI 推荐 BGM
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFDF2F8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFBCFE8)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.music_note, size: 16, color: Color(0xFFF472B6)),
+                    const SizedBox(width: 6),
+                    const Text('AI 智能 BGM 推荐', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFF472B6))),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF472B6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text('自动匹配', style: TextStyle(fontSize: 10, color: Colors.white)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text('系统将根据金句情感自动推荐背景音乐', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _emotionBGMMap.entries.map((e) => _buildBGMChip(e.key, e.value)).toList(),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           _buildToggleItem('自动提取金句片段', _includeHighlights, (val) => setState(() => _includeHighlights = val)),
@@ -494,9 +591,51 @@ class _EnhanceStepState extends State<EnhanceStep> {
               (task['segments'] as List?)?.map((e) => e.toString()).toList() ?? [],
               viralPotential: task['viralPotential'] as int?,
               logicScore: task['logicScore'] as int?,
+              emotion: task['emotion']?.toString(),
+              bgm: task['bgm']?.toString(),
             )),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarOption(String label, IconData icon, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFDF2F8) : Colors.grey[50],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? const Color(0xFFF472B6) : Colors.grey[300]!),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 24, color: isSelected ? const Color(0xFFF472B6) : Colors.grey[600]),
+            const SizedBox(height: 6),
+            Text(label, style: TextStyle(fontSize: 11, color: isSelected ? const Color(0xFFF472B6) : Colors.grey[700])),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBGMChip(String emotion, String bgm) {
+    final isSelected = _videoBGM == bgm;
+    return GestureDetector(
+      onTap: () => setState(() => _videoBGM = bgm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF472B6) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? const Color(0xFFF472B6) : Colors.grey.shade300),
+        ),
+        child: Text(
+          '$emotion · $bgm',
+          style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : Colors.grey[700]),
+        ),
       ),
     );
   }
@@ -557,14 +696,23 @@ class _EnhanceStepState extends State<EnhanceStep> {
                     style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF374151)),
                   ),
                   const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.copy, size: 14),
-                      label: const Text('复制文案', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(foregroundColor: const Color(0xFFFB923C)),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _editSocialContent(_currentSocialPlatform),
+                        icon: const Icon(Icons.edit, size: 14),
+                        label: const Text('编辑', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFFB923C)),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.copy, size: 14),
+                        label: const Text('复制', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFFB923C)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -576,7 +724,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
   }
 
   // ========== 工具方法 ==========
-  Widget _buildTitleItem(String title) {
+  Widget _buildTitleItem(String title, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
@@ -590,10 +738,48 @@ class _EnhanceStepState extends State<EnhanceStep> {
           const Icon(Icons.bookmark_border, size: 16, color: Color(0xFF818CF8)),
           const SizedBox(width: 8),
           Expanded(child: Text(title, style: const TextStyle(fontSize: 13))),
+          IconButton(
+            icon: const Icon(Icons.edit, size: 14, color: Color(0xFF818CF8)),
+            onPressed: () => _editTitle(title, index),
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(4),
+          ),
+          const SizedBox(width: 4),
           const Icon(Icons.copy, size: 14, color: Color(0xFF818CF8)),
         ],
       ),
     );
+  }
+
+  void _editTitle(String currentTitle, int index) async {
+    final controller = TextEditingController(text: currentTitle);
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('编辑标题'),
+        content: TextField(
+          controller: controller,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            hintText: '请输入新标题',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF818CF8)),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (newTitle != null && newTitle.isNotEmpty) {
+      setState(() {
+        _shownotesResult!['titles'][index] = newTitle;
+      });
+    }
   }
 
   Widget _buildTimestampItem(String time, String desc) {
@@ -623,7 +809,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
     );
   }
 
-  Widget _buildVideoTaskItem(String title, String content, String desc, List<String> segments, {int? viralPotential, int? logicScore}) {
+  Widget _buildVideoTaskItem(String title, String content, String desc, List<String> segments, {int? viralPotential, int? logicScore, String? emotion, String? bgm}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -726,6 +912,37 @@ class _EnhanceStepState extends State<EnhanceStep> {
                     _buildMetric('逻辑完整度', logicScore ?? 85),
                   ],
                 ),
+                if (emotion != null || bgm != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDF2F8),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFFBCFE8)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (emotion != null) ...[
+                          Icon(Icons.emoji_emotions_outlined, size: 12, color: const Color(0xFFF472B6)),
+                          const SizedBox(width: 4),
+                          Text('情感: $emotion', style: const TextStyle(fontSize: 10, color: Color(0xFFF472B6))),
+                        ],
+                        if (emotion != null && bgm != null) ...[
+                          const SizedBox(width: 12),
+                          Container(width: 1, height: 10, color: const Color(0xFFFBCFE8)),
+                          const SizedBox(width: 12),
+                        ],
+                        if (bgm != null) ...[
+                          Icon(Icons.music_note, size: 12, color: const Color(0xFFF472B6)),
+                          const SizedBox(width: 4),
+                          Text('BGM: $bgm', style: const TextStyle(fontSize: 10, color: Color(0xFFF472B6))),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1002,20 +1219,60 @@ class _EnhanceStepState extends State<EnhanceStep> {
     });
   }
 
+  // 根据内容智能生成标题
+  String _generateSmartTitle(String content) {
+    if (content.contains('AI') || content.contains('人工智能')) {
+      return 'AI赋能：播客创作的新纪元';
+    } else if (content.contains('竞争力') || content.contains('技术')) {
+      return '深度思考：播客的核心竞争力是什么';
+    } else if (content.contains('情感') || content.contains('共鸣')) {
+      return '情感共鸣：让听众爱上你的声音';
+    } else if (content.contains('效率') || content.contains('解放')) {
+      return '效率革命：AI如何解放创作者';
+    } else {
+      return '金句时刻：值得回味的精彩观点';
+    }
+  }
+
+  // 根据内容分析情感
+  String _analyzeEmotion(String content) {
+    if (content.contains('解放') || content.contains('提升')) {
+      return '兴奋';
+    } else if (content.contains('竞争力') || content.contains('深度')) {
+      return '坚定';
+    } else if (content.contains('情感') || content.contains('共鸣')) {
+      return '温柔';
+    } else {
+      return '平静';
+    }
+  }
+
   void _generateVideoExample() async {
     setState(() => _isGeneratingVideo = true);
     await Future.delayed(const Duration(seconds: 3));
     setState(() {
       _isGeneratingVideo = false;
+      
+      final content = _generatedVideoTasks.isEmpty 
+        ? 'AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。'
+        : '未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。';
+      
+      // 智能分析情感并推荐BGM
+      final emotion = _analyzeEmotion(content);
+      final bgm = _emotionBGMMap[emotion] ?? 'LoFi Chill';
+      
+      // 使用智能标题而非编号
+      final smartTitle = _generateSmartTitle(content);
+      
       _generatedVideoTasks.add({
-        'name': '金句片段_${_generatedVideoTasks.length + 1}',
-        'content': _generatedVideoTasks.isEmpty 
-          ? 'AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。'
-          : '未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。',
-        'desc': '时长: 00:45 | 风格: $_videoTemplate',
+        'name': smartTitle,
+        'content': content,
+        'desc': '时长: 00:45 | 字幕: $_videoSubtitleStyle | 形象: ${_videoAvatarType == 'virtual' ? '虚拟形象' : '自定义角色'}',
         'segments': _generatedVideoTasks.isEmpty ? ['00:05 - 00:50'] : ['02:15 - 02:47'],
         'viralPotential': _generatedVideoTasks.isEmpty ? 92 : 85,
         'logicScore': _generatedVideoTasks.isEmpty ? 88 : 94,
+        'emotion': emotion,
+        'bgm': _videoBGM.isNotEmpty ? _videoBGM : bgm,
       });
     });
   }
@@ -1033,5 +1290,36 @@ class _EnhanceStepState extends State<EnhanceStep> {
       };
       _currentSocialPlatform = '公众号';
     });
+  }
+
+  void _editSocialContent(String platform) async {
+    final controller = TextEditingController(text: _socialResults[platform] ?? '');
+    final newContent = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('编辑 $platform 文案'),
+        content: TextField(
+          controller: controller,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: '请输入文案内容',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFB923C)),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (newContent != null) {
+      setState(() {
+        _socialResults[platform] = newContent;
+      });
+    }
   }
 }
