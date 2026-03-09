@@ -2601,39 +2601,48 @@ class _EditStepState extends State<EditStep> {
                             Container(
                               margin: const EdgeInsets.symmetric(horizontal: 24),
                               height: 40,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(60, (i) {
-                                  // 创建多个起伏波形，使用正弦波叠加
-                                  final x = i / 60.0 * 4 * 3.14159; // 2个完整周期
-                                  final wave1 = (math.sin(x) + 1) / 2; // 基础波形
-                                  final wave2 = (math.sin(x * 2.5) + 1) / 2 * 0.4; // 叠加高频小波
-                                  final wave3 = (math.sin(x * 0.5) + 1) / 2 * 0.3; // 叠加低频大波
-                                  final amplitude = (wave1 * 0.6 + wave2 + wave3 * 0.5).clamp(0.0, 1.0);
-                                  final h = 8 + amplitude * 28;
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final maxWidth = constraints.maxWidth;
+                                  final barCount = (maxWidth ~/ 7).clamp(20, 40); // 每个条形占7像素（4宽+3间距）
+                                  final barWidth = 3.0;
+                                  final barSpacing = 3.0;
                                   
-                                  // 渐变颜色
-                                  final gradientColors = [
-                                    const Color(0xFFFF6B9D),
-                                    const Color(0xFFFF8FB3),
-                                    const Color(0xFFFFB8D0),
-                                  ];
-                                  final colorIndex = (amplitude * (gradientColors.length - 1)).floor();
-                                  final color = gradientColors[colorIndex.clamp(0, gradientColors.length - 1)];
-                                  
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                                    child: Container(
-                                      width: 4,
-                                      height: h.toDouble(),
-                                      decoration: BoxDecoration(
-                                        color: color.withOpacity(0.7 + amplitude * 0.3),
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                    ),
+                                  return Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(barCount, (i) {
+                                      // 创建多个起伏波形，使用正弦波叠加
+                                      final x = i / barCount * 4 * 3.14159; // 2个完整周期
+                                      final wave1 = (math.sin(x) + 1) / 2; // 基础波形
+                                      final wave2 = (math.sin(x * 2.5) + 1) / 2 * 0.4; // 叠加高频小波
+                                      final wave3 = (math.sin(x * 0.5) + 1) / 2 * 0.3; // 叠加低频大波
+                                      final amplitude = (wave1 * 0.6 + wave2 + wave3 * 0.5).clamp(0.0, 1.0);
+                                      final h = 8 + amplitude * 28;
+                                      
+                                      // 渐变颜色
+                                      final gradientColors = [
+                                        const Color(0xFFFF6B9D),
+                                        const Color(0xFFFF8FB3),
+                                        const Color(0xFFFFB8D0),
+                                      ];
+                                      final colorIndex = (amplitude * (gradientColors.length - 1)).floor();
+                                      final color = gradientColors[colorIndex.clamp(0, gradientColors.length - 1)];
+                                      
+                                      return Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: barSpacing / 2),
+                                        child: Container(
+                                          width: barWidth,
+                                          height: h.toDouble(),
+                                          decoration: BoxDecoration(
+                                            color: color.withOpacity(0.7 + amplitude * 0.3),
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
+                                        ),
+                                      );
+                                    }),
                                   );
-                                }),
+                                },
                               ),
                             ),
                             const SizedBox(height: 10),

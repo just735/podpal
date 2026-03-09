@@ -212,9 +212,21 @@ class _EnhanceStepState extends State<EnhanceStep> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey[200]!),
               ),
-              child: Text(
-                _shownotesResult!['summary']?.toString() ?? '',
-                style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF374151)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _shownotesResult!['summary']?.toString() ?? '',
+                      style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF374151)),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 14, color: Color(0xFF818CF8)),
+                    onPressed: () => _editSummary(_shownotesResult!['summary']?.toString() ?? ''),
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(4),
+                  ),
+                ],
               ),
             ),
             
@@ -224,9 +236,9 @@ class _EnhanceStepState extends State<EnhanceStep> {
             const Text('时间轴要点', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 8),
             if (_shownotesResult!['timestamps'] != null)
-              ...(_shownotesResult!['timestamps'] as List).map((item) {
-                final map = item as Map;
-                return _buildTimestampItem(map['time']?.toString() ?? '', map['desc']?.toString() ?? '');
+              ...(_shownotesResult!['timestamps'] as List).asMap().entries.map((e) {
+                final map = e.value as Map;
+                return _buildTimestampItem(map['time']?.toString() ?? '', map['desc']?.toString() ?? '', e.key);
               }),
           ],
         ],
@@ -782,7 +794,93 @@ class _EnhanceStepState extends State<EnhanceStep> {
     }
   }
 
-  Widget _buildTimestampItem(String time, String desc) {
+  void _editSummary(String currentSummary) async {
+    final controller = TextEditingController(text: currentSummary);
+    final newSummary = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('编辑摘要'),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: '请输入新摘要',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF818CF8)),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (newSummary != null && newSummary.isNotEmpty) {
+      setState(() {
+        _shownotesResult!['summary'] = newSummary;
+      });
+    }
+  }
+
+  void _editTimestamp(String currentTime, String currentDesc, int index) async {
+    final timeController = TextEditingController(text: currentTime);
+    final descController = TextEditingController(text: currentDesc);
+    
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('编辑时间轴要点'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: timeController,
+              decoration: const InputDecoration(
+                labelText: '时间',
+                hintText: '如：00:00',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: '内容',
+                hintText: '请输入时间轴内容',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, {
+              'time': timeController.text,
+              'desc': descController.text,
+            }),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF818CF8)),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result != null && result['time'] != null && result['desc'] != null) {
+      setState(() {
+        _shownotesResult!['timestamps'][index] = {
+          'time': result['time']!,
+          'desc': result['desc']!,
+        };
+      });
+    }
+  }
+
+  Widget _buildTimestampItem(String time, String desc, int index) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -803,6 +901,12 @@ class _EnhanceStepState extends State<EnhanceStep> {
               desc,
               style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit, size: 14, color: Color(0xFF818CF8)),
+            onPressed: () => _editTimestamp(time, desc, index),
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(4),
           ),
         ],
       ),
