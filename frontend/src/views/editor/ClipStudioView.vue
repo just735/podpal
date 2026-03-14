@@ -81,80 +81,82 @@
         </div>
       </nav>
 
-      <!-- 2. 左侧：素材与资产管理 (Feature 2) -->
-      <aside class="w-80 flex-none bg-gradient-to-b from-pink-50 to-purple-50 border-r border-pink-200 flex flex-col overflow-hidden">
-        <div class="p-4 border-b border-pink-200">
-          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">素材库</h2>
-          <!-- 上传/导入 -->
-          <div class="grid grid-cols-2 gap-2 mb-4">
-            <button @click="triggerFileUpload" class="flex flex-col items-center justify-center p-4 bg-white rounded-lg hover:bg-pink-50 transition border border-dashed border-pink-200 hover:border-blue-400 group">
-              <svg class="w-6 h-6 text-gray-600 group-hover:text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-              <span class="text-xs text-gray-600 group-hover:text-gray-900">本地上传</span>
-            </button>
-            <button @click="showLinkModal = true" class="flex flex-col items-center justify-center p-4 bg-white rounded-lg hover:bg-purple-50 transition border border-dashed border-pink-200 hover:border-purple-400 group">
-              <svg class="w-6 h-6 text-gray-600 group-hover:text-purple-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-              <span class="text-xs text-gray-600 group-hover:text-gray-900">链接导入</span>
-            </button>
+      <!-- 2. 左侧：根据当前标签页显示不同内容 -->
+      <aside class="w-80 flex-none border-r border-pink-200 flex flex-col overflow-hidden">
+        <!-- 素材库 (上传素材和智能剪辑标签页显示) -->
+        <div v-show="activeToolTab === 'upload' || activeToolTab === 'edit'" class="h-full bg-gradient-to-b from-pink-50 to-purple-50 flex flex-col overflow-hidden">
+          <div class="p-4 border-b border-pink-200">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">素材库</h2>
+            <!-- 上传/导入 -->
+            <div class="grid grid-cols-2 gap-2 mb-4">
+              <button @click="triggerFileUpload" class="flex flex-col items-center justify-center p-4 bg-white rounded-lg hover:bg-pink-50 transition border border-dashed border-pink-200 hover:border-blue-400 group">
+                <svg class="w-6 h-6 text-gray-600 group-hover:text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                <span class="text-xs text-gray-600 group-hover:text-gray-900">本地上传</span>
+              </button>
+              <button @click="showLinkModal = true" class="flex flex-col items-center justify-center p-4 bg-white rounded-lg hover:bg-purple-50 transition border border-dashed border-pink-200 hover:border-purple-400 group">
+                <svg class="w-6 h-6 text-gray-600 group-hover:text-purple-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                <span class="text-xs text-gray-600 group-hover:text-gray-900">链接导入</span>
+              </button>
+            </div>
+            <input ref="fileInput" type="file" accept="audio/*,video/*" class="hidden" @change="handleFileSelect">
           </div>
-          <input ref="fileInput" type="file" accept="audio/*,video/*" class="hidden" @change="handleFileSelect">
-        </div>
 
-        <!-- 分类标签筛选 -->
-        <div class="px-4 py-3 border-b border-pink-200 bg-white/50">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-gray-600">分类筛选</span>
-            <button @click="showAddCategoryModal = true" class="text-xs text-pink-600 hover:text-pink-700 flex items-center gap-1">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-              自定义
-            </button>
+          <!-- 分类标签筛选 -->
+          <div class="px-4 py-3 border-b border-pink-200 bg-white/50">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-gray-600">分类筛选</span>
+              <button @click="showAddCategoryModal = true" class="text-xs text-pink-600 hover:text-pink-700 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                自定义
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="cat in assetCategories"
+                :key="cat"
+                @click="selectedCategory = cat"
+                class="px-3 py-1.5 text-xs rounded-full transition"
+                :class="selectedCategory === cat ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white shadow-md' : 'bg-white text-gray-600 border border-pink-200 hover:border-pink-300'"
+              >
+                {{ cat }}
+              </button>
+            </div>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="cat in assetCategories"
-              :key="cat"
-              @click="selectedCategory = cat"
-              class="px-3 py-1.5 text-xs rounded-full transition"
-              :class="selectedCategory === cat ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white shadow-md' : 'bg-white text-gray-600 border border-pink-200 hover:border-pink-300'"
+
+          <!-- 素材列表 -->
+          <div class="flex-1 overflow-y-auto p-4 space-y-2">
+            <div 
+              v-for="asset in filteredAssets" 
+              :key="asset.id" 
+              class="relative p-3 bg-white rounded-lg border border-pink-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer group transition-all duration-200"
+              @click="selectAsset(asset)"
+              draggable="true"
+              @dragstart="handleAssetDragStart($event, asset)"
             >
-              {{ cat }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 素材列表 -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-2">
-          <div 
-            v-for="asset in filteredAssets" 
-            :key="asset.id" 
-            class="relative p-3 bg-white rounded-lg border border-pink-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer group transition-all duration-200"
-            @click="selectAsset(asset)"
-            draggable="true"
-            @dragstart="handleAssetDragStart($event, asset)"
-          >
-            <!-- 多选复选框 -->
-            <label class="absolute top-2 left-2 w-4 h-4 flex items-center justify-center rounded-sm border border-pink-300 bg-white shadow-sm">
-              <input type="checkbox" class="appearance-none w-3 h-3 rounded-sm bg-white border border-pink-300 checked:bg-pink-500 checked:border-pink-500"
-                     :checked="selectedAssetIds.includes(asset.id)"
-                     @click.stop="toggleAssetSelect(asset)" />
-            </label>
-            <div class="flex items-start justify-between mb-2">
+              <!-- 多选复选框 -->
+              <label class="absolute top-2 left-2 w-4 h-4 flex items-center justify-center rounded-sm border border-pink-300 bg-white shadow-sm">
+                <input type="checkbox" class="appearance-none w-3 h-3 rounded-sm bg-white border border-pink-300 checked:bg-pink-500 checked:border-pink-500"
+                       :checked="selectedAssetIds.includes(asset.id)"
+                       @click.stop="toggleAssetSelect(asset)" />
+              </label>
+              <div class="flex items-start justify-between mb-2">
                 <div class="flex items-center gap-2 flex-1 min-w-0">
-                <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" :class="asset.type === 'audio' ? 'bg-blue-500/20' : 'bg-orange-500/20'">
-                  <svg v-if="asset.type === 'audio'" class="w-4 h-4" :class="asset.type === 'audio' ? 'text-blue-400' : 'text-orange-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                  </svg>
-                  <svg v-else class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm text-gray-900 font-medium truncate">{{ asset.name }}</div>
+                  <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" :class="asset.type === 'audio' ? 'bg-blue-500/20' : 'bg-orange-500/20'">
+                    <svg v-if="asset.type === 'audio'" class="w-4 h-4" :class="asset.type === 'audio' ? 'text-blue-400' : 'text-orange-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                    <svg v-else class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm text-gray-900 font-medium truncate">{{ asset.name }}</div>
                     <div class="text-xs text-gray-600 mt-0.5">
                       {{ asset.duration }}
                       <span v-if="asset.category" class="ml-2 px-1.5 py-0.5 text-[10px] rounded border bg-gray-50 text-gray-600 border-gray-200">{{ asset.category }}</span>
                     </div>
+                  </div>
                 </div>
-              </div>
                 <button 
                   class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition"
                   @click.stop="playAsset(asset)"
@@ -167,43 +169,101 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6" />
                   </svg>
                 </button>
-              <button 
-                class="p-1.5 text-gray-600 hover:text-pink-600 hover:bg-pink-100 rounded opacity-0 group-hover:opacity-100 transition"
-                @click.stop="showAssetMenu(asset)"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-              </button>
-            </div>
-            <!-- AI 摘要与关键词 -->
-            <div class="mt-2 space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] text-gray-500">AI 摘要</span>
-                <div class="flex items-center gap-1">
-                  <button class="text-[10px] px-1.5 py-0.5 rounded border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
-                          @click.stop="generateAssetMeta(asset)">AI 生成</button>
-                  <button class="text-[10px] px-1.5 py-0.5 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                          @click.stop="asset.editingSummary = !asset.editingSummary">{{ asset.editingSummary ? '收起' : '编辑' }}</button>
+                <button 
+                  class="p-1.5 text-gray-600 hover:text-pink-600 hover:bg-pink-100 rounded opacity-0 group-hover:opacity-100 transition"
+                  @click.stop="showAssetMenu(asset)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+              </div>
+              <!-- AI 摘要与关键词 -->
+              <div class="mt-2 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] text-gray-500">AI 摘要</span>
+                  <div class="flex items-center gap-1">
+                    <button class="text-[10px] px-1.5 py-0.5 rounded border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                            @click.stop="generateAssetMeta(asset)">AI 生成</button>
+                    <button class="text-[10px] px-1.5 py-0.5 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                            @click.stop="asset.editingSummary = !asset.editingSummary">{{ asset.editingSummary ? '收起' : '编辑' }}</button>
+                  </div>
+                </div>
+                <div v-if="!asset.editingSummary" class="text-[11px] text-gray-800 leading-snug">
+                  {{ asset.summary || '（暂无摘要）' }}
+                </div>
+                <div v-else class="flex items-center gap-2">
+                  <input v-model="asset.summary" class="flex-1 text-[11px] border border-pink-200 rounded px-2 py-1" placeholder="编辑摘要..." />
+                  <button class="text-[10px] px-2 py-0.5 rounded bg-pink-500 text-white" @click.stop="asset.editingSummary=false">保存</button>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="t in asset.tags" :key="t" class="text-[10px] px-1.5 py-0.5 rounded border bg-pink-50 text-pink-700 border-pink-200">#{{ t }}</span>
                 </div>
               </div>
-              <div v-if="!asset.editingSummary" class="text-[11px] text-gray-800 leading-snug">
-                {{ asset.summary || '（暂无摘要）' }}
-              </div>
-              <div v-else class="flex items-center gap-2">
-                <input v-model="asset.summary" class="flex-1 text-[11px] border border-pink-200 rounded px-2 py-1" placeholder="编辑摘要..." />
-                <button class="text-[10px] px-2 py-0.5 rounded bg-pink-500 text-white" @click.stop="asset.editingSummary=false">保存</button>
-              </div>
-              <div class="flex flex-wrap gap-1">
-                <span v-for="t in asset.tags" :key="t" class="text-[10px] px-1.5 py-0.5 rounded border bg-pink-50 text-pink-700 border-pink-200">#{{ t }}</span>
+              <div class="flex items-center justify-between text-xs mt-2 pt-2 border-t border-pink-100">
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-600">{{ asset.duration }}</span>
+                  <span v-if="asset.used" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">已使用</span>
+                </div>
+                <span class="bg-pink-100 px-2 py-0.5 rounded text-pink-700 border border-pink-200">{{ asset.format }}</span>
               </div>
             </div>
-            <div class="flex items-center justify-between text-xs mt-2 pt-2 border-t border-pink-100">
-              <div class="flex items-center gap-2">
-                <span class="text-gray-600">{{ asset.duration }}</span>
-                <span v-if="asset.used" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">已使用</span>
+          </div>
+        </div>
+
+        <!-- 作品仓库 (内容增值和导出分发标签页显示) -->
+        <div v-show="activeToolTab === 'enhance' || activeToolTab === 'export'" class="h-full bg-white flex flex-col overflow-hidden">
+          <div class="p-4 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              作品仓库
+            </h2>
+            <p class="text-xs text-gray-500 mt-1">剪辑工作台导出的成品音频</p>
+          </div>
+          
+          <!-- 作品列表 -->
+          <div class="flex-1 overflow-y-auto p-4 space-y-3">
+            <!-- 当前项目成品 -->
+            <div v-if="currentProjectExport" class="p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border-2 border-pink-300 cursor-pointer hover:shadow-md transition"
+                 @click="selectWork(currentProjectExport)"
+                 :class="{ 'ring-2 ring-pink-500': selectedWork?.id === currentProjectExport.id }">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FF6B9D] to-[#C084FC] flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">{{ currentProjectExport.name }}</div>
+                  <div class="text-xs text-gray-500 mt-0.5">{{ currentProjectExport.duration }}</div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] px-1.5 py-0.5 bg-pink-100 text-pink-600 rounded">当前项目</span>
+                    <span class="text-[10px] text-gray-400">{{ currentProjectExport.exportTime }}</span>
+                  </div>
+                </div>
               </div>
-              <span class="bg-pink-100 px-2 py-0.5 rounded text-pink-700 border border-pink-200">{{ asset.format }}</span>
+            </div>
+            
+            <!-- 历史作品 -->
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">历史作品</div>
+            <div v-for="work in workRepository" :key="work.id" 
+                 class="p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:border-pink-300 hover:bg-pink-50 transition"
+                 @click="selectWork(work)"
+                 :class="{ 'ring-2 ring-pink-400 bg-pink-50 border-pink-300': selectedWork?.id === work.id }">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">{{ work.name }}</div>
+                  <div class="text-xs text-gray-500 mt-0.5">{{ work.duration }}</div>
+                  <div class="text-[10px] text-gray-400 mt-1">{{ work.exportTime }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1298,74 +1358,17 @@
         </div>
 
         <!-- Content Enhancement View -->
-        <div v-if="activeToolTab === 'enhance'" class="flex-1 overflow-hidden bg-gray-50 flex">
-          <!-- 左侧：作品仓库 -->
-          <aside class="w-80 flex-none bg-white border-r border-pink-200 flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50">
-              <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
-                <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                作品仓库
-              </h2>
-              <p class="text-xs text-gray-500 mt-1">剪辑工作台导出的成品音频</p>
-            </div>
-            
-            <!-- 作品列表 -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-3">
-              <!-- 当前项目成品 -->
-              <div v-if="currentProjectExport" class="p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border-2 border-pink-300 cursor-pointer hover:shadow-md transition"
-                   @click="selectWork(currentProjectExport)"
-                   :class="{ 'ring-2 ring-pink-500': selectedWork?.id === currentProjectExport.id }">
-                <div class="flex items-start gap-3">
-                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FF6B9D] to-[#C084FC] flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-gray-900 truncate">{{ currentProjectExport.name }}</div>
-                    <div class="text-xs text-gray-500 mt-0.5">{{ currentProjectExport.duration }}</div>
-                    <div class="flex items-center gap-2 mt-1">
-                      <span class="text-[10px] px-1.5 py-0.5 bg-pink-100 text-pink-600 rounded">当前项目</span>
-                      <span class="text-[10px] text-gray-400">{{ currentProjectExport.exportTime }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 历史作品 -->
-              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">历史作品</div>
-              <div v-for="work in workRepository" :key="work.id" 
-                   class="p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:border-pink-300 hover:bg-pink-50 transition"
-                   @click="selectWork(work)"
-                   :class="{ 'ring-2 ring-pink-400 bg-pink-50 border-pink-300': selectedWork?.id === work.id }">
-                <div class="flex items-start gap-3">
-                  <div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-gray-900 truncate">{{ work.name }}</div>
-                    <div class="text-xs text-gray-500 mt-0.5">{{ work.duration }}</div>
-                    <div class="text-[10px] text-gray-400 mt-1">{{ work.exportTime }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
-          
+        <div v-if="activeToolTab === 'enhance'" class="flex-1 bg-gray-50 flex flex-col">
           <!-- 右侧：内容增值工作台 -->
-          <div class="flex-1 overflow-y-auto p-8">
-            <div class="max-w-5xl mx-auto space-y-8">
+          <div class="flex-1 p-3">
+            <div class="max-w-6xl mx-auto space-y-3">
                <div class="flex items-center justify-between">
                   <div>
-                    <h2 class="text-2xl font-bold text-gray-900">内容增值工作台</h2>
-                    <p class="text-sm text-gray-500 mt-1">利用 AI 为您的播客创造更多价值</p>
+                    <h2 class="text-xl font-bold text-gray-900">内容增值工作台</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">利用 AI 为您的播客创造更多价值</p>
                   </div>
-                  <button @click="showPublishPreview = true" class="px-4 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <button @click="showPublishPreview = true" class="px-3 py-1.5 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg transition flex items-center gap-2 text-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
@@ -1373,23 +1376,48 @@
                   </button>
                </div>
                
+               <!-- 标签页导航 -->
+               <div class="flex items-center gap-1 bg-white/60 p-1 rounded-lg border border-pink-200 sticky top-0 z-10">
+                 <button 
+                   class="flex-1 px-3 py-1.5 text-xs rounded border transition"
+                   :class="openEnhancePanel==='shownotes' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                   @click="openEnhancePanel='shownotes'"
+                 >
+                   智能 Shownotes
+                 </button>
+                 <button 
+                   class="flex-1 px-3 py-1.5 text-xs rounded border transition"
+                   :class="openEnhancePanel==='video' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                   @click="openEnhancePanel='video'"
+                 >
+                   视频播客生成
+                 </button>
+                 <button 
+                   class="flex-1 px-3 py-1.5 text-xs rounded border transition"
+                   :class="openEnhancePanel==='social' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                   @click="openEnhancePanel='social'"
+                 >
+                   多平台文案
+                 </button>
+               </div>
+               
                <!-- 1. Shownotes 生成 -->
-               <section class="bg-white rounded-xl border border-pink-200 shadow-sm p-6">
-                  <div class="flex items-center gap-3 mb-6">
-                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+               <section v-show="openEnhancePanel==='shownotes'" class="bg-white rounded-xl border border-pink-200 shadow-sm p-2">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
                     <div>
-                      <h3 class="text-lg font-bold text-gray-900">智能 Shownotes</h3>
+                      <h3 class="text-sm font-bold text-gray-900">智能 Shownotes</h3>
                       <p class="text-xs text-gray-500">一键生成标题、摘要、时间戳和思维导图</p>
                     </div>
                   </div>
                   
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                      <!-- 生成选项 -->
-                     <div class="space-y-4">
+                     <div class="space-y-2">
                         <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-2">播客类型</label>
+                          <label class="block text-sm font-medium text-gray-700 mb-1">播客类型</label>
                           <select v-model="podcastType" class="w-full rounded-lg border-gray-300 border p-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
                             <option value="knowledge">知识分享类 (干货提取)</option>
                             <option value="companion">情感陪伴类 (氛围描述)</option>
@@ -1399,8 +1427,8 @@
                         </div>
                         
                         <div>
-                           <label class="block text-sm font-medium text-gray-700 mb-2">包含内容</label>
-                           <div class="space-y-2">
+                           <label class="block text-sm font-medium text-gray-700 mb-1">包含内容</label>
+                           <div class="space-y-1.5">
                              <label class="flex items-center gap-2 text-sm text-gray-600">
                                <input type="checkbox" checked class="rounded border-gray-300 text-pink-600 focus:ring-pink-500">
                                SEO 优化标题 (5个备选)
@@ -1419,7 +1447,7 @@
                         <button 
                           @click="generateShownotes"
                           :disabled="isGeneratingShownotes"
-                          class="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                          class="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
                         >
                            <svg v-if="isGeneratingShownotes" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1430,20 +1458,20 @@
                      </div>
 
                      <!-- 结果预览 -->
-                     <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 min-h-[300px]">
+                     <div class="bg-gray-50 rounded-lg border border-gray-200 p-2 min-h-[350px]">
                         <div v-if="!shownotesData" class="h-full flex flex-col items-center justify-center text-gray-400">
-                           <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                           <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                            <span class="text-sm">点击生成查看结果</span>
                         </div>
-                        <div v-else class="space-y-4 animate-fadeIn">
+                        <div v-else class="space-y-3 animate-fadeIn">
                            <!-- 音频播放器 -->
-                           <div class="bg-white rounded-lg border border-gray-200 p-3">
-                             <div class="flex items-center gap-3 mb-2">
-                               <button @click="toggleAudioPlay" class="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white flex items-center justify-center hover:shadow-md transition">
-                                 <svg v-if="!isAudioPlaying" class="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                           <div class="bg-white rounded-lg border border-gray-200 p-2">
+                             <div class="flex items-center gap-2">
+                               <button @click="toggleAudioPlay" class="w-7 h-7 rounded-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white flex items-center justify-center hover:shadow-md transition">
+                                 <svg v-if="!isAudioPlaying" class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                                  </svg>
-                                 <svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                 <svg v-else class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                                  </svg>
                                </button>
@@ -1571,23 +1599,23 @@
                </section>
 
              <!-- 2. 视频化与分发 -->
-             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <!-- 视频播客生成 -->
-                <section class="bg-white rounded-xl border border-pink-200 shadow-sm p-6">
-                   <div class="flex items-center gap-3 mb-4">
-                      <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                <section v-show="openEnhancePanel==='video'" class="bg-white rounded-xl border border-pink-200 shadow-sm p-2">
+                   <div class="flex items-center gap-2 mb-1.5">
+                      <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                       </div>
                       <div>
-                         <h3 class="text-lg font-bold text-gray-900">视频播客生成</h3>
+                         <h3 class="text-sm font-bold text-gray-900">视频播客生成</h3>
                          <p class="text-xs text-gray-500">将音频转化为短视频，抢占视频平台流量</p>
                       </div>
                    </div>
                    
-                   <div class="space-y-4">
-                      <div class="grid grid-cols-2 gap-3">
+                   <div class="space-y-2">
+                      <div class="grid grid-cols-2 gap-2">
                          <div 
-                           class="p-3 border rounded-lg cursor-pointer transition hover:border-pink-400"
+                           class="p-2 border rounded-lg cursor-pointer transition hover:border-pink-400"
                            :class="videoTemplate === 'digital-human' ? 'border-pink-500 bg-pink-50' : 'border-gray-200'"
                            @click="videoTemplate = 'digital-human'"
                          >
@@ -1595,7 +1623,7 @@
                             <div class="text-xs text-gray-500">根据音频口型驱动数字人</div>
                          </div>
                          <div 
-                           class="p-3 border rounded-lg cursor-pointer transition hover:border-pink-400"
+                           class="p-2 border rounded-lg cursor-pointer transition hover:border-pink-400"
                            :class="videoTemplate === 'waveform' ? 'border-pink-500 bg-pink-50' : 'border-gray-200'"
                            @click="videoTemplate = 'waveform'"
                          >
@@ -1604,9 +1632,9 @@
                          </div>
                       </div>
                       
-                      <div class="bg-gray-50 p-3 rounded border border-gray-200">
-                         <div class="text-xs text-gray-500 mb-2">选择金句片段</div>
-                         <div class="flex flex-wrap gap-2">
+                      <div class="bg-gray-50 p-2 rounded border border-gray-200">
+                         <div class="text-xs text-gray-500 mb-1.5">选择金句片段</div>
+                         <div class="flex flex-wrap gap-1.5">
                            <button 
                              v-for="s in goldenSentences" 
                              :key="s.id"
@@ -1632,14 +1660,14 @@
                       </button>
 
                       <!-- 生成结果列表 -->
-                      <div v-if="generatedVideos.length" class="space-y-2 pt-2 border-t border-gray-100">
+                      <div v-if="generatedVideos.length" class="space-y-1.5 pt-2 border-t border-gray-100">
                         <div class="text-xs font-medium text-gray-900">已生成视频</div>
-                        <div v-for="(video, idx) in generatedVideos" :key="video.id" class="flex gap-3 p-3 bg-gray-50 rounded border border-gray-200 hover:border-pink-200 transition group">
-                           <div class="w-24 h-16 bg-gray-300 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
+                        <div v-for="(video, idx) in generatedVideos" :key="video.id" class="flex gap-2 p-2 bg-gray-50 rounded border border-gray-200 hover:border-pink-200 transition group">
+                           <div class="w-16 h-12 bg-gray-300 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
                              <img :src="video.thumbnail" class="w-full h-full object-cover">
                              <div class="absolute bottom-0.5 right-0.5 px-1 py-0.5 bg-black/50 text-[8px] text-white rounded">{{ video.duration }}</div>
                              <div class="absolute inset-0 bg-black/30 hidden group-hover:flex items-center justify-center transition">
-                                <svg class="w-8 h-8 text-white opacity-80 hover:opacity-100" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                <svg class="w-5 h-5 text-white opacity-80 hover:opacity-100" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                              </div>
                            </div>
                            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
@@ -1661,44 +1689,44 @@
                 </section>
 
                 <!-- 社交媒体文案 -->
-                <section class="bg-white rounded-xl border border-pink-200 shadow-sm p-6">
-                   <div class="flex items-center gap-3 mb-4">
-                      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                <section v-show="openEnhancePanel==='social'" class="bg-white rounded-xl border border-pink-200 shadow-sm p-2">
+                   <div class="flex items-center gap-2 mb-1.5">
+                      <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </div>
                       <div>
-                         <h3 class="text-lg font-bold text-gray-900">多平台文案</h3>
+                         <h3 class="text-sm font-bold text-gray-900">多平台文案</h3>
                          <p class="text-xs text-gray-500">针对不同平台调性生成推广文案</p>
                       </div>
                    </div>
                    
-                   <div class="space-y-3">
-                      <div class="flex gap-2 border-b border-gray-100 pb-2">
+                   <div class="space-y-2">
+                      <div class="flex gap-1.5 border-b border-gray-100 pb-2">
                          <button 
                            @click="socialPlatform = 'wechat'"
-                           class="px-3 py-1 text-xs rounded-full transition"
+                           class="px-2.5 py-1 text-xs rounded-full transition"
                            :class="socialPlatform === 'wechat' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-50'"
                          >公众号</button>
                          <button 
                            @click="socialPlatform = 'xiaohongshu'"
-                           class="px-3 py-1 text-xs rounded-full transition"
+                           class="px-2.5 py-1 text-xs rounded-full transition"
                            :class="socialPlatform === 'xiaohongshu' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-50'"
                          >小红书</button>
                          <button 
                            @click="socialPlatform = 'weibo'"
-                           class="px-3 py-1 text-xs rounded-full transition"
+                           class="px-2.5 py-1 text-xs rounded-full transition"
                            :class="socialPlatform === 'weibo' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-50'"
                          >微博</button>
                       </div>
                       <div class="relative">
                         <textarea 
                           v-model="socialCopyContent"
-                          class="w-full h-32 p-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-400 resize-none" 
+                          class="w-full h-64 p-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-400 resize-none" 
                           :placeholder="isGeneratingCopy ? 'AI 正在思考中...' : 'AI 将在此生成适配该平台的推广文案...'"
                           :disabled="isGeneratingCopy"
                         ></textarea>
                         <div v-if="isGeneratingCopy" class="absolute inset-0 bg-white/50 flex items-center justify-center">
-                          <svg class="animate-spin h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <svg class="animate-spin h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
@@ -2104,71 +2132,6 @@
 
         <!-- Export Distribution View -->
         <div v-if="activeToolTab === 'export'" class="flex-1 overflow-hidden bg-gray-50 flex">
-          <!-- 左侧：项目成果 -->
-          <aside class="w-72 flex-none bg-white border-r border-pink-200 flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50">
-              <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
-                <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                项目成果
-              </h2>
-              <p class="text-xs text-gray-500 mt-1">本项目的所有成品内容</p>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto p-4 space-y-3">
-              <!-- 音频成品 -->
-              <div class="p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-pink-200">
-                <div class="flex items-center gap-2 mb-2">
-                  <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                  </svg>
-                  <span class="text-xs font-semibold text-gray-700">主音频</span>
-                </div>
-                <div class="text-sm font-medium text-gray-900 truncate">{{ currentProject.name || '未命名项目' }}.mp3</div>
-                <div class="text-xs text-gray-500 mt-0.5">{{ formatTime(audioDuration) }}</div>
-              </div>
-              
-              <!-- Shownotes -->
-              <div v-if="shownotesData" class="p-3 bg-white rounded-lg border border-gray-200 hover:border-pink-300 cursor-pointer transition">
-                <div class="flex items-center gap-2 mb-2">
-                  <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span class="text-xs font-semibold text-gray-700">Shownotes</span>
-                </div>
-                <div class="text-xs text-gray-600 line-clamp-2">{{ shownotesData.summary }}</div>
-              </div>
-              
-              <!-- 金句视频 -->
-              <div v-if="generatedVideos.length > 0" class="space-y-2">
-                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">金句视频 ({{ generatedVideos.length }})</div>
-                <div v-for="video in generatedVideos" :key="video.id" class="p-2 bg-white rounded-lg border border-gray-200 hover:border-pink-300 cursor-pointer transition">
-                  <div class="flex items-center gap-2">
-                    <div class="w-12 h-8 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                      <img :src="video.thumbnail" class="w-full h-full object-cover" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <div class="text-xs font-medium text-gray-900 truncate">视频_{{ video.id }}</div>
-                      <div class="text-[10px] text-gray-500">{{ video.duration }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 社交媒体文案 -->
-              <div v-if="socialCopyContent" class="p-3 bg-white rounded-lg border border-gray-200 hover:border-pink-300 cursor-pointer transition">
-                <div class="flex items-center gap-2 mb-2">
-                  <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  <span class="text-xs font-semibold text-gray-700">{{ platformNames[socialPlatform] }} 文案</span>
-                </div>
-                <div class="text-xs text-gray-600 line-clamp-3">{{ socialCopyContent }}</div>
-              </div>
-            </div>
-          </aside>
-          
           <!-- 中间：预览界面 -->
           <div class="flex-1 overflow-y-auto p-6">
             <div class="max-w-3xl mx-auto space-y-6">
@@ -2434,10 +2397,10 @@
             <div class="flex items-center gap-2 bg-white/60 p-2 rounded-lg border border-pink-200 sticky top-0 z-10">
               <button 
                 class="flex-1 px-3 py-1.5 text-xs rounded border transition"
-                :class="openRightPanel==='content' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
-                @click="openRightPanel='content'"
+                :class="openRightPanel==='content_post' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                @click="openRightPanel='content_post'"
               >
-                内容润色 / 高光金句库
+                内容润色 & 后期大师
               </button>
               <button 
                 class="flex-1 px-3 py-1.5 text-xs rounded border transition"
@@ -2448,14 +2411,14 @@
               </button>
               <button 
                 class="flex-1 px-3 py-1.5 text-xs rounded border transition"
-                :class="openRightPanel==='post' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
-                @click="openRightPanel='post'"
+                :class="openRightPanel==='highlights' ? 'bg-white border-pink-300 text-pink-600 shadow-sm' : 'border-transparent text-gray-600 hover:bg-pink-50'"
+                @click="openRightPanel='highlights'"
               >
-                后期大师 · 智能降噪与剪裁
+                高光金句库
               </button>
             </div>
             <!-- 脚本优化 -->
-            <section v-show="openRightPanel==='content'">
+            <section v-show="openRightPanel==='content_post'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
                 内容润色 / 脚本精修
@@ -2594,7 +2557,7 @@
                </div>
             </section>
 
-            <section v-show="openRightPanel==='post'">
+            <section v-show="openRightPanel==='content_post'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>
                 后期大师 · 智能降噪与剪裁
@@ -2700,7 +2663,7 @@
             </section>
 
             <!-- 深度语义搜索与金句定位 -->
-            <section v-show="openRightPanel==='content'">
+            <section v-show="openRightPanel==='highlights'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>
                 高光提取 / 智能金句库
@@ -3075,7 +3038,8 @@ const samplePreview = ref([])
 const scriptSuggestions = ref([])
 const scriptPreview = ref([])
 const isGenerating = ref(false)
-const openRightPanel = ref('content')
+const openRightPanel = ref('content_post')
+const openEnhancePanel = ref('shownotes')
 
 // 文本编辑与同步相关状态
 const editingSegmentId = ref(null)
