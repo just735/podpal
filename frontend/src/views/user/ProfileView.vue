@@ -311,129 +311,8 @@
           </div>
         </div>
 
-        <div v-else-if="activeTab === 'statistics'" class="space-y-6 animate-fade-in">
-          <h2 class="text-3xl font-bold mb-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent">
-            数据统计
-          </h2>
-          
-          <!-- 核心统计卡片 -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="rounded-2xl border-2 border-pink-200/60 bg-gradient-to-br from-pink-50 to-white p-5">
-              <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-xl">🎬</div>
-                <div class="text-sm text-gray-500">制作视频</div>
-              </div>
-              <div class="text-3xl font-bold text-gray-900">{{ userStats.videosCreated }}</div>
-              <div class="text-xs text-gray-400 mt-1">本月新增 {{ userStats.videosCreatedThisMonth }} 个</div>
-            </div>
-            <div class="rounded-2xl border-2 border-purple-200/60 bg-gradient-to-br from-purple-50 to-white p-5">
-              <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-xl">⏱️</div>
-                <div class="text-sm text-gray-500">在线时长</div>
-              </div>
-              <div class="text-3xl font-bold text-gray-900">{{ formatHours(userStats.onlineHours) }}</div>
-              <div class="text-xs text-gray-400 mt-1">本周 {{ formatHours(userStats.onlineHoursThisWeek) }}</div>
-            </div>
-            <div class="rounded-2xl border-2 border-blue-200/60 bg-gradient-to-br from-blue-50 to-white p-5">
-              <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl">✂️</div>
-                <div class="text-sm text-gray-500">剪辑时长</div>
-              </div>
-              <div class="text-3xl font-bold text-gray-900">{{ userStats.clipMinutes }}分钟</div>
-              <div class="text-xs text-gray-400 mt-1">本月 {{ userStats.clipMinutesThisMonth }} 分钟</div>
-            </div>
-            <div class="rounded-2xl border-2 border-green-200/60 bg-gradient-to-br from-green-50 to-white p-5">
-              <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl">📊</div>
-                <div class="text-sm text-gray-500">项目数量</div>
-              </div>
-              <div class="text-3xl font-bold text-gray-900">{{ projectsCount }}</div>
-              <div class="text-xs text-gray-400 mt-1">进行中 {{ userStats.activeProjects }} 个</div>
-            </div>
-          </div>
-          
-          <!-- 使用趋势图表 -->
-          <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
-            <div class="flex items-center justify-between mb-6">
-              <div>
-                <div class="text-lg font-bold text-gray-900">使用趋势</div>
-                <div class="text-sm text-gray-500">最近30天的剪辑活动</div>
-              </div>
-              <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2">
-                  <div class="w-3 h-3 rounded-full bg-pink-500"></div>
-                  <span class="text-xs text-gray-500">剪辑时长</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="w-3 h-3 rounded-full bg-purple-500"></div>
-                  <span class="text-xs text-gray-500">视频生成</span>
-                </div>
-              </div>
-            </div>
-            <div class="h-48 flex items-end gap-2">
-              <div 
-                v-for="(day, index) in usageTrend" 
-                :key="index"
-                class="flex-1 flex flex-col items-center gap-1"
-              >
-                <div class="w-full flex gap-0.5 items-end" style="height: 140px;">
-                  <div 
-                    class="flex-1 bg-pink-400 rounded-t transition-all duration-300 hover:bg-pink-500"
-                    :style="{ height: (day.clipMinutes / maxClipMinutes * 100) + '%' }"
-                    :title="`剪辑: ${day.clipMinutes}分钟`"
-                  ></div>
-                  <div 
-                    class="flex-1 bg-purple-400 rounded-t transition-all duration-300 hover:bg-purple-500"
-                    :style="{ height: (day.videos * 20) + '%', maxHeight: '100%' }"
-                    :title="`视频: ${day.videos}个`"
-                  ></div>
-                </div>
-                <div class="text-xs text-gray-400">{{ day.date }}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 月度配额 -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <div class="text-lg font-bold text-gray-900">本月剪辑配额</div>
-                  <div class="text-sm text-gray-500">已使用 {{ usedClipMinutes }} / {{ monthlyClipMinutes }} 分钟</div>
-                </div>
-                <div class="text-2xl font-bold" :class="clipPercent > 80 ? 'text-red-500' : 'text-pink-600'">{{ clipPercent }}%</div>
-              </div>
-              <div class="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] transition-all duration-500"
-                  :style="{ width: clipPercent + '%' }"
-                ></div>
-              </div>
-              <div v-if="clipPercent > 80" class="mt-3 text-sm text-red-500 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                配额即将用完，建议升级会员
-              </div>
-            </div>
-            <div class="rounded-2xl border-2 border-purple-200/60 bg-white p-6">
-              <div class="text-lg font-bold text-gray-900 mb-4">成就徽章</div>
-              <div class="flex flex-wrap gap-3">
-                <div 
-                  v-for="badge in userBadges" 
-                  :key="badge.id"
-                  class="flex items-center gap-2 px-3 py-2 rounded-xl border-2"
-                  :class="badge.unlocked ? 'border-pink-200 bg-pink-50' : 'border-gray-200 bg-gray-50 opacity-50'"
-                >
-                  <span class="text-xl">{{ badge.icon }}</span>
-                  <div>
-                    <div class="text-sm font-bold" :class="badge.unlocked ? 'text-gray-900' : 'text-gray-400'">{{ badge.name }}</div>
-                    <div class="text-xs text-gray-500">{{ badge.description }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div v-else-if="activeTab === 'statistics'" class="animate-fade-in">
+          <StatisticsView />
         </div>
 
         <div v-else-if="activeTab === 'projects'" class="space-y-6 animate-fade-in">
@@ -800,6 +679,7 @@ import { useProjectStore } from '../../stores/project'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import CreateProjectModal from '../../components/CreateProjectModal.vue'
+import StatisticsView from './StatisticsView.vue'
 import api from '../../services/api'
 
 const router = useRouter()
