@@ -73,6 +73,12 @@ const routes = [
     name: 'tools',
     component: () => import('../views/tools/ToolsView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/templates',
+    name: 'templates',
+    component: () => import('../views/templates/TemplateView.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

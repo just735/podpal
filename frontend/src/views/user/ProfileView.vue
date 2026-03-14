@@ -315,24 +315,123 @@
           <h2 class="text-3xl font-bold mb-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent">
             数据统计
           </h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
-              <div class="text-sm text-gray-500 mb-2">本月剪辑用量</div>
-              <div class="text-2xl font-bold text-gray-900 mb-2">{{ usedClipMinutes }} / {{ monthlyClipMinutes }} 分钟</div>
-              <div class="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC]" :style="{ width: clipPercent + '%' }"></div>
+          
+          <!-- 核心统计卡片 -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="rounded-2xl border-2 border-pink-200/60 bg-gradient-to-br from-pink-50 to-white p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-xl">🎬</div>
+                <div class="text-sm text-gray-500">制作视频</div>
               </div>
-              <div class="text-sm font-bold text-gray-500 mt-2">已用 {{ clipPercent }}%</div>
+              <div class="text-3xl font-bold text-gray-900">{{ userStats.videosCreated }}</div>
+              <div class="text-xs text-gray-400 mt-1">本月新增 {{ userStats.videosCreatedThisMonth }} 个</div>
             </div>
-            <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
-              <div class="text-sm text-gray-500 mb-2">项目总数</div>
-              <div class="text-2xl font-bold text-gray-900 mb-2">{{ projectsCount }}</div>
-              <div class="text-xs text-gray-500">包含所有播客项目</div>
+            <div class="rounded-2xl border-2 border-purple-200/60 bg-gradient-to-br from-purple-50 to-white p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-xl">⏱️</div>
+                <div class="text-sm text-gray-500">在线时长</div>
+              </div>
+              <div class="text-3xl font-bold text-gray-900">{{ formatHours(userStats.onlineHours) }}</div>
+              <div class="text-xs text-gray-400 mt-1">本周 {{ formatHours(userStats.onlineHoursThisWeek) }}</div>
             </div>
+            <div class="rounded-2xl border-2 border-blue-200/60 bg-gradient-to-br from-blue-50 to-white p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl">✂️</div>
+                <div class="text-sm text-gray-500">剪辑时长</div>
+              </div>
+              <div class="text-3xl font-bold text-gray-900">{{ userStats.clipMinutes }}分钟</div>
+              <div class="text-xs text-gray-400 mt-1">本月 {{ userStats.clipMinutesThisMonth }} 分钟</div>
+            </div>
+            <div class="rounded-2xl border-2 border-green-200/60 bg-gradient-to-br from-green-50 to-white p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl">📊</div>
+                <div class="text-sm text-gray-500">项目数量</div>
+              </div>
+              <div class="text-3xl font-bold text-gray-900">{{ projectsCount }}</div>
+              <div class="text-xs text-gray-400 mt-1">进行中 {{ userStats.activeProjects }} 个</div>
+            </div>
+          </div>
+          
+          <!-- 使用趋势图表 -->
+          <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <div class="text-lg font-bold text-gray-900">使用趋势</div>
+                <div class="text-sm text-gray-500">最近30天的剪辑活动</div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-pink-500"></div>
+                  <span class="text-xs text-gray-500">剪辑时长</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                  <span class="text-xs text-gray-500">视频生成</span>
+                </div>
+              </div>
+            </div>
+            <div class="h-48 flex items-end gap-2">
+              <div 
+                v-for="(day, index) in usageTrend" 
+                :key="index"
+                class="flex-1 flex flex-col items-center gap-1"
+              >
+                <div class="w-full flex gap-0.5 items-end" style="height: 140px;">
+                  <div 
+                    class="flex-1 bg-pink-400 rounded-t transition-all duration-300 hover:bg-pink-500"
+                    :style="{ height: (day.clipMinutes / maxClipMinutes * 100) + '%' }"
+                    :title="`剪辑: ${day.clipMinutes}分钟`"
+                  ></div>
+                  <div 
+                    class="flex-1 bg-purple-400 rounded-t transition-all duration-300 hover:bg-purple-500"
+                    :style="{ height: (day.videos * 20) + '%', maxHeight: '100%' }"
+                    :title="`视频: ${day.videos}个`"
+                  ></div>
+                </div>
+                <div class="text-xs text-gray-400">{{ day.date }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 月度配额 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="rounded-2xl border-2 border-pink-200/60 bg-white p-6">
-              <div class="text-sm text-gray-500 mb-2">会员状态</div>
-              <div class="text-2xl font-bold" :class="getMembershipTypeColor(userStore.user?.membershipType || '免费版')">{{ userStore.user?.membershipType || '免费版' }}</div>
-              <div class="text-xs text-gray-500 mt-2">每月时长额度：{{ monthlyClipMinutes }} 分钟</div>
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <div class="text-lg font-bold text-gray-900">本月剪辑配额</div>
+                  <div class="text-sm text-gray-500">已使用 {{ usedClipMinutes }} / {{ monthlyClipMinutes }} 分钟</div>
+                </div>
+                <div class="text-2xl font-bold" :class="clipPercent > 80 ? 'text-red-500' : 'text-pink-600'">{{ clipPercent }}%</div>
+              </div>
+              <div class="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] transition-all duration-500"
+                  :style="{ width: clipPercent + '%' }"
+                ></div>
+              </div>
+              <div v-if="clipPercent > 80" class="mt-3 text-sm text-red-500 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                配额即将用完，建议升级会员
+              </div>
+            </div>
+            <div class="rounded-2xl border-2 border-purple-200/60 bg-white p-6">
+              <div class="text-lg font-bold text-gray-900 mb-4">成就徽章</div>
+              <div class="flex flex-wrap gap-3">
+                <div 
+                  v-for="badge in userBadges" 
+                  :key="badge.id"
+                  class="flex items-center gap-2 px-3 py-2 rounded-xl border-2"
+                  :class="badge.unlocked ? 'border-pink-200 bg-pink-50' : 'border-gray-200 bg-gray-50 opacity-50'"
+                >
+                  <span class="text-xl">{{ badge.icon }}</span>
+                  <div>
+                    <div class="text-sm font-bold" :class="badge.unlocked ? 'text-gray-900' : 'text-gray-400'">{{ badge.name }}</div>
+                    <div class="text-xs text-gray-500">{{ badge.description }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -560,6 +659,136 @@
           </form>
         </div>
       </div>
+
+      <!-- 训练向导模态框 -->
+      <div v-if="showTrainingWizard" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showTrainingWizard = false">
+        <div class="bg-white rounded-2xl p-8 max-w-lg w-full mx-4">
+          <!-- 步骤指示器 -->
+          <div class="flex items-center justify-between mb-8">
+            <div v-for="step in 3" :key="step" class="flex flex-col items-center">
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold mb-2 transition-all"
+                :class="wizardStep >= step ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'bg-gray-200 text-gray-500'"
+              >
+                {{ step }}
+              </div>
+              <div 
+                class="text-xs font-medium transition-all"
+                :class="wizardStep >= step ? 'text-gray-900' : 'text-gray-400'"
+              >
+                {{ step === 1 ? '权利确认' : step === 2 ? '活体校验' : '训练中' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 步骤 1: 权利确认 -->
+          <div v-if="wizardStep === 1" class="space-y-6">
+            <h3 class="text-2xl font-bold text-gray-900">权利确认</h3>
+            <p class="text-gray-600 text-sm">为了保护用户权益，我们需要您确认以下声明：</p>
+            
+            <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div class="flex items-start gap-3">
+                <input 
+                  type="checkbox" 
+                  v-model="rightsConfirmed"
+                  class="w-5 h-5 text-pink-600 focus:ring-pink-500 rounded"
+                />
+                <div class="flex-1">
+                  <p class="text-sm text-gray-700">
+                    我确认录音素材为本人声音，且已获得相关权利授权。我承诺不会使用他人声音进行训练，否则将承担相应法律责任。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 步骤 2: 活体校验 -->
+          <div v-if="wizardStep === 2" class="space-y-6">
+            <h3 class="text-2xl font-bold text-gray-900">活体校验</h3>
+            <p class="text-gray-600 text-sm">请朗读以下文本，证明您对该声音拥有控制权：</p>
+            
+            <div class="p-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl border border-pink-100 text-center">
+              <p class="text-lg font-medium text-gray-900 mb-4">"{{ verificationText }}"</p>
+            </div>
+            
+            <!-- 录音按钮 -->
+            <div class="flex justify-center">
+              <button 
+                @click="toggleRecording"
+                class="w-24 h-24 rounded-full flex items-center justify-center flex-col transition-all"
+                :class="isRecording ? 'bg-red-500 text-white' : 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white'"
+              >
+                <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path v-if="!isRecording" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-.333-1.667-.333-2.43 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span v-if="!isRecording" class="text-sm font-medium">开始录音</span>
+                <span v-else class="text-sm font-medium">停止录音</span>
+                <span v-if="isRecording" class="text-xs mt-1">{{ recordingSeconds }}s</span>
+              </button>
+            </div>
+            
+            <div v-if="verificationCompleted" class="p-4 bg-green-50 rounded-xl border border-green-100 flex items-center gap-3">
+              <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <div>
+                <p class="text-sm font-medium text-green-700">录音完成</p>
+                <p class="text-xs text-green-600">录制时长: {{ recordingSeconds }}秒</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 步骤 3: 训练中 -->
+          <div v-if="wizardStep === 3" class="space-y-6">
+            <h3 class="text-2xl font-bold text-gray-900">正在训练</h3>
+            <p class="text-gray-600 text-sm">模型训练中，请耐心等待...</p>
+            
+            <div class="p-6 bg-gray-50 rounded-xl border border-gray-100">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-medium text-gray-700">{{ trainingStatusText }}</span>
+                <span class="text-sm font-bold text-pink-600">{{ trainingProgress }}%</span>
+              </div>
+              <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] transition-all duration-300" 
+                  :style="{ width: trainingProgress + '%' }"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部按钮 -->
+          <div class="mt-8 flex items-center justify-between">
+            <button 
+              v-if="wizardStep > 1"
+              @click="prevStep"
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            >
+              上一步
+            </button>
+            <div v-else class="w-20"></div>
+            
+            <div class="flex gap-3">
+              <button 
+                v-if="wizardStep === 2"
+                @click="skipVerification"
+                class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+              >
+                跳过此步骤
+              </button>
+              
+              <button 
+                @click="nextStep"
+                :disabled="wizardStep === 3"
+                class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ wizardStep === 3 ? '训练中...' : '下一步' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -601,9 +830,65 @@ const voiceHistory = ref([
   { id: 2, name: '专业播报音色', date: '2024-01-15', status: '已完成' }
 ])
 
+// 训练向导状态
+const showTrainingWizard = ref(false)
+const wizardStep = ref(1) // 1: 权利确认, 2: 活体校验, 3: 训练中
+const rightsConfirmed = ref(false)
+const isRecording = ref(false)
+const recordingSeconds = ref(0)
+const verificationText = ref('PodPal 记录我的每一次发声')
+const verificationCompleted = ref(false)
+
 const startTraining = () => {
-  if (isTraining.value) return
-  
+  showTrainingWizard.value = true
+  wizardStep.value = 1
+  rightsConfirmed.value = false
+  verificationCompleted.value = false
+  isRecording.value = false
+  recordingSeconds.value = 0
+}
+
+const nextStep = () => {
+  if (wizardStep.value === 1) {
+    if (!rightsConfirmed.value) {
+      alert('请确认权利声明')
+      return
+    }
+    wizardStep.value = 2
+  } else if (wizardStep.value === 2) {
+    if (!verificationCompleted.value) {
+      alert('请完成活体校验')
+      return
+    }
+    startTrainingProcess()
+  }
+}
+
+const prevStep = () => {
+  if (wizardStep.value > 1) {
+    wizardStep.value--
+  }
+}
+
+const toggleRecording = () => {
+  isRecording.value = !isRecording.value
+  if (isRecording.value) {
+    recordingSeconds.value = 0
+    const interval = setInterval(() => {
+      if (isRecording.value) {
+        recordingSeconds.value++
+      } else {
+        clearInterval(interval)
+      }
+    }, 1000)
+  } else {
+    // 模拟录音完成
+    verificationCompleted.value = true
+  }
+}
+
+const startTrainingProcess = () => {
+  wizardStep.value = 3
   isTraining.value = true
   trainingProgress.value = 0
   trainingStatusText.value = '准备中...'
@@ -632,8 +917,18 @@ const startTraining = () => {
         date: dayjs().format('YYYY-MM-DD'),
         status: '已完成'
       })
+      
+      // 关闭向导
+      setTimeout(() => {
+        showTrainingWizard.value = false
+      }, 1000)
     }
   }, 500)
+}
+
+const skipVerification = () => {
+  verificationCompleted.value = true
+  nextStep()
 }
 
 const supportForm = ref({ subject: '', message: '' })
@@ -708,6 +1003,52 @@ const clipPercent = computed(() => {
   return Math.round((used / total) * 100)
 })
 const projectsCount = computed(() => projectStore.projects?.length || 0)
+
+// 用户统计数据
+const userStats = ref({
+  videosCreated: 24,
+  videosCreatedThisMonth: 8,
+  onlineHours: 156.5,
+  onlineHoursThisWeek: 12.5,
+  clipMinutes: 480,
+  clipMinutesThisMonth: 120,
+  activeProjects: 3
+})
+
+// 使用趋势数据（最近7天）
+const usageTrend = ref([
+  { date: '周一', clipMinutes: 45, videos: 2 },
+  { date: '周二', clipMinutes: 30, videos: 1 },
+  { date: '周三', clipMinutes: 60, videos: 3 },
+  { date: '周四', clipMinutes: 20, videos: 1 },
+  { date: '周五', clipMinutes: 50, videos: 2 },
+  { date: '周六', clipMinutes: 80, videos: 4 },
+  { date: '周日', clipMinutes: 40, videos: 2 }
+])
+
+const maxClipMinutes = computed(() => {
+  return Math.max(...usageTrend.value.map(d => d.clipMinutes), 1)
+})
+
+// 成就徽章
+const userBadges = ref([
+  { id: 1, name: '初出茅庐', description: '创建第一个项目', icon: '🌱', unlocked: true },
+  { id: 2, name: '剪辑达人', description: '累计剪辑100分钟', icon: '✂️', unlocked: true },
+  { id: 3, name: '视频创作者', description: '生成10个视频', icon: '🎬', unlocked: true },
+  { id: 4, name: '资深播客', description: '在线时长超过100小时', icon: '⏱️', unlocked: true },
+  { id: 5, name: '内容大师', description: '生成50个视频', icon: '🏆', unlocked: false },
+  { id: 6, name: '连续创作', description: '连续7天使用平台', icon: '🔥', unlocked: false }
+])
+
+// 格式化小时数
+const formatHours = (hours) => {
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  if (h > 0) {
+    return `${h}小时${m > 0 ? m + '分' : ''}`
+  }
+  return `${m}分钟`
+}
 
 const recentProjects = computed(() => {
   if (!projectStore.projects?.length) return []

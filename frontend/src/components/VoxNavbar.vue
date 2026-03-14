@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup>
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { computed } from 'vue'
@@ -10,6 +10,11 @@ const userStore = useUserStore()
 const handleLogout = () => {
   userStore.logout()
   router.push('/')
+}
+
+const handleTemplateClick = () => {
+  console.log('点击了模板剪辑按钮，跳转到模板页面');
+  router.push('/templates');
 }
 
 // 判断是否在首页，首页使用白色背景的导航栏
@@ -54,6 +59,16 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
       >
         首页
       </RouterLink>
+      <button
+        @click="handleTemplateClick"
+        class="transition flex items-center gap-1"
+        :class="route.path === '/templates' ? 'text-pink-700 font-semibold' : 'hover:text-pink-700'"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+        </svg>
+        模板剪辑
+      </button>
       <RouterLink
         v-if="userStore.isAuthenticated"
         to="/clip-studio"
