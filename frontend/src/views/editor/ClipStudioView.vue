@@ -3963,61 +3963,91 @@ const mockTranscript = ref([
     startTime: 0,
     endTime: 15,
     speaker: 'A',
-    text: '大家大家大家好，嗯，欢迎来到今天的播客节目。今天我们要聊的话题是，那个，关于人工智能在创作领域的应用。'
+    text: '王老师，好久不见。今天咱们请您来，是想聊聊那个……最近创作者圈子里讨论特别多的"AI 介入创作"的问题。'
+  },
+  {
+    startTime: 15,
+    endTime: 30,
+    speaker: 'B', 
+    text: '诶，你好 Claire。其实我一直有在关注你们这个 PodPal 的进展。'
+  },
+  {
+    startTime: 30,
+    endTime: 45,
+    speaker: 'A',
+    text: '真的吗？那咱们直奔主题。现在 AI 剪辑挺火的，但很多人担心……呃，就是说，AI 剪出来的东西太冷冰冰了，没那个……人情味。'
   },
   {
     startTime: 45,
-    endTime: 72,
-    speaker: 'B', 
-    text: '是的，这这确实是一个很有趣的话题。我觉得AI在音频剪辑方面已经有了很大的突破。比如，啊，自动去除口癖。'
-  },
-  {
-    startTime: 112,
-    endTime: 128,
-    speaker: 'A',
-    text: '没错，比如我们现在使用的这个PodPal平台，就是，就能够智能识别语音内容，自动生成剪辑建议。'
-  },
-  {
-    startTime: 245,
-    endTime: 262,
+    endTime: 60,
     speaker: 'B',
-    text: '而且它还还还能够根据不同的播客类型，比如知识分享类或者情感陪伴类，那个，采用不同的剪辑策略。'
+    text: '嗯，其实这确实是个普遍的……那个，误区。传统的 AI 剪辑逻辑比较机械，它只会盯着波形看，哪里没声音了它就直接剪掉。'
   },
   {
-    startTime: 380,
-    endTime: 395,
-    speaker: 'A',
-    text: '这种个性化的处理方式确实很智能。那么你觉得，嗯，AI剪辑的优势主要体现在哪些方面呢？'
-  },
-  {
-    startTime: 512,
-    endTime: 535,
+    startTime: 60,
+    endTime: 75,
     speaker: 'B',
-    text: '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中，那个，解放出来。这就是播客创作的未来，让技术服务于创意。'
+    text: '但我们要知道，人类聊天时的"停顿"是有灵魂的。有些沉默是因为思考，有些沉默是因为情绪到了。'
   },
   {
-    startTime: 645,
-    endTime: 662,
+    startTime: 75,
+    endTime: 90,
     speaker: 'A',
-    text: '在这个快速发展的时代，保持保持专注是非常难得的。我们需要更好的工具。'
+    text: '没错！有时候那个……就是说，沉默反而比说话更有力量。我之前用传统软件剪辑，最怕的就是把嘉宾这种有温度的瞬间给切碎了。'
   },
   {
-    startTime: 780,
-    endTime: 805,
-    speaker: 'A',
-    text: '说得太好了。其实，创作的本质在于真实性的表达，这才是真正能打动听众的关键所在。'
-  },
-  {
-    startTime: 920,
-    endTime: 945,
+    startTime: 90,
+    endTime: 105,
     speaker: 'B',
-    text: '没错，我们不应该为了追求完美而牺牲了内容的自然流动。技术的进步应当是无感的。'
+    text: '对。所以真正的智能不该只做物理意义上的"减法"，而是要做逻辑上的"筛选"。'
   },
   {
-    startTime: 1050,
-    endTime: 1075,
+    startTime: 105,
+    endTime: 120,
+    speaker: 'B',
+    text: '好的工具不应该替代人的思考，而应该延长人的感官。'
+  },
+  {
+    startTime: 120,
+    endTime: 135,
     speaker: 'A',
-    text: '这种理念非常契合我们产品的初衷。技术只是工具，创意才是播客的灵魂所在。'
+    text: '这句话说得太好了，我得记下来。那您觉得，像 PodPal 这种"文稿式剪辑"的操作逻辑，对普通人意味着什么？'
+  },
+  {
+    startTime: 135,
+    endTime: 150,
+    speaker: 'B',
+    text: '意味着……呃，创作权力的下放吧。以前你得学三个月软件才能剪出一档像样的播客，把时间都花在对齐音轨这种机械劳动上。'
+  },
+  {
+    startTime: 150,
+    endTime: 165,
+    speaker: 'B',
+    text: '现在只要你会改作文，你就能当主编。你可以把所有精力都放在打磨你的观点和故事上。'
+  },
+  {
+    startTime: 165,
+    endTime: 180,
+    speaker: 'B',
+    text: '当技术退居幕后，表达的欲望才会真正走向台前。'
+  },
+  {
+    startTime: 180,
+    endTime: 195,
+    speaker: 'A',
+    text: '明白了。就像 PodPal 做的，把复杂留给算法，把直觉留给作者。'
+  },
+  {
+    startTime: 195,
+    endTime: 210,
+    speaker: 'A',
+    text: '其实这种理念非常契合我们产品的初衷。我们希望通过 AI 的辅助，让每一个有思想的人都能无障碍地发声。'
+  },
+  {
+    startTime: 210,
+    endTime: 225,
+    speaker: 'B',
+    text: '总结得非常到位。技术的进步不应该是为了取代人，而是为了让人更有尊严地去创造。'
   }
 ])
 
