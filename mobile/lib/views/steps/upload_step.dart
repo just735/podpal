@@ -11,14 +11,19 @@ class UploadStep extends StatefulWidget {
 class _UploadStepState extends State<UploadStep> {
   bool _isUploading = false;
   int? _uploadingIndex;
-  // 选中的素材索引集合
-  final Set<int> _selectedAssetIndices = {};
+  // 选中的素材名称集合（使用名称作为唯一标识）
+  final Set<String> _selectedAssetNames = {};
   // 素材库（带分类标签）
   final List<Map<String, String>> _assets = [
-    {'name': '播客素材 1.mp3', 'size': '12.5 MB', 'category': '人声'},
-    {'name': '播客素材 2.mp3', 'size': '12.5 MB', 'category': '背景音'},
-    {'name': '播客素材 3.mp3', 'size': '12.5 MB', 'category': '效果音'},
-    {'name': '播客素材 4.mp3', 'size': '12.5 MB', 'category': '人声'},
+    {'name': '访谈录音_嘉宾A.mp3', 'size': '15.2 MB', 'category': '人声'},
+    {'name': '访谈录音_主持人.mp3', 'size': '12.8 MB', 'category': '人声'},
+    {'name': '旁白配音_开场.mp3', 'size': '3.5 MB', 'category': '人声'},
+    {'name': '轻音乐_午后阳光.mp3', 'size': '8.6 MB', 'category': '背景音'},
+    {'name': '轻音乐_夜色温柔.mp3', 'size': '9.2 MB', 'category': '背景音'},
+    {'name': '环境音_咖啡馆.mp3', 'size': '6.8 MB', 'category': '背景音'},
+    {'name': '转场音_淡入淡出.mp3', 'size': '0.8 MB', 'category': '效果音'},
+    {'name': '提示音_叮.mp3', 'size': '0.2 MB', 'category': '效果音'},
+    {'name': '转场音_滑动.mp3', 'size': '0.5 MB', 'category': '效果音'},
   ];
   String _selectedCategory = '全部';
   // 前置操作（语音转写与音质增强）
@@ -31,20 +36,20 @@ class _UploadStepState extends State<UploadStep> {
     return _assets.where((a) => a['category'] == _selectedCategory).toList();
   }
 
-  void _handleMaterialSelect(int index, String fileName) {
+  void _handleMaterialSelect(String assetName) {
     if (_isUploading) return;
 
     setState(() {
-      if (_selectedAssetIndices.contains(index)) {
-        _selectedAssetIndices.remove(index);
+      if (_selectedAssetNames.contains(assetName)) {
+        _selectedAssetNames.remove(assetName);
       } else {
-        _selectedAssetIndices.add(index);
+        _selectedAssetNames.add(assetName);
       }
     });
   }
 
   void _handleStartProcess() async {
-    if (_selectedAssetIndices.isEmpty) {
+    if (_selectedAssetNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请先选择至少一个素材')),
       );
@@ -79,7 +84,7 @@ class _UploadStepState extends State<UploadStep> {
           // 开始创作按钮区域
           GestureDetector(
             onTap: () {
-              _selectedAssetIndices.clear();
+              _selectedAssetNames.clear();
               _showPreprocessSheet();
             },
             child: Container(
@@ -155,10 +160,10 @@ class _UploadStepState extends State<UploadStep> {
               itemBuilder: (context, index) {
                 final item = _filteredAssets[index];
                 final fileName = item['name']!;
-                final isSelected = _selectedAssetIndices.contains(index);
+                final isSelected = _selectedAssetNames.contains(fileName);
 
                 return GestureDetector(
-                  onTap: () => _handleMaterialSelect(index, fileName),
+                  onTap: () => _handleMaterialSelect(fileName),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.all(12),
@@ -248,7 +253,7 @@ class _UploadStepState extends State<UploadStep> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                     )
-                  : Text('已选择 ${_selectedAssetIndices.length} 个素材，开始处理', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  : Text('已选择 ${_selectedAssetNames.length} 个素材，开始处理', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -282,7 +287,7 @@ class _UploadStepState extends State<UploadStep> {
 
   // 前置预处理 BottomSheet
   Future<void> _showPreprocessSheet() async {
-    final selectedAssets = _selectedAssetIndices.map((index) => _assets[index]).toList();
+    final selectedAssets = _assets.where((a) => _selectedAssetNames.contains(a['name'])).toList();
     
     await showModalBottomSheet(
       context: context,
@@ -454,7 +459,7 @@ class _UploadStepState extends State<UploadStep> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${_selectedAssetIndices.length} 个素材已成功处理',
+                  '${_selectedAssetNames.length} 个素材已成功处理',
                   style: TextStyle(color: Colors.grey[700], fontSize: 12),
                 ),
                 const SizedBox(height: 8),
