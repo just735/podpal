@@ -23,12 +23,9 @@ class _EnhanceStepState extends State<EnhanceStep> {
   String _videoTemplate = '简约风';
   bool _includeHighlights = true;
 
-  // 生成状态与数据 - 拆分Shownotes和思维导图
+  // 生成状态与数据
   bool _isGeneratingShownotes = false;
   Map<String, dynamic>? _shownotesResult;
-
-  bool _isGeneratingMindmap = false;
-  Map<String, dynamic>? _mindmapResult; // 思维导图独立数据
 
   bool _isGeneratingVideo = false;
   List<Map<String, dynamic>> _generatedVideoTasks = [];
@@ -61,18 +58,6 @@ class _EnhanceStepState extends State<EnhanceStep> {
                   ),
                   const SizedBox(height: 12),
                   _buildShownotesSection(),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // 2. 思维导图生成（独立模块，层级化内容架构）
-                  _buildSectionTitle(
-                    '内容思维导图', 
-                    '生成结构化的核心内容框架（创作梳理）', 
-                    Icons.account_tree_outlined,
-                    const Color(0xFF60A5FA),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMindmapSection(),
                   
                   const SizedBox(height: 32),
                   
@@ -246,194 +231,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
     );
   }
 
-  // ========== 2. 思维导图模块（独立、层级化内容） ==========
-  Widget _buildMindmapSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('思维导图配置', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          _buildDropdown<String>(
-            value: _podcastType,
-            items: [
-              {'value': 'knowledge', 'label': '知识分享类 (按知识点分层)'},
-              {'value': 'companion', 'label': '情感陪伴类 (按情绪脉络分层)'},
-              {'value': 'interview', 'label': '访谈对话类 (按观点逻辑分层)'},
-            ],
-            onChanged: (val) => setState(() => _podcastType = val!),
-            enabled: false, // 与Shownotes共用播客类型，禁用修改
-          ),
-          const SizedBox(height: 16),
-          _buildActionButton(
-            label: _isGeneratingMindmap ? '正在生成...' : (_mindmapResult == null ? '生成思维导图' : '重新生成'),
-            icon: _isGeneratingMindmap ? Icons.hourglass_empty : Icons.account_tree_outlined,
-            color: const Color(0xFF60A5FA),
-            onPressed: _isGeneratingMindmap ? null : _generateMindmapExample,
-          ),
-          
-          // 思维导图结果展示（层级化架构）
-          if (_mindmapResult != null) ...[
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 16),
-            
-            const Text('核心内容架构', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-            const SizedBox(height: 12),
-            
-            // 渲染层级化思维导图
-            _buildHierarchicalMindmap(_mindmapResult!['nodes'] as List),
-            
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('思维导图已导出为PDF格式'), duration: Duration(seconds: 2)),
-                  );
-                },
-                icon: const Icon(Icons.download_outlined, size: 14),
-                label: const Text('导出思维导图', style: TextStyle(fontSize: 11)),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF60A5FA),
-                  backgroundColor: const Color(0xFF60A5FA).withOpacity(0.05),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  // 层级化思维导图渲染（区分根节点、一级节点、二级节点）
-  Widget _buildHierarchicalMindmap(List nodes) {
-    // 根节点（仅1个）
-    final rootNode = nodes.firstWhere((n) => (n as Map)['level'] == 0);
-    // 一级节点
-    final level1Nodes = nodes.where((n) => (n as Map)['level'] == 1).toList();
-    // 二级节点
-    final level2Nodes = nodes.where((n) => (n as Map)['level'] == 2).toList();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF60A5FA).withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF60A5FA).withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // 根节点
-          _buildMindmapNode(
-            (rootNode as Map)['label']?.toString() ?? '',
-            isRoot: true,
-            time: (rootNode)['time']?.toString(),
-          ),
-          const SizedBox(height: 24),
-          
-          // 一级节点 + 二级节点
-          ...level1Nodes.map((level1) {
-            final level1Map = level1 as Map;
-            // 找到当前一级节点下的二级节点
-            final childNodes = level2Nodes.where((n) => (n as Map)['parent'] == level1Map['id']).toList();
-            
-            return Column(
-              children: [
-                _buildMindmapNode(
-                  level1Map['label']?.toString() ?? '',
-                  isRoot: false,
-                  level: 1,
-                  time: level1Map['time']?.toString(),
-                ),
-                if (childNodes.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 24),
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      alignment: WrapAlignment.start,
-                      children: childNodes.map((level2) {
-                        final level2Map = level2 as Map;
-                        return _buildMindmapNode(
-                          level2Map['label']?.toString() ?? '',
-                          isRoot: false,
-                          level: 2,
-                          time: level2Map['time']?.toString(),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  // 思维导图节点样式（区分层级）
-  Widget _buildMindmapNode(String label, {bool isRoot = false, int level = 0, String? time}) {
-    Color nodeColor = const Color(0xFF60A5FA);
-    double paddingH = isRoot ? 20 : (level == 1 ? 16 : 12);
-    double paddingV = isRoot ? 12 : (level == 1 ? 10 : 8);
-    double fontSize = isRoot ? 15 : (level == 1 ? 13 : 11);
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
-      decoration: BoxDecoration(
-        color: isRoot 
-            ? nodeColor.withOpacity(0.1) 
-            : (level == 1 ? Colors.grey[50] : Colors.white),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isRoot 
-              ? nodeColor.withOpacity(0.3) 
-              : (level == 1 ? nodeColor.withOpacity(0.2) : Colors.grey.withOpacity(0.1)),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: isRoot 
-                  ? nodeColor 
-                  : (level == 1 ? const Color(0xFF374151) : const Color(0xFF4B5563)),
-            ),
-          ),
-          if (time != null)
-            Text(
-              time,
-              style: TextStyle(
-                fontSize: fontSize - 2,
-                color: isRoot 
-                    ? nodeColor.withOpacity(0.7) 
-                    : Colors.grey,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   // ========== 3. 视频播客模块 ==========
   String _videoAvatarType = 'virtual'; // 'virtual' 或 'upload'
@@ -1293,35 +1091,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
     });
   }
 
-  void _generateMindmapExample() async {
-    setState(() => _isGeneratingMindmap = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isGeneratingMindmap = false;
-      _mindmapResult = {
-        'nodes': [
-          // 根节点
-          {'id': 'root', 'level': 0, 'label': '播客创作核心方法论', 'time': '全片'},
-          // 一级节点
-          {'id': '1', 'level': 1, 'label': '前期准备', 'time': '00:00-05:00', 'parent': 'root'},
-          {'id': '2', 'level': 1, 'label': '中期制作', 'time': '05:00-15:00', 'parent': 'root'},
-          {'id': '3', 'level': 1, 'label': '后期优化', 'time': '15:00-20:00', 'parent': 'root'},
-          // 二级节点（前期准备）
-          {'id': '1-1', 'level': 2, 'label': '选题策划', 'time': '00:00-02:00', 'parent': '1'},
-          {'id': '1-2', 'level': 2, 'label': '嘉宾沟通', 'time': '02:00-03:30', 'parent': '1'},
-          {'id': '1-3', 'level': 2, 'label': '设备调试', 'time': '03:30-05:00', 'parent': '1'},
-          // 二级节点（中期制作）
-          {'id': '2-1', 'level': 2, 'label': '录音技巧', 'time': '05:00-08:00', 'parent': '2'},
-          {'id': '2-2', 'level': 2, 'label': 'AI转写', 'time': '08:00-10:00', 'parent': '2'},
-          {'id': '2-3', 'level': 2, 'label': '初剪成型', 'time': '10:00-15:00', 'parent': '2'},
-          // 二级节点（后期优化）
-          {'id': '3-1', 'level': 2, 'label': '去口癖处理', 'time': '15:00-17:00', 'parent': '3'},
-          {'id': '3-2', 'level': 2, 'label': '音效添加', 'time': '17:00-18:30', 'parent': '3'},
-          {'id': '3-3', 'level': 2, 'label': '导出发布', 'time': '18:30-20:00', 'parent': '3'},
-        ]
-      };
-    });
-  }
+
 
   // 根据内容智能生成标题
   String _generateSmartTitle(String content) {

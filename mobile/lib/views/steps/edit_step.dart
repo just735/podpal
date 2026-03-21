@@ -1740,6 +1740,7 @@ class _EditStepState extends State<EditStep> {
   void _openTTSPreview(Map<String, dynamic> task) {
     final TextEditingController editController = TextEditingController(text: task['note']);
     bool isEditing = false;
+    int insertPosition = 0;
 
     showDialog(
       context: context,
@@ -1811,6 +1812,54 @@ class _EditStepState extends State<EditStep> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F9FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('插入位置', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Slider(
+                            value: insertPosition.toDouble(),
+                            min: 0,
+                            max: _transcript.length.toDouble(),
+                            divisions: _transcript.length,
+                            label: insertPosition == 0 ? '开头' : (insertPosition == _transcript.length ? '结尾' : '第${insertPosition+1}条后'),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                insertPosition = value.toInt();
+                              });
+                            },
+                            activeColor: const Color(0xFFFF6B9D),
+                            inactiveColor: Colors.grey.shade300,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6B9D),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            insertPosition == 0 ? '开头' : (insertPosition == _transcript.length ? '结尾' : '位置 $insertPosition'),
+                            style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           actions: [
@@ -1823,7 +1872,7 @@ class _EditStepState extends State<EditStep> {
                 setState(() {
                   task['inserted'] = true;
                   // 插入到文字稿
-                  _transcript.insert(0, {
+                  _transcript.insert(insertPosition, {
                     'speaker': 'AI',
                     'time': '00:00',
                     'text': task['note'],
@@ -1843,12 +1892,10 @@ class _EditStepState extends State<EditStep> {
                 Navigator.pop(context);
                 Navigator.pop(context); // 关闭底栏
                 
-                // 如果在搜索模式，滚动到顶部查看新插入的内容
-                if (_searchQuery.isNotEmpty) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToSegment(0);
-                  });
-                }
+                // 滚动到插入的位置
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _scrollToSegment(insertPosition);
+                });
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
@@ -1864,7 +1911,10 @@ class _EditStepState extends State<EditStep> {
 
   void _generateVoice() {
     String selectedEmotion = '平静';
+    String selectedTool = 'tts';
     final TextEditingController emphasisController = TextEditingController();
+    final TextEditingController textController = TextEditingController();
+    final samples = _getThemeRelevantSamples();
     
     showModalBottomSheet(
       context: context,
@@ -1910,18 +1960,7 @@ class _EditStepState extends State<EditStep> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 三个功能按钮
-                      Row(
-                        children: [
-                          Expanded(child: _buildActionBtn('声线克隆', '根据语音生成配置', () => _handleVoiceTool('clone', selectedEmotion, emphasisController.text), icon: Icons.mic_rounded)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildActionBtn('多角色生成', 'AI 自动匹配声线', () => _handleVoiceTool('multi', selectedEmotion, emphasisController.text), icon: Icons.groups_rounded)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildActionBtn('音频补录', '手动输入文本转语音', () => _handleVoiceTool('tts', selectedEmotion, emphasisController.text), icon: Icons.text_fields_rounded)),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // 情感参数选择
+                      // 步骤1：选择工具类型
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -1934,12 +1973,139 @@ class _EditStepState extends State<EditStep> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.emoji_emotions_outlined, size: 16, color: const Color(0xFFFF6B9D)),
-                                const SizedBox(width: 6),
-                                const Text('情感参数', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFF6B9D))),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF6B9D),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text('步骤1', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('选择工具类型', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFF6B9D))),
                               ],
                             ),
                             const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(child: _buildToolTypeCard('声线克隆', '根据语音生成配置', 'clone', selectedTool, (v) => setModalState(() => selectedTool = v), icon: Icons.mic_rounded)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildToolTypeCard('多角色生成', 'AI 自动匹配声线', 'multi', selectedTool, (v) => setModalState(() => selectedTool = v), icon: Icons.groups_rounded)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildToolTypeCard('音频补录', '手动输入文本转语音', 'tts', selectedTool, (v) => setModalState(() => selectedTool = v), icon: Icons.text_fields_rounded)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // 步骤2：输入内容
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F9FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0284C7),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text('步骤2', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('输入内容', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: textController,
+                              maxLines: 4,
+                              onChanged: (v) => setModalState(() {}),
+                              decoration: InputDecoration(
+                                hintText: '请输入要转换的文本内容...',
+                                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text('推荐样例 (点击使用):', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: samples.map((s) => InkWell(
+                                onTap: () {
+                                  setModalState(() {
+                                    textController.text = s;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF3F4F6),
+                                    borderRadius: BorderRadius.circular(15),
+                                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                                  ),
+                                  child: Text(
+                                    s,
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // 步骤3：调整参数
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF5F8),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFFE4ED)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF6B9D),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text('步骤3', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('调整参数', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFF6B9D))),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // 情感参数
+                            Row(
+                              children: [
+                                Icon(Icons.emoji_emotions_outlined, size: 16, color: const Color(0xFFFF6B9D)),
+                                const SizedBox(width: 6),
+                                const Text('情感语气', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFFF6B9D))),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
                             Wrap(
                               spacing: 10,
                               runSpacing: 10,
@@ -1954,47 +2120,57 @@ class _EditStepState extends State<EditStep> {
                                 _buildEmotionChip('激昂', selectedEmotion, (v) => setModalState(() => selectedEmotion = v)),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // 重读标注
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F9FF),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFBAE6FD)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                            const SizedBox(height: 12),
+                            // 重读标注
                             Row(
                               children: [
                                 Icon(Icons.format_bold, size: 16, color: const Color(0xFF0284C7)),
                                 const SizedBox(width: 6),
-                                const Text('重读标注', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                                const Text('重读标注', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            const Text('输入需要重读的关键词，用空格分隔', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            const SizedBox(height: 10),
+                            const Text('输入需要重读的关键词，用空格分隔', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                            const SizedBox(height: 8),
                             TextField(
                               controller: emphasisController,
                               decoration: InputDecoration(
                                 hintText: '例如：重要 关键 核心',
-                                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                                hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 filled: true,
                                 fillColor: Colors.white,
-                                prefixIcon: const Icon(Icons.edit_note, size: 20, color: Colors.grey),
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      // 生成按钮
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: textController.text.trim().isEmpty ? null : () {
+                            final text = textController.text.trim();
+                            Navigator.pop(context);
+                            final emphasis = emphasisController.text.trim();
+                            final note = '[情感:$selectedEmotion]'
+                                '${emphasis.isNotEmpty ? ' [重读:$emphasis]' : ''} '
+                                '（AI 合成）$text';
+                            _addVoiceTask(selectedTool == 'clone' ? '声线克隆' : (selectedTool == 'multi' ? '多角色生成' : '音频补录'), note, '声线：默认 AI 女声');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF6B9D),
+                            disabledBackgroundColor: Colors.grey[200],
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: const Text('立即生成', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
                       const SizedBox(height: 24),
+                      // 最近语音生成任务
                       if (_voiceTasks.isNotEmpty) ...[
                         const Text('最近语音生成任务', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
                         const SizedBox(height: 12),
@@ -3042,6 +3218,60 @@ class _EditStepState extends State<EditStep> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 9, 
+                color: isSelected ? const Color(0xFFFF6B9D).withOpacity(0.7) : const Color(0xFF9CA3AF),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolTypeCard(String title, String desc, String value, String selectedValue, Function(String) onTap, {IconData? icon}) {
+    final isSelected = selectedValue == value;
+    return InkWell(
+      onTap: () => onTap(value),
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFF5F8) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFFF3F4F6),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: const Color(0xFFFF6B9D).withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ] : [],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 24, color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFF9CA3AF)),
+              const SizedBox(height: 8),
+            ],
+            Text(
+              title, 
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14, 
+                fontWeight: FontWeight.bold,
+                color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc, 
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10, 
                 color: isSelected ? const Color(0xFFFF6B9D).withOpacity(0.7) : const Color(0xFF9CA3AF),
               ),
             ),

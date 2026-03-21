@@ -81,48 +81,69 @@ class _UploadStepState extends State<UploadStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 40),
-          // 开始创作按钮区域
-          GestureDetector(
-            onTap: () {
-              _selectedAssetNames.clear();
-              _showPreprocessSheet();
+          // 开始创作按钮区域 - 支持拖放
+          DragTarget<String>(
+            onAccept: (fileName) {
+              setState(() {
+                _selectedAssetNames.add(fileName);
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('已添加素材: $fileName')),
+              );
             },
-            child: Container(
-              width: double.infinity,
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFF6B9D), width: 2),
-                boxShadow: [
-                  BoxShadow(
-                  color: const Color(0xFFFF6B9D).withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.add_circle_outline, size: 48, color: Color(0xFFFF6B9D)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '开始创作',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFFF6B9D),
+            onWillAccept: (data) => data != null,
+            builder: (context, candidateData, rejectedData) {
+              return GestureDetector(
+                onTap: () {
+                  if (_selectedAssetNames.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('请先选择至少一个素材')),
+                    );
+                    return;
+                  }
+                  _showPreprocessSheet();
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: candidateData.isNotEmpty ? Colors.pink[50] : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: candidateData.isNotEmpty ? const Color(0xFFFF6B9D) : const Color(0xFFFF6B9D),
+                      width: 2,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                      color: const Color(0xFFFF6B9D).withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '点击上传音频素材',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_circle_outline, size: 48, color: Color(0xFFFF6B9D)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '开始创作',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFF6B9D),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        candidateData.isNotEmpty ? '释放素材到此处' : '选择素材后点击开始处理',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 40),
           // 素材库区域
@@ -162,73 +183,101 @@ class _UploadStepState extends State<UploadStep> {
                 final fileName = item['name']!;
                 final isSelected = _selectedAssetNames.contains(fileName);
 
-                return GestureDetector(
-                  onTap: () => _handleMaterialSelect(fileName),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                return Draggable<String>(
+                  data: fileName,
+                  feedback: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.pink[50] : Colors.grey[100],
+                      color: Colors.pink[50],
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? const Color(0xFFFF6B9D) : Colors.transparent,
-                        width: 2,
-                      ),
+                      border: Border.all(color: const Color(0xFFFF6B9D), width: 2),
                     ),
-                    child: Stack(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.audio_file, 
-                              color: isSelected ? const Color(0xFFFF6B9D) : Colors.blue,
-                            ),
-                            const Spacer(),
-                            Text(
-                              fileName,
-                              style: TextStyle(
-                                fontSize: 12, 
-                                fontWeight: FontWeight.w500,
-                                color: isSelected ? const Color(0xFFFF6B9D) : Colors.black87,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  item['size'] ?? '',
-                                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF1F5),
-                                    border: Border.all(color: const Color(0xFFFBCFE8)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(item['category'] ?? '', style: const TextStyle(fontSize: 10, color: Color(0xFFFF6B9D))),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        if (isSelected)
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFF6B9D),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.check, size: 16, color: Colors.white),
-                            ),
+                        const Icon(Icons.audio_file, color: Color(0xFFFF6B9D)),
+                        const SizedBox(height: 8),
+                        Text(
+                          fileName,
+                          style: const TextStyle(
+                            fontSize: 12, 
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFFFF6B9D),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
+                    ),
+                  ),
+                  child: GestureDetector(
+                    onTap: () => _handleMaterialSelect(fileName),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.pink[50] : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFFFF6B9D) : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.audio_file, 
+                                color: isSelected ? const Color(0xFFFF6B9D) : Colors.blue,
+                              ),
+                              const Spacer(),
+                              Text(
+                                fileName,
+                                style: TextStyle(
+                                  fontSize: 12, 
+                                  fontWeight: FontWeight.w500,
+                                  color: isSelected ? const Color(0xFFFF6B9D) : Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    item['size'] ?? '',
+                                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF1F5),
+                                      border: Border.all(color: const Color(0xFFFBCFE8)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(item['category'] ?? '', style: const TextStyle(fontSize: 10, color: Color(0xFFFF6B9D))),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          if (isSelected)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF6B9D),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.check, size: 16, color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );
