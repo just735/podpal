@@ -13,6 +13,9 @@ class _UploadStepState extends State<UploadStep> {
   int? _uploadingIndex;
   // 选中的素材名称集合（使用名称作为唯一标识）
   final Set<String> _selectedAssetNames = {};
+  // 多轨合并相关
+  bool _enableMultiTrack = false;
+  List<Map<String, dynamic>> _tracks = [];
   // 素材库（带分类标签）
   final List<Map<String, String>> _assets = [
     {'name': '访谈录音_嘉宾A.mp3', 'size': '15.2 MB', 'category': '人声'},
@@ -310,6 +313,28 @@ class _UploadStepState extends State<UploadStep> {
     );
   }
 
+  // 初始化多轨数据
+  void _initializeTracks(List<Map<String, String>> assets) {
+    _tracks = [];
+    for (int i = 0; i < assets.length; i++) {
+      _tracks.add({
+        'id': 'track_${i + 1}',
+        'name': '轨道 ${i + 1}',
+        'segments': [
+          {
+            'id': 'segment_${i + 1}_1',
+            'name': assets[i]['name']!,
+            'startTime': 0,
+            'duration': 180, // 假设3分钟
+            'category': assets[i]['category']!,
+          }
+        ],
+        'muted': false,
+        'volume': 1.0,
+      });
+    }
+  }
+
   // 分类 Chip
   Widget _buildCategoryChip(String label) {
     final bool selected = _selectedCategory == label;
@@ -337,6 +362,9 @@ class _UploadStepState extends State<UploadStep> {
   // 前置预处理 BottomSheet
   Future<void> _showPreprocessSheet() async {
     final selectedAssets = _assets.where((a) => _selectedAssetNames.contains(a['name'])).toList();
+    
+    // 初始化多轨数据
+    _initializeTracks(selectedAssets);
     
     await showModalBottomSheet(
       context: context,
@@ -427,6 +455,20 @@ class _UploadStepState extends State<UploadStep> {
                       controlAffinity: ListTileControlAffinity.leading,
                       activeColor: const Color(0xFFFF6B9D),
                     ),
+                    const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      value: _enableMultiTrack,
+                      onChanged: (v) {
+                        setModalState(() => _enableMultiTrack = v);
+                        if (v) {
+                          // 显示多轨合并界面
+                          _showMultiTrackEditor(selectedAssets);
+                        }
+                      },
+                      title: const Text('多轨合并', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('调整音频轨道、片段位置和音量', style: TextStyle(fontSize: 12)),
+                      activeColor: const Color(0xFFFF6B9D),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -456,6 +498,295 @@ class _UploadStepState extends State<UploadStep> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // 多轨合并编辑器
+  Future<void> _showMultiTrackEditor(List<Map<String, String>> assets) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('多轨合并编辑器', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 多轨控制栏
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('自动对轨', style: TextStyle(fontSize: 12)),
+                          const SizedBox(width: 8),
+                          Checkbox(
+                            value: true,
+                            onChanged: (v) {},
+                            activeColor: const Color(0xFFFF6B9D),
+                          ),
+                          const SizedBox(width: 16),
+                          const Text('响度统一', style: TextStyle(fontSize: 12)),
+                          const SizedBox(width: 8),
+                          Checkbox(
+                            value: false,
+                            onChanged: (v) {},
+                            activeColor: const Color(0xFFFF6B9D),
+                          ),
+                          const SizedBox(width: 16),
+                          const Text('降噪', style: TextStyle(fontSize: 12)),
+                          const SizedBox(width: 8),
+                          Checkbox(
+                            value: false,
+                            onChanged: (v) {},
+                            activeColor: const Color(0xFFFF6B9D),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 时间轴
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          for (int i = 0; i <= 10; i++)
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 1,
+                                    height: 20,
+                                    color: Colors.grey[300],
+                                  ),
+                                  if (i < 10)
+                                    Expanded(
+                                      child: Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          '${i.toString().padLeft(2, '0')}:00',
+                                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // 轨道区域
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 300),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _tracks.length,
+                        itemBuilder: (context, trackIndex) {
+                          final track = _tracks[trackIndex];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xE2E8F0)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      onPressed: () {
+                                        setModalState(() {
+                                          track['muted'] = !(track['muted'] as bool);
+                                        });
+                                      },
+                                      icon: Icon(
+                                        track['muted'] as bool ? Icons.volume_off : Icons.volume_up,
+                                        size: 16,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${track['name']} - ${track['segments'][0]['name']}',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () {
+                                        setModalState(() {
+                                          _tracks.removeAt(trackIndex);
+                                        });
+                                      },
+                                      icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                                
+                                const SizedBox(height: 8),
+                                
+                                // 音频片段
+                                Container(
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF1F5),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFFFF6B9D)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        track['segments'][0]['category'] == '人声' ? Icons.person : 
+                                        track['segments'][0]['category'] == '背景音' ? Icons.music_note : 
+                                        Icons.audiotrack,
+                                        size: 16,
+                                        color: const Color(0xFFFF6B9D),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          track['segments'][0]['name'],
+                                          style: const TextStyle(fontSize: 12, color: Color(0xFFFF6B9D)),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '03:00',
+                                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                  ),
+                                ),
+                                
+                                // 音量滑块
+                                Slider(
+                                  value: track['volume'] as double,
+                                  min: 0.0,
+                                  max: 1.0,
+                                  onChanged: (value) {
+                                    setModalState(() {
+                                      track['volume'] = value;
+                                    });
+                                  },
+                                  activeColor: const Color(0xFFFF6B9D),
+                                  inactiveColor: Colors.grey[300],
+                                  thumbColor: const Color(0xFFFF6B9D),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 新建轨道按钮
+                    TextButton(
+                      onPressed: () {
+                        setModalState(() {
+                          _tracks.add({
+                            'id': 'track_${_tracks.length + 1}',
+                            'name': '轨道 ${_tracks.length + 1}',
+                            'segments': [],
+                            'muted': false,
+                            'volume': 1.0,
+                          });
+                        });
+                      },
+                      child: const Row(
+                        children: [
+                          Icon(Icons.add, size: 16, color: Color(0xFFFF6B9D)),
+                          SizedBox(width: 8),
+                          Text('新建轨道', style: TextStyle(color: Color(0xFFFF6B9D))),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 操作按钮
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFFF6B9D)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('取消', style: TextStyle(color: Color(0xFFFF6B9D))),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // 保存多轨设置
+                              setModalState(() {
+                                _enableMultiTrack = true;
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFF6B9D),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('保存设置', style: TextStyle(color: Colors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -513,7 +844,7 @@ class _UploadStepState extends State<UploadStep> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${_preTranscribe ? "✓ 转写" : "✗ 转写"} · ${_preVoiceEnhance ? "✓ 人声增强" : "✗ 人声增强"} · ${_preEchoRemoval ? "✓ 去回声" : "✗ 去回声"}',
+                  '${_preTranscribe ? "✓ 转写" : "✗ 转写"} · ${_preVoiceEnhance ? "✓ 人声增强" : "✗ 人声增强"} · ${_preEchoRemoval ? "✓ 去回声" : "✗ 去回声"} ${_enableMultiTrack ? "· ✓ 多轨合并" : ""}',
                   style: TextStyle(color: Colors.grey[700], fontSize: 12),
                 ),
               ],
