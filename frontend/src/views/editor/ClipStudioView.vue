@@ -2004,7 +2004,8 @@
                         <!-- 小宇宙预览 -->
                         <div v-if="currentPreviewPlatform === 'xiaoyuzhou'" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
                            <!-- 封面图 -->
-                           <div class="w-full h-48 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 relative">
+                           <div class="w-full h-48 relative">
+                              <img :src="xiaoyuzhouCoverImage" alt="小宇宙封面" class="w-full h-full object-cover" />
                               <div class="absolute bottom-4 left-4 right-4">
                                  <h4 class="text-white text-lg font-bold drop-shadow-md">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</h4>
                               </div>
@@ -2013,7 +2014,7 @@
                            <div class="p-4">
                               <!-- 节目信息 -->
                               <div class="flex items-center gap-3 mb-3">
-                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#C084FC]"></div>
+                                 <img :src="xiaoyuzhouCoverImage" alt="小宇宙封面" class="w-10 h-10 object-cover rounded-full flex-shrink-0" />
                                  <div class="flex-1">
                                     <p class="text-sm font-medium text-gray-900">PodPal Studio</p>
                                     <div class="flex items-center gap-2 text-xs text-gray-500">
@@ -2146,18 +2147,11 @@
                               <h4 class="text-xl font-bold text-gray-900 mb-4">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</h4>
                               
                               <!-- 封面图 -->
-                              <div class="w-full h-48 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 rounded-lg mb-4 relative">
-                                 <div class="absolute inset-0 flex items-center justify-center">
-                                    <div class="text-center text-white">
-                                       <div class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-2">
-                                          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                          </svg>
-                                       </div>
-                                       <p class="text-sm font-medium">点击播放</p>
-                                    </div>
-                                 </div>
-                              </div>
+                              <img
+                                :src="wechatImage"
+                                alt="微信公众号封面"
+                                class="w-full h-48 object-cover rounded-lg mb-4"
+                              />
                               
                               <!-- 内容 -->
                               <div class="prose prose-sm text-gray-700 mb-4">
@@ -2241,7 +2235,8 @@
                         <!-- 小红书预览 -->
                         <div v-if="currentPreviewPlatform === 'xiaohongshu'" class="max-w-sm mx-auto bg-white rounded-xl shadow-md overflow-hidden">
                            <!-- 封面图 -->
-                           <div class="aspect-square bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 relative">
+                           <div class="aspect-square relative">
+                              <img :src="xiaohongshuImage" alt="小红书封面" class="w-full h-full object-cover" />
                               <div class="absolute top-3 left-3 px-2 py-1 bg-black/50 rounded-full text-white text-xs">播客</div>
                               <div class="absolute bottom-4 left-4 right-4">
                                  <h4 class="text-white text-sm font-bold drop-shadow-md line-clamp-2">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</h4>
@@ -2364,16 +2359,7 @@
                                  
                                  <!-- 卡片 -->
                                  <div class="mt-3 rounded-lg overflow-hidden border border-gray-200">
-                                    <div class="h-32 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 relative">
-                                       <div class="absolute inset-0 flex items-center justify-center">
-                                          <div class="w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
-                                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                             </svg>
-                                          </div>
-                                       </div>
-                                    </div>
+                                    <img :src="weiboImage" alt="微博封面" class="w-full h-32 object-cover" />
                                     <div class="p-3 bg-gray-50">
                                        <div class="text-sm font-medium text-gray-900 mb-1">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</div>
                                        <div class="text-xs text-gray-500 flex items-center gap-2">
@@ -3451,6 +3437,10 @@ import qqIcon from '../../static/QQ.png'
 import xiaohongshuIcon from '../../static/xiaohongshu.png'
 import appleIcon from '../../static/Apple播客.png'
 import xiaoyuzhouIcon from '../../static/小宇宙.png'
+import xiaoyuzhouCoverImage from '../../assets/xiaoyuzhou.png'
+import wechatImage from '../../assets/wechat.png'
+import xiaohongshuImage from '../../assets/xiaohongshu.png'
+import weiboImage from '../../assets/weibo.png'
 
 const route = useRoute()
 const projectStore = useProjectStore()
