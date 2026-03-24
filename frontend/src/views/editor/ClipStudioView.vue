@@ -479,6 +479,23 @@
                 📊 波形图
               </button>
             </div>
+            <!-- AI 总结按钮 -->
+            <button
+              v-if="!showWaveform"
+              @click="generateAISummaries"
+              :disabled="isGeneratingAiSummary || mockTranscript.length === 0"
+              class="px-3 py-1.5 text-sm rounded-lg transition flex items-center gap-2"
+              :class="isGeneratingAiSummary ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'"
+            >
+              <svg v-if="isGeneratingAiSummary" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              {{ isGeneratingAiSummary ? '生成中...' : '生成AI总结' }}
+            </button>
           </div>
 
           <!-- 波形可视化区域 -->
@@ -534,7 +551,31 @@
                   v-for="(segment, index) in mockTranscript" 
                   :key="index"
                   :ref="el => setSegmentRef(el, index)"
-                  class="p-3 rounded-lg cursor-pointer transition-all duration-200 group relative"
+                  class="group relative"
+                >
+                <!-- AI 总结卡片 -->
+                <div v-if="isSummaryStart(index)" class="p-3 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 shadow-sm mb-3">
+                  <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center flex-shrink-0">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">AI 总结</span>
+                        <span class="text-xs text-gray-500">第 {{ getAISummaryForSegment(index).sectionNumber }} 部分</span>
+                        <span class="text-xs text-gray-400 font-mono">{{ formatTime(getAISummaryForSegment(index).timestamp) }}</span>
+                      </div>
+                      <p class="text-sm text-gray-700 leading-relaxed">
+                        {{ getAISummaryForSegment(index).summary }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div 
+                  class="p-3 rounded-lg cursor-pointer transition-all duration-200"
                   :class="[
                     isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : getSpeakerBgColor(segment.speaker),
                     isSegmentHighlighted(index) ? 'ring-2 ring-pink-400 ring-inset' : '',
@@ -571,9 +612,34 @@
                       @click.stop="deleteTTSSegment(index)"
                       class="hidden group-hover:flex text-[10px] text-red-500 hover:text-red-700 font-medium"
                     >删除补录</button>
-                    <span class="text-xs px-2 py-0.5 rounded-full" :class="getSpeakerColorClass(segment.speaker)">
-                      {{ segment.speaker === 'AI' ? 'AI 合成' : '说话人' + segment.speaker }}
-                    </span>
+                    <!-- 说话人编辑 -->
+                    <div class="relative">
+                      <span 
+                        v-if="!segment.editingSpeaker" 
+                        class="text-xs px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80" 
+                        :class="getSpeakerColorClass(segment.speaker)"
+                        @click="segment.editingSpeaker = true"
+                      >
+                        {{ segment.speaker === 'AI' ? 'AI 合成' : segment.speaker || '说话人' }}
+                      </span>
+                      <div v-else class="flex items-center gap-1">
+                        <input 
+                          v-model="segment.speaker" 
+                          class="text-xs px-2 py-0.5 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-pink-500 w-24"
+                          @blur="segment.editingSpeaker = false"
+                          @keyup.enter="segment.editingSpeaker = false"
+                          @keyup.esc="segment.editingSpeaker = false"
+                        />
+                        <button 
+                          class="text-[10px] text-green-600 hover:text-green-800"
+                          @click="segment.editingSpeaker = false"
+                        >
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
@@ -706,6 +772,7 @@
                     </span>
                   </template>
                 </div>
+              </div>
               </div>
             </div>
           </div>
@@ -1308,21 +1375,7 @@
                                   </div>
                                 </div>
                                 
-                                <!-- 波形图 -->
-                                <div class="flex-1 flex items-center mt-1">
-                                  <div class="flex-1 h-4 flex items-center gap-0.5">
-                                    <div 
-                                      v-for="(amplitude, i) in 20" 
-                                      :key="i"
-                                      class="flex-1 bg-white/40 rounded-sm transition-all"
-                                      :style="{
-                                        height: (amplitude * 100) + '%',
-                                        minHeight: '2px'
-                                      }"
-                                    ></div>
-                                  </div>
-                                </div>
-                                
+
                                 <!-- 时间显示 -->
                                 <div class="text-[9px] text-white/80 font-mono mt-1">
                                   {{ formatTime(clip.start) }} - {{ formatTime(clip.end) }}
@@ -1622,14 +1675,7 @@
                             <div class="text-sm font-medium text-gray-900 mb-1">AI 数字人口播</div>
                             <div class="text-xs text-gray-500">根据音频口型驱动数字人</div>
                          </div>
-                         <div 
-                           class="p-2 border rounded-lg cursor-pointer transition hover:border-pink-400"
-                           :class="videoTemplate === 'waveform' ? 'border-pink-500 bg-pink-50' : 'border-gray-200'"
-                           @click="videoTemplate = 'waveform'"
-                         >
-                            <div class="text-sm font-medium text-gray-900 mb-1">波形可视化</div>
-                            <div class="text-xs text-gray-500">动态波形 + 滚动字幕</div>
-                         </div>
+
                       </div>
                       
                       <div class="bg-gray-50 p-2 rounded border border-gray-200">
@@ -1746,6 +1792,13 @@
                            class="px-3 py-1.5 text-xs bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:bg-gray-300"
                          >
                            复制文案
+                         </button>
+                         <button 
+                           @click="showPublishPreview = true"
+                           :disabled="!socialCopyContent"
+                           class="px-3 py-1.5 text-xs bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded hover:shadow-md transition disabled:opacity-50 disabled:bg-gray-300"
+                         >
+                           预览效果
                          </button>
                       </div>
                    </div>
@@ -1949,122 +2002,449 @@
                      <!-- 预览内容区域 -->
                      <div class="flex-1 overflow-y-auto p-6 bg-gray-100">
                         <!-- 小宇宙预览 -->
-                        <div v-if="currentPreviewPlatform === 'xiaoyuzhou'" class="max-w-md mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div v-if="currentPreviewPlatform === 'xiaoyuzhou'" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+                           <!-- 封面图 -->
+                           <div class="w-full h-48 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 relative">
+                              <div class="absolute bottom-4 left-4 right-4">
+                                 <h4 class="text-white text-lg font-bold drop-shadow-md">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</h4>
+                              </div>
+                           </div>
+                           
                            <div class="p-4">
-                              <div class="flex gap-3">
-                                 <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-lg flex-shrink-0"></div>
-                                 <div class="flex-1 min-w-0">
-                                    <h4 class="text-base font-bold text-gray-900 line-clamp-2">{{ shownotesData?.titles?.[0] || '播客标题' }}</h4>
-                                    <p class="text-xs text-gray-500 mt-1">PodPal Studio</p>
-                                    <div class="flex items-center gap-2 mt-2">
-                                       <span class="text-xs text-gray-400">{{ formatTime(totalAudioDuration) }}</span>
-                                       <span class="text-xs text-gray-400">·</span>
-                                       <span class="text-xs text-gray-400">刚刚</span>
+                              <!-- 节目信息 -->
+                              <div class="flex items-center gap-3 mb-3">
+                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#C084FC]"></div>
+                                 <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">PodPal Studio</p>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                       <span>{{ formatTime(totalAudioDuration) }}</span>
+                                       <span>·</span>
+                                       <span>2026-03-24</span>
+                                       <span>·</span>
+                                       <span>第 12 期</span>
+                                    </div>
+                                 </div>
+                                 <button class="px-3 py-1 bg-pink-500 text-white text-xs rounded-full hover:bg-pink-600 transition">
+                                    订阅
+                                 </button>
+                              </div>
+                              
+                              <!-- 节目简介 -->
+                              <div class="mb-4">
+                                 <p class="text-sm text-gray-700 leading-relaxed mb-3">
+                                    {{ socialCopyContent || shownotesData?.summary || '本期节目我们深入探讨了人工智能在播客创作领域的应用。从早期的语音转写到如今的智能剪辑、内容生成，AI 正在重塑音频内容的生产流程。我们邀请了资深播客制作人，分享他们使用 PodPal 提升效率的实战经验，并展望了未来播客行业的发展趋势。' }}
+                                 </p>
+                                 
+                                 <!-- 标签 -->
+                                 <div class="flex flex-wrap gap-1.5">
+                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#播客</span>
+                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#AI</span>
+                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#内容创作</span>
+                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#技术</span>
+                                 </div>
+                              </div>
+                              
+                              <!-- 时间戳 -->
+                              <div class="mb-4">
+                                 <h5 class="text-xs font-medium text-gray-900 mb-2">节目时间轴</h5>
+                                 <div class="space-y-2">
+                                    <div class="flex items-start gap-2">
+                                       <span class="text-xs text-gray-500 min-w-[60px]">00:00</span>
+                                       <span class="text-xs text-gray-700">开场：AI 播客创作时代的到来</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                       <span class="text-xs text-gray-500 min-w-[60px]">03:15</span>
+                                       <span class="text-xs text-gray-700">前期策划：如何用 AI 找灵感</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                       <span class="text-xs text-gray-500 min-w-[60px]">12:30</span>
+                                       <span class="text-xs text-gray-700">中期制作：智能录音与剪辑</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                       <span class="text-xs text-gray-500 min-w-[60px]">25:45</span>
+                                       <span class="text-xs text-gray-700">后期分发：Shownotes 与视频化</span>
                                     </div>
                                  </div>
                               </div>
-                              <p class="text-sm text-gray-700 mt-3 line-clamp-3">{{ shownotesData?.summary || '播客摘要内容...' }}</p>
-                              <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
-                                 <button class="flex items-center gap-1 text-xs text-gray-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                                    喜欢
+                              
+                              <!-- 互动数据 -->
+                              <div class="flex items-center justify-between mb-4 pt-3 border-t border-gray-100">
+                                 <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                       <span>1.2k</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                       <span>89</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                       <span>156</span>
+                                    </div>
+                                 </div>
+                                 <button class="px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs rounded-full hover:shadow-md transition">
+                                    播放
                                  </button>
-                                 <button class="flex items-center gap-1 text-xs text-gray-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                                    评论
-                                 </button>
-                                 <button class="flex items-center gap-1 text-xs text-gray-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                                    分享
-                                 </button>
+                              </div>
+                              
+                              <!-- 精选评论 -->
+                              <div>
+                                 <h5 class="text-xs font-medium text-gray-900 mb-2">精选评论</h5>
+                                 <div class="space-y-3">
+                                    <div class="flex gap-2">
+                                       <div class="w-6 h-6 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                       <div class="flex-1">
+                                          <div class="flex items-center gap-2 mb-1">
+                                             <span class="text-xs font-medium text-gray-900">科技爱好者</span>
+                                             <span class="text-xs text-gray-400">2小时前</span>
+                                          </div>
+                                          <p class="text-xs text-gray-700">内容非常实用，学到了很多AI工具的使用方法，期待下一期！</p>
+                                          <div class="flex items-center gap-3 mt-1">
+                                             <button class="text-xs text-gray-500 hover:text-pink-500">👍 23</button>
+                                             <button class="text-xs text-gray-500 hover:text-pink-500">回复</button>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                       <div class="w-6 h-6 rounded-full bg-green-500 flex-shrink-0"></div>
+                                       <div class="flex-1">
+                                          <div class="flex items-center gap-2 mb-1">
+                                             <span class="text-xs font-medium text-gray-900">播客新手</span>
+                                             <span class="text-xs text-gray-400">4小时前</span>
+                                          </div>
+                                          <p class="text-xs text-gray-700">作为刚入门的播客创作者，这一期给了我很多启发，感谢分享！</p>
+                                          <div class="flex items-center gap-3 mt-1">
+                                             <button class="text-xs text-gray-500 hover:text-pink-500">👍 15</button>
+                                             <button class="text-xs text-gray-500 hover:text-pink-500">回复</button>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
                               </div>
                            </div>
                         </div>
                         
                         <!-- 微信公众号预览 -->
-                        <div v-if="currentPreviewPlatform === 'wechat'" class="max-w-md mx-auto bg-white shadow-sm">
-                           <div class="p-4">
-                              <div class="flex items-center gap-2 mb-3">
-                                 <div class="w-8 h-8 rounded-full bg-green-500"></div>
-                                 <span class="text-sm text-gray-600">PodPal Studio</span>
+                        <div v-if="currentPreviewPlatform === 'wechat'" class="max-w-md mx-auto bg-white shadow-md rounded-xl overflow-hidden">
+                           <!-- 头部 -->
+                           <div class="p-4 border-b border-gray-100">
+                              <div class="flex items-center gap-2">
+                                 <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">P</div>
+                                 <div>
+                                    <p class="text-sm font-medium text-gray-900">PodPal Studio</p>
+                                    <p class="text-xs text-gray-500">科技 · 内容创作 · AI</p>
+                                 </div>
+                                 <button class="ml-auto px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                    关注
+                                 </button>
                               </div>
-                              <h4 class="text-lg font-bold text-gray-900 mb-2">{{ shownotesData?.titles?.[0] || '播客标题' }}</h4>
-                              <div class="w-full h-48 bg-gradient-to-br from-pink-400 to-purple-500 rounded-lg mb-3"></div>
-                              <p class="text-sm text-gray-700 leading-relaxed">{{ shownotesData?.summary || '播客摘要内容...' }}</p>
-                              <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                 <div class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                                    <span class="text-xs text-gray-600">点击收听完整播客</span>
+                           </div>
+                           
+                           <div class="p-4">
+                              <!-- 标题 -->
+                              <h4 class="text-xl font-bold text-gray-900 mb-4">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</h4>
+                              
+                              <!-- 封面图 -->
+                              <div class="w-full h-48 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 rounded-lg mb-4 relative">
+                                 <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="text-center text-white">
+                                       <div class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-2">
+                                          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                          </svg>
+                                       </div>
+                                       <p class="text-sm font-medium">点击播放</p>
+                                    </div>
                                  </div>
                               </div>
-                              <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
-                                 <span>阅读 1.2k</span>
-                                 <span>点赞 89</span>
+                              
+                              <!-- 内容 -->
+                              <div class="prose prose-sm text-gray-700 mb-4">
+                                 <p class="mb-3">
+                                    {{ socialCopyContent || shownotesData?.summary || '本期节目我们深入探讨了人工智能在播客创作领域的应用。从早期的语音转写到如今的智能剪辑、内容生成，AI 正在重塑音频内容的生产流程。' }}
+                                 </p>
+                                 <p class="mb-3">
+                                    我们邀请了资深播客制作人，分享他们使用 PodPal 提升效率的实战经验，并展望了未来播客行业的发展趋势。无论你是刚入门的新手，还是经验丰富的创作者，本期内容都将为你带来全新的启发。
+                                 </p>
+                                 <h5 class="font-bold text-gray-900 mt-4 mb-2">🎧 本期节目亮点</h5>
+                                 <ul class="list-disc pl-5 space-y-1">
+                                    <li>AI 如何 revolution 播客创作流程</li>
+                                    <li>智能剪辑工具的实际应用案例</li>
+                                    <li>多平台分发的最佳实践</li>
+                                    <li>未来播客行业的发展趋势</li>
+                                 </ul>
+                              </div>
+                              
+                              <!-- 收听卡片 -->
+                              <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                                 <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
+                                       <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                       </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                       <p class="text-sm font-medium text-gray-900">点击收听完整播客</p>
+                                       <p class="text-xs text-gray-500">时长：{{ formatTime(totalAudioDuration) }}</p>
+                                    </div>
+                                    <button class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                       </svg>
+                                    </button>
+                                 </div>
+                              </div>
+                              
+                              <!-- 标签 -->
+                              <div class="flex flex-wrap gap-1.5 mt-4">
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#播客</span>
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#AI</span>
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#内容创作</span>
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#技术</span>
+                              </div>
+                              
+                              <!-- 互动数据 -->
+                              <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
+                                 <span>2026-03-24</span>
+                                 <div class="flex items-center gap-4">
+                                    <span>阅读 1.2k</span>
+                                    <span>点赞 89</span>
+                                    <span>在看 45</span>
+                                 </div>
+                              </div>
+                              
+                              <!-- 推荐阅读 -->
+                              <div class="mt-4 pt-4 border-t border-gray-100">
+                                 <h5 class="text-sm font-medium text-gray-900 mb-3">推荐阅读</h5>
+                                 <div class="space-y-3">
+                                    <div class="flex gap-3 items-center">
+                                       <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded flex-shrink-0"></div>
+                                       <div class="flex-1">
+                                          <p class="text-sm font-medium text-gray-900 line-clamp-2">如何用 AI 快速生成播客脚本</p>
+                                          <p class="text-xs text-gray-500 mt-1">2026-03-10 · 阅读 856</p>
+                                       </div>
+                                    </div>
+                                    <div class="flex gap-3 items-center">
+                                       <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded flex-shrink-0"></div>
+                                       <div class="flex-1">
+                                          <p class="text-sm font-medium text-gray-900 line-clamp-2">播客变现的 5 种有效方法</p>
+                                          <p class="text-xs text-gray-500 mt-1">2026-03-05 · 阅读 1.5k</p>
+                                       </div>
+                                    </div>
+                                 </div>
                               </div>
                            </div>
                         </div>
                         
                         <!-- 小红书预览 -->
-                        <div v-if="currentPreviewPlatform === 'xiaohongshu'" class="max-w-sm mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
-                           <div class="aspect-square bg-gradient-to-br from-pink-400 to-purple-500 relative">
+                        <div v-if="currentPreviewPlatform === 'xiaohongshu'" class="max-w-sm mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+                           <!-- 封面图 -->
+                           <div class="aspect-square bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 relative">
                               <div class="absolute top-3 left-3 px-2 py-1 bg-black/50 rounded-full text-white text-xs">播客</div>
+                              <div class="absolute bottom-4 left-4 right-4">
+                                 <h4 class="text-white text-sm font-bold drop-shadow-md line-clamp-2">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</h4>
+                              </div>
                            </div>
-                           <div class="p-3">
-                              <h4 class="text-sm font-bold text-gray-900 line-clamp-2 mb-2">{{ shownotesData?.titles?.[0] || '播客标题' }}</h4>
-                              <p class="text-xs text-gray-600 line-clamp-2 mb-2">{{ shownotesData?.summary || '播客摘要...' }}</p>
-                              <div class="flex items-center justify-between">
-                                 <div class="flex items-center gap-1">
-                                    <div class="w-5 h-5 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#C084FC]"></div>
-                                    <span class="text-xs text-gray-500">PodPal</span>
+                           
+                           <div class="p-4">
+                              <!-- 作者信息 -->
+                              <div class="flex items-center gap-3 mb-3">
+                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#C084FC] flex items-center justify-center text-white font-bold">P</div>
+                                 <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">PodPal Studio</p>
+                                    <p class="text-xs text-gray-500">科技内容创作者</p>
                                  </div>
-                                 <div class="flex items-center gap-3 text-xs text-gray-400">
-                                    <span class="flex items-center gap-1">
-                                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                                       328
-                                    </span>
-                                    <span class="flex items-center gap-1">
-                                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                                       56
-                                    </span>
+                                 <button class="px-3 py-1 bg-black text-white text-xs rounded-full hover:bg-gray-800 transition">
+                                    关注
+                                 </button>
+                              </div>
+                              
+                              <!-- 内容 -->
+                              <div class="mb-4">
+                                 <p class="text-sm text-gray-800 leading-relaxed mb-3">
+                                    {{ socialCopyContent || shownotesData?.summary || '姐妹们！发现了一个超级好用的播客制作神器 PodPal！以前剪辑要花好几个小时，现在 AI 一键搞定！真的太香了！' }}
+                                 </p>
+                                 <p class="text-sm text-gray-800 leading-relaxed mb-3">
+                                    本期节目邀请了资深播客制作人，分享他们使用 AI 工具提升效率的实战经验，真的学到了很多！无论是刚入门的新手还是经验丰富的创作者，都能从中获得启发～
+                                 </p>
+                              </div>
+                              
+                              <!-- 标签 -->
+                              <div class="flex flex-wrap gap-1.5 mb-4">
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#播客</span>
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#AI工具</span>
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#内容创作</span>
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#效率工具</span>
+                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">#新手必备</span>
+                              </div>
+                              
+                              <!-- 互动数据 -->
+                              <div class="flex items-center gap-4 mb-3 pt-3 border-t border-gray-100">
+                                 <div class="flex items-center gap-1 text-sm text-gray-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                    <span>328</span>
+                                 </div>
+                                 <div class="flex items-center gap-1 text-sm text-gray-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                    <span>56</span>
+                                 </div>
+                                 <div class="flex items-center gap-1 text-sm text-gray-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                    <span>128</span>
+                                 </div>
+                              </div>
+                              
+                              <!-- 评论区 -->
+                              <div class="space-y-3">
+                                 <div class="flex gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-pink-500 flex-shrink-0"></div>
+                                    <div class="flex-1">
+                                       <div class="flex items-center gap-2 mb-1">
+                                          <span class="text-xs font-medium text-gray-900">粉色控</span>
+                                          <span class="text-xs text-gray-400">2小时前</span>
+                                       </div>
+                                       <p class="text-xs text-gray-700">太感谢分享了！一直想做播客但不知道从何开始，这个工具看起来真的很有用！</p>
+                                       <div class="flex items-center gap-3 mt-1">
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">👍 23</button>
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">回复</button>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div class="flex gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                    <div class="flex-1">
+                                       <div class="flex items-center gap-2 mb-1">
+                                          <span class="text-xs font-medium text-gray-900">科技达人</span>
+                                          <span class="text-xs text-gray-400">4小时前</span>
+                                       </div>
+                                       <p class="text-xs text-gray-700">PodPal 我用过，确实很强大！AI 剪辑功能太香了，节省了我大量时间。</p>
+                                       <div class="flex items-center gap-3 mt-1">
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">👍 15</button>
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">回复</button>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div class="text-center mt-3">
+                                    <button class="text-xs text-gray-500 hover:text-pink-500">查看全部 12 条评论</button>
                                  </div>
                               </div>
                            </div>
                         </div>
                         
                         <!-- 微博预览 -->
-                        <div v-if="currentPreviewPlatform === 'weibo'" class="max-w-md mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div v-if="currentPreviewPlatform === 'weibo'" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
                            <div class="p-4">
+                              <!-- 作者信息 -->
                               <div class="flex items-start gap-3">
-                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#C084FC]"></div>
+                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#C084FC] flex items-center justify-center text-white font-bold">P</div>
                                  <div class="flex-1">
                                     <div class="flex items-center gap-2">
                                        <span class="font-bold text-sm text-gray-900">PodPal Studio</span>
                                        <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                       <span class="text-xs text-gray-400">认证用户</span>
                                     </div>
-                                    <p class="text-xs text-gray-500">刚刚 来自 PodPal</p>
+                                    <p class="text-xs text-gray-500">刚刚 来自 PodPal Studio</p>
+                                 </div>
+                                 <button class="text-gray-400 hover:text-gray-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg>
+                                 </button>
+                              </div>
+                              
+                              <!-- 内容 -->
+                              <div class="mt-3">
+                                 <p class="text-sm text-gray-800 leading-relaxed mb-3">
+                                    🎧 新一期播客上线！
+                                    <br/><br/>
+                                    {{ socialCopyContent || shownotesData?.summary?.substring(0, 100) || 'AI 时代的播客创作：从灵感到分发的全流程解析。本期节目深入探讨了人工智能在播客创作领域的应用，从语音转写到智能剪辑，AI 正在重塑音频内容的生产流程。' }}
+                                    <br/><br/>
+                                    点击链接收听完整内容 👇
+                                 </p>
+                                 
+                                 <!-- 卡片 -->
+                                 <div class="mt-3 rounded-lg overflow-hidden border border-gray-200">
+                                    <div class="h-32 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 relative">
+                                       <div class="absolute inset-0 flex items-center justify-center">
+                                          <div class="w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                             </svg>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50">
+                                       <div class="text-sm font-medium text-gray-900 mb-1">{{ shownotesData?.titles?.[0] || 'AI 时代的播客创作：从灵感到分发的全流程解析' }}</div>
+                                       <div class="text-xs text-gray-500 flex items-center gap-2">
+                                          <span>PodPal Studio</span>
+                                          <span>·</span>
+                                          <span>{{ formatTime(totalAudioDuration) }}</span>
+                                       </div>
+                                    </div>
                                  </div>
                               </div>
-                              <p class="text-sm text-gray-800 mt-3">🎧 新一期播客上线！<br/><br/>{{ shownotesData?.summary?.substring(0, 100) || '播客摘要...' }}...</p>
-                              <div class="mt-3 rounded-lg overflow-hidden border border-gray-200">
-                                 <div class="h-32 bg-gradient-to-br from-pink-400 to-purple-500"></div>
-                                 <div class="p-2 bg-gray-50">
-                                    <div class="text-xs font-medium text-gray-900">{{ shownotesData?.titles?.[0] || '播客标题' }}</div>
-                                    <div class="text-xs text-gray-500">点击收听</div>
-                                 </div>
+                              
+                              <!-- 话题标签 -->
+                              <div class="flex flex-wrap gap-1.5 mt-3">
+                                 <a href="#" class="text-xs text-blue-500 hover:underline">#播客</a>
+                                 <a href="#" class="text-xs text-blue-500 hover:underline">#AI</a>
+                                 <a href="#" class="text-xs text-blue-500 hover:underline">#内容创作</a>
+                                 <a href="#" class="text-xs text-blue-500 hover:underline">#技术</a>
                               </div>
+                              
+                              <!-- 互动数据 -->
                               <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 text-sm text-gray-500">
-                                 <button class="flex items-center gap-1 hover:text-pink-600">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                                    转发
-                                 </button>
-                                 <button class="flex items-center gap-1 hover:text-pink-600">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                                    评论
-                                 </button>
-                                 <button class="flex items-center gap-1 hover:text-pink-600">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                                    点赞
-                                 </button>
+                                 <div class="flex items-center gap-4">
+                                    <button class="flex items-center gap-1 hover:text-pink-600 transition">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                       <span>128</span>
+                                    </button>
+                                    <button class="flex items-center gap-1 hover:text-pink-600 transition">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                       <span>56</span>
+                                    </button>
+                                    <button class="flex items-center gap-1 hover:text-pink-600 transition">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                       <span>234</span>
+                                    </button>
+                                    <button class="flex items-center gap-1 hover:text-pink-600 transition">
+                                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                       <span>89</span>
+                                    </button>
+                                 </div>
+                              </div>
+                              
+                              <!-- 评论区 -->
+                              <div class="mt-4 space-y-3">
+                                 <div class="flex gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-red-500 flex-shrink-0"></div>
+                                    <div class="flex-1">
+                                       <div class="flex items-center gap-2 mb-1">
+                                          <span class="text-xs font-medium text-gray-900">微博用户</span>
+                                          <span class="text-xs text-gray-400">1小时前</span>
+                                       </div>
+                                       <p class="text-xs text-gray-700">期待已久的播客终于更新了！AI 工具确实改变了内容创作的方式，学习了！</p>
+                                       <div class="flex items-center gap-3 mt-1">
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">👍 15</button>
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">回复</button>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div class="flex gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                    <div class="flex-1">
+                                       <div class="flex items-center gap-2 mb-1">
+                                          <span class="text-xs font-medium text-gray-900">科技前沿</span>
+                                          <span class="text-xs text-gray-400">2小时前</span>
+                                       </div>
+                                       <p class="text-xs text-gray-700">PodPal 的 AI 功能真的很强大，已经在用了，强烈推荐给所有内容创作者！</p>
+                                       <div class="flex items-center gap-3 mt-1">
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">👍 23</button>
+                                          <button class="text-xs text-gray-500 hover:text-pink-500">回复</button>
+                                       </div>
+                                    </div>
+                                 </div>
                               </div>
                            </div>
                         </div>
@@ -2508,21 +2888,96 @@
                 声演实验室
               </h3>
                <div class="space-y-3">
-                 <div class="grid grid-cols-2 gap-2">
-                    <button
-                      class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition flex items-center justify-center gap-1"
-                      @click="handleVoiceTool('clone')"
-                    >
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                      声线克隆
-                    </button>
-                     <button
-                      class="p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition"
-                      @click="handleVoiceTool('multi')"
-                    >
-                      多角色生成
-                    </button>
+                 <!-- 提示词输入区域 -->
+                 <div class="p-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg">
+                   <div class="text-xs font-medium text-gray-700 mb-2">输入提示词生成语音内容</div>
+                   <textarea
+                     v-model="voicePrompt"
+                     placeholder="例如：用轻松友好的语气介绍播客开场，时长约10秒..."
+                     class="w-full text-xs text-gray-700 bg-white border border-pink-200 rounded p-2 focus:outline-none focus:ring-2 focus:ring-pink-300 resize-none"
+                     rows="3"
+                   ></textarea>
+                   <button
+                     @click="generateVoiceFromPrompt"
+                     :disabled="!voicePrompt.trim() || isGeneratingVoice"
+                     class="w-full mt-2 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-xs font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                   >
+                     <svg v-if="isGeneratingVoice" class="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                     </svg>
+                     <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                     </svg>
+                     {{ isGeneratingVoice ? '生成中...' : '生成语音内容' }}
+                   </button>
+                   <!-- 生成进度显示 -->
+                   <div v-if="isGeneratingVoice" class="mt-2">
+                     <div class="text-[10px] text-gray-600 mb-1">生成进度</div>
+                     <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                       <div class="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full transition-all duration-300 animate-pulse" style="width: 70%"></div>
+                     </div>
+                   </div>
                  </div>
+
+                 <!-- 生成的句子预览 -->
+                 <div v-if="generatedVoiceSentences.length > 0" class="space-y-2">
+                   <div class="text-xs font-medium text-gray-900 flex items-center justify-between">
+                     <span>生成的内容</span>
+                     <span class="text-[10px] text-gray-500">{{ generatedVoiceSentences.length }} 条</span>
+                   </div>
+                   <div
+                     v-for="(sentence, idx) in generatedVoiceSentences"
+                     :key="sentence.id"
+                     class="p-3 bg-white border border-pink-200 rounded-lg hover:border-pink-400 transition cursor-pointer group shadow-sm"
+                     @click="selectVoiceSentence(sentence)"
+                   >
+                     <div class="flex items-start gap-2">
+                       <div class="w-5 h-5 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-[10px] text-white flex-shrink-0">
+                         {{ idx + 1 }}
+                       </div>
+                       <div class="flex-1 min-w-0">
+                         <p class="text-xs text-gray-800 leading-relaxed">{{ sentence.text }}</p>
+                         <div class="flex items-center gap-2 mt-2">
+                           <span class="text-[10px] text-gray-500">{{ sentence.duration }}秒</span>
+                           <span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-100 text-pink-700">{{ sentence.style }}</span>
+                         </div>
+                       </div>
+                       <div class="flex flex-col gap-1">
+                         <button
+                           @click.stop="previewVoiceSentence(sentence)"
+                           class="p-1.5 text-pink-500 hover:bg-pink-100 rounded transition"
+                           title="预览"
+                         >
+                           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                             <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                           </svg>
+                         </button>
+                         <button
+                           @click.stop="openTTSPreviewForSentence(sentence)"
+                           class="p-1.5 text-blue-500 hover:bg-blue-100 rounded transition"
+                           title="编辑"
+                         >
+                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H7a2 2 0 00-2 2v4m0 0h4m-4 0l9 9m4-13a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                           </svg>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- 声线克隆按钮 -->
+                 <div class="pt-2 border-t border-pink-100">
+                   <button
+                     class="w-full p-2 bg-white border border-pink-200 rounded text-xs text-gray-900 hover:border-pink-400 hover:text-pink-600 transition flex items-center justify-center gap-1"
+                     @click="handleVoiceTool('clone')"
+                   >
+                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                     声线克隆
+                   </button>
+                 </div>
+
                  <!-- 最近语音生成任务列表 -->
                  <div v-if="voiceTasks.length" class="pt-2 border-t border-pink-100 space-y-1">
                   <div class="text-xs font-medium text-gray-900">最近语音生成任务</div>
@@ -2749,46 +3204,19 @@
                       <button class="text-[10px] px-2 py-0.5 bg-yellow-400 text-white rounded" @click="sentence.editing=false">保存</button>
                       <button class="text-[10px] px-2 py-0.5 bg-white border border-gray-200 rounded" @click="sentence.editing=false">取消</button>
                     </div>
-                    <div class="flex items-center gap-4 mt-2">
-                      <!-- 热度火焰 -->
-                      <div class="flex items-center gap-1 flex-1">
-                        <div class="w-4 h-4 flex items-center justify-center">
-                          <svg class="w-3.5 h-3.5 text-orange-500 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    <div class="mt-2">
+                      <!-- 标记点功能 -->
+                      <div class="flex items-center gap-2">
+                        <button 
+                          class="text-[10px] px-3 py-1 rounded bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-md transition flex items-center gap-1"
+                          @click.stop="addMarkerAtSentence(sentence)"
+                        >
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                           </svg>
-                        </div>
-                        <div class="flex-1">
-                          <div class="text-[10px] text-gray-600 mb-1">热度</div>
-                          <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              class="h-full bg-gradient-to-r from-yellow-400 to-red-500 rounded-full transition-all duration-500"
-                              :style="{ width: sentence.viralPotential + '%' }"
-                            ></div>
-                          </div>
-                          <div class="text-[9px] text-gray-500 mt-0.5">{{ sentence.viralPotential }}%</div>
-                        </div>
+                          添加标记点
+                        </button>
                       </div>
-                      
-                      <!-- 逻辑完整度 -->
-                      <div class="flex items-center gap-1 flex-1">
-                        <div class="w-4 h-4 flex items-center justify-center">
-                          <svg class="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9.062 2.999A1 1 0 008 4v16a1 1 0 001.062.999 16.97 16.97 0 006.5-.941.999.999 0 00.437-1.616 14.972 14.972 0 01-5.665.877 1.003 1.003 0 01-.438-1.967 12.97 12.97 0 004.733-.762.999.999 0 00.32-1.582 10.973 10.973 0 01-4.026.583 1.003 1.003 0 01-.374-1.947 8.974 8.974 0 003.19-.5 1.003 1.003 0 00.269-1.54 6.977 6.977 0 01-3.236.437 1.003 1.003 0 01-.316-1.973 4.98 4.98 0 002.258-.324.999.999 0 00.181-1.445 2.985 2.985 0 01-1.8-.232 1 1 0 00-1.062 1.777 4.996 4.996 0 002.65 1.032 1 1 0 00.777-1.869 2.994 2.994 0 01-2.193-.623 1 1 0 00-1.276 1.533 4.982 4.982 0 003.125 1.342 1 1 0 00.649-1.886 2.995 2.995 0 01-2.828-.955 1 1 0 00-1.414 1.414 4.993 4.993 0 004.242 2.122 1 1 0 00.535-1.906 2.987 2.987 0 01-2.194-.586 1 1 0 00-1.061 1.777 4.998 4.998 0 003.335 1.52 1 1 0 00.447-1.906 2.994 2.994 0 01-2.828-.955 1 1 0 00-1.414 1.414 4.994 4.994 0 004.243 2.122 1 1 0 00.448-1.906 2.995 2.995 0 01-2.194-.586 1 1 0 00-1.061 1.777 4.998 4.998 0 003.335 1.52 1 1 0 00.535-1.906 2.987 2.987 0 01-2.194-.586z"/>
-                          </svg>
-                        </div>
-                        <div class="flex-1">
-                          <div class="text-[10px] text-gray-600 mb-1">逻辑完整度</div>
-                          <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              class="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full transition-all duration-500"
-                              :style="{ width: sentence.logicScore + '%' }"
-                            ></div>
-                          </div>
-                          <div class="text-[9px] text-gray-500 mt-0.5">{{ sentence.logicScore }}%</div>
-                        </div>
-                      </div>
-                      
-                      <button class="ml-auto text-[10px] px-2 py-0.5 rounded border border-yellow-300 bg-white hover:bg-yellow-50" @click.stop="addGoldenSentenceManual(sentence.startTime)">手动标记+</button>
                     </div>
                   </div>
                 </div>
@@ -3044,6 +3472,10 @@ const openEnhancePanel = ref('shownotes')
 // 文本编辑与同步相关状态
 const editingSegmentId = ref(null)
 
+// AI 总结相关状态
+const aiSummaries = ref([])
+const isGeneratingAiSummary = ref(false)
+
 // Shownotes 编辑相关状态
 const editingTitleIndex = ref(-1)
 const editingSummary = ref(false)
@@ -3296,6 +3728,145 @@ const selectionEnd = ref(null)
 const isDraggingProgress = ref(false)
 const isSelecting = ref(false)
 
+// AI 总结生成函数
+const generateAISummaries = async () => {
+  if (mockTranscript.value.length === 0) return
+  
+  isGeneratingAiSummary.value = true
+  
+  try {
+    // 分段逻辑：每3-5个片段为一段
+    const segmentsPerSection = Math.min(5, Math.max(3, Math.ceil(mockTranscript.value.length / 3)))
+    const sections = []
+    
+    for (let i = 0; i < mockTranscript.value.length; i += segmentsPerSection) {
+      const endIndex = Math.min(i + segmentsPerSection, mockTranscript.value.length)
+      sections.push({
+        startIndex: i,
+        endIndex: endIndex - 1,
+        segments: mockTranscript.value.slice(i, endIndex)
+      })
+    }
+    
+    // 生成每个段落的总结
+    const summaries = await Promise.all(sections.map(async (section, index) => {
+      // 模拟AI总结生成
+      await new Promise(resolve => setTimeout(resolve, 400))
+      
+      const textContent = section.segments.map(s => s.text.replace(/\[TTS\]/g, '').replace(/~~[^~]+~~/g, '').replace(/\+\+[^+]+\+\+/g, '$1')).join(' ')
+      
+      // 基于内容长度和关键词生成更自然的总结
+      const contentLength = textContent.length
+      const hasQuestion = textContent.includes('？') || textContent.includes('?')
+      const hasExplanation = textContent.includes('因为') || textContent.includes('所以') || textContent.includes('因此')
+      const hasExample = textContent.includes('比如') || textContent.includes('例如') || textContent.includes('像')
+      const hasOpinion = textContent.includes('认为') || textContent.includes('觉得') || textContent.includes('看法')
+      
+      // 提取关键主题词（简单提取前几个实词）
+      const keywords = extractKeywords(textContent)
+      const keywordPhrase = keywords.slice(0, 2).join('和') || '相关内容'
+      
+      // 根据内容特征生成自然流畅的总结
+      let summary = ''
+      
+      if (hasQuestion && hasExplanation) {
+        const templates = [
+          `围绕${keywordPhrase}展开探讨，分析了问题的来龙去脉，并给出了清晰的解释和思路`,
+          `针对${keywordPhrase}提出了深入的问题，从多个角度进行了分析，并阐述了背后的原因`,
+          `以${keywordPhrase}为切入点，通过问答的形式层层深入，帮助理解核心要点`
+        ]
+        summary = templates[index % templates.length]
+      } else if (hasExample) {
+        const templates = [
+          `通过具体案例讲解${keywordPhrase}，用生动的例子帮助理解抽象概念，内容详实易懂`,
+          `以${keywordPhrase}为主题，结合实例进行说明，让复杂的概念变得直观清晰`,
+          `围绕${keywordPhrase}展开，穿插多个实际案例，理论与实践相结合，具有很强的参考性`
+        ]
+        summary = templates[index % templates.length]
+      } else if (hasOpinion) {
+        const templates = [
+          `就${keywordPhrase}表达了独到见解，观点鲜明，论证充分，值得深入思考`,
+          `对${keywordPhrase}进行了深入剖析，提出了有建设性的看法和建议`,
+          `围绕${keywordPhrase}分享了个人观点，分析透彻，为听众提供了新的思考角度`
+        ]
+        summary = templates[index % templates.length]
+      } else if (contentLength > 100) {
+        const templates = [
+          `系统性地介绍了${keywordPhrase}的核心内容，条理清晰，信息量丰富`,
+          `全面梳理了${keywordPhrase}的相关知识，内容扎实，逻辑严密`,
+          `深入讲解了${keywordPhrase}的方方面面，层次分明，重点突出`
+        ]
+        summary = templates[index % templates.length]
+      } else {
+        const templates = [
+          `简要介绍了${keywordPhrase}的基本情况，内容精炼，要点明确`,
+          `对${keywordPhrase}进行了概括性说明，言简意赅，易于理解`,
+          `聚焦${keywordPhrase}，快速传达了核心信息，适合快速了解`
+        ]
+        summary = templates[index % templates.length]
+      }
+      
+      return {
+        id: `summary_${index + 1}`,
+        sectionNumber: index + 1,
+        startIndex: section.startIndex,
+        endIndex: section.endIndex,
+        summary: summary,
+        timestamp: section.segments[0].startTime,
+        duration: section.segments[section.segments.length - 1].endTime - section.segments[0].startTime
+      }
+    }))
+    
+    aiSummaries.value = summaries
+  } catch (error) {
+    console.error('生成AI总结失败:', error)
+  } finally {
+    isGeneratingAiSummary.value = false
+  }
+}
+
+// 检查段落是否有AI总结
+const getAISummaryForSegment = (segmentIndex) => {
+  return aiSummaries.value.find(summary => 
+    segmentIndex >= summary.startIndex && segmentIndex <= summary.endIndex
+  )
+}
+
+// 检查段落是否是总结的开始
+const isSummaryStart = (segmentIndex) => {
+  return aiSummaries.value.some(summary => summary.startIndex === segmentIndex)
+}
+
+// 提取关键词函数
+const extractKeywords = (text) => {
+  // 过滤掉常见虚词和标点
+  const stopWords = new Set([
+    '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这', '那', '这些', '那些', '这个', '那个', '之', '与', '及', '等', '或', '但是', '然而', '因此', '所以', '因为', '如果', '虽然', '但是', '可以', '需要', '进行', '通过', '对于', '关于', '根据', '以及', '还有', '而且', '并且', '然后', '接着', '最后', '首先', '其次', '再次', '第一', '第二', '第三'
+  ])
+  
+  // 提取中文词汇（简单实现：提取2-6个字的词组）
+  const words = []
+  const seen = new Set()
+  
+  // 提取2-4字词组
+  for (let len = 4; len >= 2; len--) {
+    for (let i = 0; i <= text.length - len; i++) {
+      const word = text.substring(i, i + len)
+      // 过滤条件：不包含标点、不是纯数字、不是停用词、没有重复
+      if (!/[，。！？、；：,.!?…—-\s]/.test(word) && 
+          !/^\d+$/.test(word) && 
+          !stopWords.has(word) &&
+          !seen.has(word)) {
+        words.push(word)
+        seen.add(word)
+      }
+    }
+  }
+  
+  // 返回前3个关键词
+  return words.slice(0, 3)
+}
+
 // 时间轴和轨道
 const zoomLevel = ref(1)
 const timelineWidth = ref(10000) // 时间轴总宽度（像素）
@@ -3346,7 +3917,7 @@ const tracks = ref([
     collapsed: false,
     locked: false,
     recording: false,
-    waveform: [],
+    
     clips: [
       {
         id: 1,
@@ -3407,7 +3978,7 @@ const tracks = ref([
     collapsed: false,
     locked: false,
     recording: false,
-    waveform: [],
+    
     clips: [
       {
         id: 3,
@@ -3432,7 +4003,7 @@ const tracks = ref([
     collapsed: false,
     locked: false,
     recording: false,
-    waveform: [],
+    
     clips: [
       {
         id: 301,
@@ -3482,21 +4053,6 @@ const sortedTracks = computed(() => {
   })
 })
 
-// 生成波形数据
-const generateWaveformData = (length = 100) => {
-  return Array.from({ length }, () => Math.random() * 0.8 + 0.2)
-}
-
-// 初始化轨道波形
-const initTrackWaveforms = () => {
-  tracks.value.forEach(track => {
-    track.waveform = generateWaveformData(200)
-  })
-}
-
-// 调用初始化
-initTrackWaveforms()
-
 // 深度语义搜索与金句定位
 const semanticSearchQuery = ref('')
 const searchResults = ref([])
@@ -3522,7 +4078,26 @@ const getSpeakerColorClass = (speaker) => {
     'D': 'bg-orange-100 text-orange-700 border border-orange-200',
     'AI': 'bg-indigo-100 text-indigo-700 border border-indigo-200'
   }
-  return colors[speaker] || 'bg-gray-100 text-gray-700 border border-gray-200'
+  
+  // 为自定义说话人分配颜色
+  if (colors[speaker]) {
+    return colors[speaker]
+  } else {
+    // 根据说话人名称生成哈希值来分配颜色
+    let hash = 0
+    for (let i = 0; i < speaker.length; i++) {
+      hash = speaker.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const colorIndex = Math.abs(hash) % 5
+    const customColors = [
+      'bg-pink-100 text-pink-700 border border-pink-200',
+      'bg-teal-100 text-teal-700 border border-teal-200',
+      'bg-yellow-100 text-yellow-700 border border-yellow-200',
+      'bg-rose-100 text-rose-700 border border-rose-200',
+      'bg-violet-100 text-violet-700 border border-violet-200'
+    ]
+    return customColors[colorIndex]
+  }
 }
 
 // 获取说话人背景色
@@ -3534,7 +4109,26 @@ const getSpeakerBgColor = (speaker) => {
     'D': 'bg-orange-50',
     'AI': 'bg-indigo-50'
   }
-  return bgColors[speaker] || 'bg-gray-50'
+  
+  // 为自定义说话人分配背景颜色
+  if (bgColors[speaker]) {
+    return bgColors[speaker]
+  } else {
+    // 根据说话人名称生成哈希值来分配颜色
+    let hash = 0
+    for (let i = 0; i < speaker.length; i++) {
+      hash = speaker.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const colorIndex = Math.abs(hash) % 5
+    const customBgColors = [
+      'bg-pink-50',
+      'bg-teal-50',
+      'bg-yellow-50',
+      'bg-rose-50',
+      'bg-violet-50'
+    ]
+    return customBgColors[colorIndex]
+  }
 }
 
 const scrollToGoldenSentence = (sentence) => {
@@ -3739,10 +4333,13 @@ const generateSocialCopy = async () => {
   
   await new Promise(resolve => setTimeout(resolve, 1500))
   
+  const title = shownotesData.value?.titles?.[0] || '播客标题'
+  const summary = shownotesData.value?.summary || '播客内容摘要'
+  
   const copies = {
-    wechat: `【深度好文】AI 如何改变播客创作？\n\n今天想和大家聊聊 AI 在音频领域的应用。🎙️\n\n从语音转写到智能剪辑，AI 正在悄然改变我们的创作方式。本期节目，我们邀请到了资深制作人，一起探讨技术背后的无限可能。\n\n🎧 收听指南：\n03:15 AI 剪辑的优势\n12:30 内容创作者的机遇\n\n#播客 #AI #内容创作`,
-    xiaohongshu: `宝藏播客推荐！✨ AI 搞定播客制作？\n\n姐妹们！发现了一个超级好用的播客制作神器 PodPal！🎤\n\n以前剪辑要花好几个小时，现在 AI 一键搞定！真的太香了！😭\n\n本期节目干货满满，想做播客的宝子们千万不要错过！\n\n#播客 #宝藏App #AI工具 #高效工作`,
-    weibo: `AI 时代的播客创作新范式。🎙️\n\n本期节目聊了聊 AI 技术对音频内容生产的影响。在这个效率至上的时代，创作者该如何利用工具赋能？\n\n点击链接收听完整节目 👇\n\n#播客 #科技 #AI`
+    wechat: `【${title}】\n\n${summary.substring(0, 150)}...\n\n🎧 本期亮点：\n${shownotesData.value?.timeline?.slice(0, 3).map(item => `${item.timestamp} ${item.topic}`).join('\n') || '精彩内容等你来听'}\n\n#播客 #AI #内容创作`,
+    xiaohongshu: `宝藏播客推荐！✨ ${title}\n\n宝子们！发现了一期超有料的播客！🎤\n\n${summary.substring(0, 100)}...\n\n真的学到了很多，强烈推荐给所有想做内容的小伙伴！\n\n#播客 #AI工具 #内容创作 #知识分享`,
+    weibo: `🎙️ 新一期播客上线：${title}\n\n${summary.substring(0, 80)}...\n\n点击链接收听完整内容 👇\n\n${shownotesData.value?.timeline?.slice(0, 2).map(item => `${item.timestamp} ${item.topic}`).join('\n') || ''}\n\n#播客 #科技 #AI`
   }
   
   socialCopyContent.value = copies[socialPlatform.value] || copies.wechat
@@ -4692,9 +5289,178 @@ const applyScriptOptimization = (type) => {
 // 最近语音生成任务（用于在面板中展示）
 const voiceTasks = ref([])
 
+// 提示词生成语音相关状态
+const voicePrompt = ref('')
+const isGeneratingVoice = ref(false)
+const generatedVoiceSentences = ref([])
+
+// 根据提示词生成语音内容
+const generateVoiceFromPrompt = async () => {
+  if (!voicePrompt.value.trim()) return
+  
+  isGeneratingVoice.value = true
+  
+  try {
+    // 模拟AI生成过程
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // 根据提示词内容智能生成符合语境的句子
+    const prompt = voicePrompt.value.toLowerCase()
+    const sentences = []
+    
+    // 检测提示词中的场景和意图
+    const isOpening = prompt.includes('开场') || prompt.includes('开头') || prompt.includes('开始')
+    const isEnding = prompt.includes('结尾') || prompt.includes('结束') || prompt.includes('收场')
+    const isTransition = prompt.includes('过渡') || prompt.includes('转场') || prompt.includes('衔接')
+    const isIntroduction = prompt.includes('介绍') || prompt.includes('引入')
+    const isCasual = prompt.includes('轻松') || prompt.includes('随意') || prompt.includes('休闲')
+    const isProfessional = prompt.includes('专业') || prompt.includes('正式') || prompt.includes('严肃')
+    const isWarm = prompt.includes('温暖') || prompt.includes('亲切') || prompt.includes('友好')
+    
+    if (isOpening) {
+      if (isCasual) {
+        sentences.push(
+          { id: Date.now() + 1, text: '哈喽大家好，欢迎来到今天的节目，我是你们的主持人，今天我们要聊一个特别有意思的话题。', duration: 8, style: '轻松开场' },
+          { id: Date.now() + 2, text: '嘿，各位听众朋友，又见面啦！今天咱们不聊别的，就聊聊最近特别火的那些事儿。', duration: 7, style: '亲切开场' },
+          { id: Date.now() + 3, text: '大家好呀，欢迎来到这期节目，今天准备了一些新鲜内容，希望能给大家带来不一样的体验。', duration: 9, style: '自然开场' }
+        )
+      } else if (isProfessional) {
+        sentences.push(
+          { id: Date.now() + 1, text: '各位听众大家好，欢迎收听本期节目。今天我们将深入探讨行业发展趋势，为您带来专业的分析和见解。', duration: 10, style: '专业开场' },
+          { id: Date.now() + 2, text: '大家好，欢迎准时收听。本期节目我们邀请到了行业专家，一起解读最新的市场动态。', duration: 9, style: '正式开场' }
+        )
+      } else {
+        sentences.push(
+          { id: Date.now() + 1, text: '大家好，欢迎收听今天的节目。今天我们要和大家聊聊一个很多人都关心的话题。', duration: 8, style: '标准开场' },
+          { id: Date.now() + 2, text: '哈喽，各位好！欢迎来到这期节目，今天的内容很精彩，大家可要认真听哦。', duration: 7, style: '活泼开场' }
+        )
+      }
+    } else if (isEnding) {
+      sentences.push(
+        { id: Date.now() + 1, text: '好了，今天的节目就到这里了，感谢大家的收听，我们下期再见！', duration: 6, style: '简洁收尾' },
+        { id: Date.now() + 2, text: '感谢各位的陪伴，希望今天的内容对你有所帮助。记得点赞订阅，我们下期节目不见不散！', duration: 9, style: '互动收尾' },
+        { id: Date.now() + 3, text: '今天的分享就到这里，如果你有什么想法，欢迎在评论区留言。感谢收听，拜拜！', duration: 8, style: '轻松收尾' }
+      )
+    } else if (isTransition) {
+      sentences.push(
+        { id: Date.now() + 1, text: '说完了这个，咱们再来聊聊另一个有意思的话题。', duration: 5, style: '自然过渡' },
+        { id: Date.now() + 2, text: '刚才我们谈到了问题的表面，接下来让我们深入看看背后的原因。', duration: 7, style: '深入过渡' },
+        { id: Date.now() + 3, text: '这个话题就先聊到这里，下面我们来听听嘉宾有什么看法。', duration: 6, style: '转场过渡' }
+      )
+    } else if (isIntroduction) {
+      sentences.push(
+        { id: Date.now() + 1, text: '在开始之前，我先简单介绍一下今天的嘉宾背景。', duration: 5, style: '介绍过渡' },
+        { id: Date.now() + 2, text: '可能有些听众对这个话题不太熟悉，我先给大家做个简单的背景说明。', duration: 7, style: '背景介绍' }
+      )
+    } else {
+      // 通用回复
+      if (isWarm) {
+        sentences.push(
+          { id: Date.now() + 1, text: '其实这个问题挺有意思的，我觉得可以从几个不同的角度来看。', duration: 6, style: '温和表达' },
+          { id: Date.now() + 2, text: '听到这里，不知道大家有没有同感？我自己是觉得挺有道理的。', duration: 6, style: '亲切互动' }
+        )
+      } else if (isProfessional) {
+        sentences.push(
+          { id: Date.now() + 1, text: '从专业角度分析，这个现象背后有几个关键因素值得我们关注。', duration: 7, style: '专业分析' },
+          { id: Date.now() + 2, text: '基于现有数据和行业经验，我们可以得出以下结论。', duration: 6, style: '严谨表达' }
+        )
+      } else {
+        sentences.push(
+          { id: Date.now() + 1, text: '这个问题确实值得好好聊聊，我个人的看法是这样的。', duration: 5, style: '自然表达' },
+          { id: Date.now() + 2, text: '不知道大家有没有注意到，最近这个现象越来越普遍了。', duration: 6, style: '引导思考' },
+          { id: Date.now() + 3, text: '说到这儿，我突然想到一个相关的例子，特别能说明问题。', duration: 6, style: '举例引入' }
+        )
+      }
+    }
+    
+    generatedVoiceSentences.value = sentences
+    
+    // 同时添加到任务列表
+    sentences.forEach((sentence, idx) => {
+      voiceTasks.value.unshift({
+        id: sentence.id,
+        type: 'prompt-generated',
+        label: `AI生成语音 ${idx + 1}`,
+        status: '已完成',
+        createdAt: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+        note: sentence.text.substring(0, 30) + '...',
+        ttsText: sentence.text,
+        duration: sentence.duration,
+        style: sentence.style
+      })
+    })
+    
+  } catch (error) {
+    console.error('生成语音内容失败:', error)
+  } finally {
+    isGeneratingVoice.value = false
+  }
+}
+
+// 选择语音句子插入到文字稿
+const selectVoiceSentence = (sentence) => {
+  // 将生成的句子作为TTS插入到当前位置
+  const newSeg = {
+    startTime: currentTime.value,
+    endTime: currentTime.value + sentence.duration,
+    speaker: 'AI',
+    text: '[TTS]' + sentence.text,
+    confirmed: false,
+    originalText: sentence.text // 保存原文参考
+  }
+  
+  // 找到当前时间对应的插入位置
+  const insertIndex = mockTranscript.value.findIndex(seg => seg.startTime > currentTime.value)
+  if (insertIndex !== -1) {
+    mockTranscript.value.splice(insertIndex, 0, newSeg)
+  } else {
+    mockTranscript.value.push(newSeg)
+  }
+  
+  // 标记为已插入
+  const task = voiceTasks.value.find(t => t.ttsText === sentence.text)
+  if (task) {
+    task.inserted = true
+  }
+  
+  // 显示提示
+  audioOptimizeMessage.value = `已插入语音内容：${sentence.text.substring(0, 20)}...`
+  setTimeout(() => {
+    audioOptimizeMessage.value = ''
+  }, 3000)
+}
+
+// 预览语音句子
+const previewVoiceSentence = (sentence) => {
+  // 模拟预览功能
+  audioOptimizeMessage.value = `正在预览：${sentence.text.substring(0, 20)}...`
+  setTimeout(() => {
+    audioOptimizeMessage.value = ''
+  }, 2000)
+}
+
+// 为生成的句子打开TTS预览编辑
+const openTTSPreviewForSentence = (sentence) => {
+  // 创建一个临时任务对象用于TTS预览
+  const tempTask = {
+    id: sentence.id,
+    type: 'prompt-generated',
+    label: `AI生成语音`,
+    status: '已完成',
+    ttsText: sentence.text,
+    duration: sentence.duration,
+    style: sentence.style
+  }
+  
+  // 打开TTS预览模态框
+  currentTTSTask.value = tempTask
+  ttsDraftText.value = sentence.text
+  showTTSModal.value = true
+}
+
 // 语音生成按钮交互：生成一条任务记录
 const handleVoiceTool = (type) => {
-  const label = type === 'clone' ? '声线克隆' : '多角色生成'
+  const label = type === 'clone' ? '声线克隆' : '语音生成'
   const id = Date.now()
   voiceTasks.value.unshift({
     id,
@@ -4704,7 +5470,7 @@ const handleVoiceTool = (type) => {
     createdAt: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
     note: type === 'clone'
       ? '会根据当前项目的一段语音生成新的声线配置。'
-      : '会为当前文稿生成多角色朗读方案。',
+      : '根据提示词生成符合语境的语音内容。',
     ttsText: '这是一段示例的 AI 合成语音文稿，可在“查看”中修改后插入到文字稿。'
   })
   // 简单模拟：2 秒后把任务标记为“已完成”
@@ -4827,6 +5593,20 @@ const addMarker = () => {
     time: currentTime.value,
     label: `标记 ${markers.value.length + 1}`
   })
+}
+
+const addMarkerAtSentence = (sentence) => {
+  markers.value.push({
+    id: Date.now(),
+    time: sentence.startTime,
+    label: `金句: ${sentence.content.substring(0, 10)}...`
+  })
+  
+  // 显示提示
+  audioOptimizeMessage.value = `已在 ${formatTime(sentence.startTime)} 添加标记点`
+  setTimeout(() => {
+    audioOptimizeMessage.value = ''
+  }, 3000)
 }
 
 const deleteMarker = (markerId) => {
