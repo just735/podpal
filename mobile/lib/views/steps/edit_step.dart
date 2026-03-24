@@ -17,6 +17,7 @@ class _EditStepState extends State<EditStep> {
   final List<String> _fillerWords = ['就是', '然后', '那个', '嗯', '啊', '呃', '诶', '你知道', '对吧', '可以说', '怎么说呢', '就是说'];
   
   List<Map<String, dynamic>> _transcript = [];
+  List<Map<String, dynamic>> _aiSummaries = [];
   List<Map<String, dynamic>> _voiceTasks = [
     {
       'id': '1',
@@ -161,6 +162,47 @@ class _EditStepState extends State<EditStep> {
         },
       };
     }).toList();
+    
+    _generateAISummaries();
+  }
+
+  void _generateAISummaries() {
+    _aiSummaries = [];
+    
+    if (_transcript.isEmpty) return;
+    
+    int segmentCount = _transcript.length;
+    int segmentsPerSection = (segmentCount / 3).ceil();
+    
+    for (int i = 0; i < segmentCount; i += segmentsPerSection) {
+      int endIndex = math.min(i + segmentsPerSection, segmentCount);
+      List<Map<String, dynamic>> section = _transcript.sublist(i, endIndex);
+      
+      String summary = _generateSummaryForSection(section, i ~/ segmentsPerSection);
+      
+      _aiSummaries.add({
+        'startIndex': i,
+        'endIndex': endIndex - 1,
+        'summary': summary,
+        'sectionNumber': _aiSummaries.length + 1,
+      });
+    }
+  }
+
+  String _generateSummaryForSection(List<Map<String, dynamic>> section, int sectionIndex) {
+    final List<String> texts = section.map((item) => item['text'] as String).toList();
+    final String fullText = texts.join(' ');
+    
+    switch (sectionIndex) {
+      case 0:
+        return '开场引入：讨论AI介入创作的热门话题，提出AI剪辑缺乏人情味的担忧';
+      case 1:
+        return '深入探讨：阐述人类聊天中"停顿"的意义，强调智能应做逻辑筛选而非物理减法';
+      case 2:
+        return '总结升华：PodPal的文稿式剪辑让创作更民主化，技术退居幕后，表达走向台前';
+      default:
+        return '本段讨论了播客创作与AI技术结合的相关话题';
+    }
   }
 
   List<Map<String, dynamic>> _parseTranscriptToTokens(String text) {
@@ -305,6 +347,7 @@ class _EditStepState extends State<EditStep> {
     }
     _history.add(_transcript.map(_cloneItem).toList());
     _historyIndex++;
+    _generateAISummaries();
   }
 
   void _undo() {
@@ -1073,14 +1116,28 @@ class _EditStepState extends State<EditStep> {
                     itemCount: _filteredTranscript.length,
                     itemBuilder: (context, index) {
                       final item = _filteredTranscript[index];
-                      // Find original index for editing
                       final originalIndex = _transcript.indexOf(item);
-                      return _buildTranscriptItem(
+                      
+                      Widget content = _buildTranscriptItem(
                         originalIndex,
                         (item['speaker'] as String?) ?? '',
                         (item['time'] as String?) ?? '',
                         (item['tokens'] as List?)?.cast<Map<String, dynamic>>() ?? [],
                       );
+                      
+                      for (final summary in _aiSummaries) {
+                        if (originalIndex == summary['startIndex']) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildAISummaryCard(summary),
+                              content,
+                            ],
+                          );
+                        }
+                      }
+                      
+                      return content;
                     },
                   ),
                 ),
@@ -3788,6 +3845,93 @@ class _EditStepState extends State<EditStep> {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAISummaryCard(Map<String, dynamic> summary) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFF0F9FF),
+            const Color(0xFFE0F2FE),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFBAE6FD),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0284C7).withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0284C7).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'AI 总结 · 第 ${summary['sectionNumber']} 部分',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0284C7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  summary['summary'],
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF334155),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
