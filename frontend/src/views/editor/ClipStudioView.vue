@@ -1952,7 +1952,7 @@
                         <div v-if="currentPreviewPlatform === 'xiaoyuzhou'" class="max-w-md mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
                            <div class="p-4">
                               <div class="flex gap-3">
-                                 <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-lg flex-shrink-0"></div>
+                                 <img :src="xiaoyuzhouCoverImage" alt="小宇宙封面" class="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
                                  <div class="flex-1 min-w-0">
                                     <h4 class="text-base font-bold text-gray-900 line-clamp-2">{{ shownotesData?.titles?.[0] || '播客标题' }}</h4>
                                     <p class="text-xs text-gray-500 mt-1">PodPal Studio</p>
@@ -1989,7 +1989,11 @@
                                  <span class="text-sm text-gray-600">PodPal Studio</span>
                               </div>
                               <h4 class="text-lg font-bold text-gray-900 mb-2">{{ shownotesData?.titles?.[0] || '播客标题' }}</h4>
-                              <div class="w-full h-48 bg-gradient-to-br from-pink-400 to-purple-500 rounded-lg mb-3"></div>
+                              <img
+                                :src="wechatImage"
+                                alt="微信公众号封面"
+                                class="w-full h-48 object-cover rounded-lg mb-3"
+                              />
                               <p class="text-sm text-gray-700 leading-relaxed">{{ shownotesData?.summary || '播客摘要内容...' }}</p>
                               <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                  <div class="flex items-center gap-2">
@@ -2006,7 +2010,8 @@
                         
                         <!-- 小红书预览 -->
                         <div v-if="currentPreviewPlatform === 'xiaohongshu'" class="max-w-sm mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
-                           <div class="aspect-square bg-gradient-to-br from-pink-400 to-purple-500 relative">
+                           <div class="aspect-square relative">
+                              <img :src="xiaohongshuImage" alt="小红书封面" class="w-full h-full object-cover" />
                               <div class="absolute top-3 left-3 px-2 py-1 bg-black/50 rounded-full text-white text-xs">播客</div>
                            </div>
                            <div class="p-3">
@@ -2046,7 +2051,7 @@
                               </div>
                               <p class="text-sm text-gray-800 mt-3">🎧 新一期播客上线！<br/><br/>{{ shownotesData?.summary?.substring(0, 100) || '播客摘要...' }}...</p>
                               <div class="mt-3 rounded-lg overflow-hidden border border-gray-200">
-                                 <div class="h-32 bg-gradient-to-br from-pink-400 to-purple-500"></div>
+                                 <img :src="weiboImage" alt="微博封面" class="w-full h-32 object-cover" />
                                  <div class="p-2 bg-gray-50">
                                     <div class="text-xs font-medium text-gray-900">{{ shownotesData?.titles?.[0] || '播客标题' }}</div>
                                     <div class="text-xs text-gray-500">点击收听</div>
@@ -3023,6 +3028,10 @@ import qqIcon from '../../static/QQ.png'
 import xiaohongshuIcon from '../../static/xiaohongshu.png'
 import appleIcon from '../../static/Apple播客.png'
 import xiaoyuzhouIcon from '../../static/小宇宙.png'
+import xiaoyuzhouCoverImage from '../../assets/xiaoyuzhou.png'
+import wechatImage from '../../assets/wechat.png'
+import xiaohongshuImage from '../../assets/xiaohongshu.png'
+import weiboImage from '../../assets/weibo.png'
 
 const route = useRoute()
 const projectStore = useProjectStore()
