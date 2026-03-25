@@ -465,68 +465,21 @@
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
               <button
-                @click="showWaveform = false"
-                class="px-3 py-1.5 text-sm rounded-lg transition"
-                :class="!showWaveform ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
+                class="px-3 py-1.5 text-sm rounded-lg transition bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white"
               >
                 📝 文字稿
               </button>
-              <button
-                @click="showWaveform = true"
-                class="px-3 py-1.5 text-sm rounded-lg transition"
-                :class="showWaveform ? 'bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white' : 'text-gray-600 hover:bg-pink-100'"
-              >
-                📊 波形图
-              </button>
+
             </div>
-            <!-- AI 总结按钮 -->
-            <button
-              v-if="!showWaveform"
-              @click="generateAISummaries"
-              :disabled="isGeneratingAiSummary || mockTranscript.length === 0"
-              class="px-3 py-1.5 text-sm rounded-lg transition flex items-center gap-2"
-              :class="isGeneratingAiSummary ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'"
-            >
-              <svg v-if="isGeneratingAiSummary" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              {{ isGeneratingAiSummary ? '生成中...' : '生成AI总结' }}
-            </button>
+
           </div>
 
           <!-- 波形可视化区域 -->
-          <div v-if="showWaveform" class="flex-1 flex items-center justify-center mb-4">
-            <div class="w-full max-w-5xl h-32 flex items-end justify-center gap-0.5 px-4 relative">
-              <!-- 播放指示线 -->
-              <div 
-                class="absolute top-0 bottom-0 w-0.5 bg-gradient-to-b from-red-500 via-pink-500 to-transparent z-10 pointer-events-none transition-all duration-100"
-                :style="{ left: (currentTime / audioDuration * 100) + '%' }"
-              >
-                <div class="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
-              </div>
-              <!-- 波形条 -->
-              <div 
-                v-for="i in 120" 
-                :key="i" 
-                class="flex-1 bg-gradient-to-t from-pink-400 via-purple-400 to-pink-400 rounded-t transition-all duration-300 hover:from-pink-500 hover:via-purple-500 hover:to-pink-500 cursor-pointer"
-                :class="{ 'opacity-50': Math.abs((i / 120) * 100 - (currentTime / audioDuration * 100)) > 5 }"
-                :style="{ 
-                  height: (Math.sin(i * 0.15) * 25 + 40) + '%',
-                  minHeight: '8px',
-                  animationDelay: i * 0.02 + 's',
-                  animation: isPlaying ? `wave ${0.5 + Math.random() * 0.5}s ease-in-out infinite` : 'none'
-                }"
-                @click="seekToPercentage(i / 120)"
-              ></div>
-            </div>
-          </div>
+
 
           <!-- 文字稿区域（可编辑 & 口癖高亮） -->
-          <div v-else ref="transcriptContainer" class="flex-1 bg-white rounded-lg border border-pink-200 p-4 overflow-y-auto relative">
+          <div ref="transcriptContainer" class="flex-1 bg-white rounded-lg border border-pink-200 p-4 overflow-y-auto relative"
+               @mouseup="handleTextSelection">
             <!-- 标注说明 -->
             <div class="sticky top-0 z-10 bg-white/90 backdrop-blur-sm pb-2 mb-2 border-b border-pink-100 flex items-center gap-4 text-[10px] text-gray-500">
               <span class="flex items-center gap-1">
@@ -553,6 +506,7 @@
                   :ref="el => setSegmentRef(el, index)"
                   class="group relative"
                 >
+
                 <!-- AI 总结卡片 -->
                 <div v-if="isSummaryStart(index)" class="p-3 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 shadow-sm mb-3">
                   <div class="flex items-start gap-3">
@@ -579,6 +533,7 @@
                   :class="[
                     isCurrentSegment(segment) ? 'bg-gradient-to-r from-pink-100 to-purple-100 border-l-4 border-pink-500' : getSpeakerBgColor(segment.speaker),
                     isSegmentHighlighted(index) ? 'ring-2 ring-pink-400 ring-inset' : '',
+                    segment.isGolden ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-500' : '',
                     segment.text.startsWith('[TTS]') && !segment.confirmed ? 'border border-dashed border-blue-300' : '',
                     segment.text.startsWith('[TTS]') && segment.confirmed ? 'border border-blue-200' : '',
                     segment.isNew ? 'animate-highlightNew' : ''
@@ -588,6 +543,7 @@
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500 font-mono">{{ formatTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}</span>
+                    <span v-if="segment.isGolden" class="text-[10px] bg-yellow-500 text-white px-1.5 rounded">金句</span>
                     <span v-if="segment.text.startsWith('[TTS]')" class="text-[10px] bg-blue-500 text-white px-1.5 rounded">TTS</span>
                     <span v-if="deletedCount(segment.text) > 0" class="text-[10px] bg-red-100 text-red-700 px-1.5 rounded">已留痕</span>
                     <!-- AI 建议图标 -->
@@ -607,6 +563,11 @@
                       @click.stop="insertTTS(index)"
                       class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
                     >+ 插入补录</button>
+                    <button 
+                      @click.stop="toggleGoldenSentence(segment, index)"
+                      class="hidden group-hover:flex text-[10px] text-yellow-500 hover:text-yellow-700 font-medium"
+                      :class="segment.isGolden ? 'text-yellow-600' : 'text-yellow-500'"
+                    >{{ segment.isGolden ? '取消金句' : '标记金句' }}</button>
                     <button 
                       v-if="segment.text.startsWith('[TTS]')"
                       @click.stop="deleteTTSSegment(index)"
@@ -673,9 +634,9 @@
                   </div>
                 </div>
 
-                <!-- 删除编辑模式（非 TTS，允许任意选区删除并留痕） -->
+                <!-- 删除编辑模式（允许任意选区删除并留痕） -->
                 <div 
-                  v-else-if="editingSegmentId === index && !segment.text.startsWith('[TTS]')"
+                  v-else-if="editingSegmentId === index"
                   class="mt-1 text-sm leading-relaxed min-h-[1.5rem] whitespace-pre-wrap border border-pink-200 rounded px-2 py-1"
                   contenteditable="true"
                   @keydown="onSegmentKeydown(segment, $event, index)"
@@ -712,13 +673,13 @@
                 <div 
                   v-else
                   class="mt-1 text-sm leading-relaxed min-h-[1.5rem] whitespace-pre-wrap"
-                  :class="segment.text.startsWith('[TTS]') ? 'text-blue-800 italic' : 'text-gray-900'"
+                  :class="segment.speaker === 'AI' ? 'text-blue-800 italic' : 'text-gray-900'"
                 >
                   <template v-for="(token, tIndex) in parseSegmentText(segment.text)" :key="tIndex">
                     <!-- 口癖 Token -->
                     <span 
                       v-if="token.type === 'filler'" 
-                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      @click="toggleTokenDelete(segment, tIndex)"
                       :data-token-index="tIndex"
                       class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-200 cursor-pointer hover:bg-yellow-200 transition"
                     >
@@ -727,7 +688,7 @@
                     <!-- 口吃 Token -->
                     <span 
                       v-else-if="token.type === 'stutter'"
-                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      @click="toggleTokenDelete(segment, tIndex)"
                       :data-token-index="tIndex"
                       class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200 cursor-pointer hover:bg-purple-200 transition"
                     >
@@ -736,7 +697,7 @@
                     <!-- 已删除 Token -->
                     <span 
                       v-else-if="token.type === 'deleted'"
-                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      @click="toggleTokenDelete(segment, tIndex)"
                       :data-token-index="tIndex"
                       class="text-gray-400 line-through decoration-red-400 decoration-2 mx-0.5 cursor-pointer hover:text-gray-600 transition"
                     >
@@ -745,7 +706,7 @@
                     <!-- 修正后的 Token -->
                     <span 
                       v-else-if="token.type === 'corrected'"
-                      @click.stop="toggleTokenDelete(segment, tIndex)"
+                      @click="toggleTokenDelete(segment, tIndex)"
                       :data-token-index="tIndex"
                       class="inline-flex items-center mx-0.5 px-1 py-0.5 rounded bg-green-100 text-green-800 border border-green-200 cursor-pointer hover:bg-green-200 transition"
                       title="点击撤回此项逻辑优化建议"
@@ -759,13 +720,13 @@
                     <span 
                       v-else-if="token.type === 'space'"
                       :data-token-index="tIndex"
-                      @click.stop="editingSegmentId = index"
+                      @click="editingSegmentId = index"
                     >{{ token.text }}</span>
                     <!-- 普通文本 Token -->
                     <span 
                       v-else
                       :data-token-index="tIndex"
-                      @click.stop="editingSegmentId = index"
+                      @click="editingSegmentId = index"
                       class="cursor-pointer hover:bg-pink-100/50 rounded px-0.5 transition"
                     >
                       {{ token.text }}
@@ -1684,7 +1645,7 @@
                            <button 
                              v-for="s in goldenSentences" 
                              :key="s.id"
-                             @click="toggleGoldenSentence(s)"
+                             @click="toggleSelectedSentence(s)"
                              class="px-2 py-1 rounded text-xs transition border"
                              :class="selectedSentences.includes(s.id) ? 'bg-blue-500 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-pink-300'"
                            >
@@ -2948,6 +2909,15 @@
                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H7a2 2 0 00-2 2v4m0 0h4m-4 0l9 9m4-13a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                            </svg>
                          </button>
+                         <button
+                           @click.stop="insertGeneratedVoiceSentence(sentence)"
+                           class="p-1.5 text-green-500 hover:bg-green-100 rounded transition"
+                           title="插入到文字稿"
+                         >
+                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                           </svg>
+                         </button>
                        </div>
                      </div>
                    </div>
@@ -3110,6 +3080,19 @@
                 高光提取 / 智能金句库
               </h3>
               <div class="p-4 bg-white border border-pink-200 rounded-lg space-y-3">
+                <!-- 手动选中的高光金句预览 -->
+                <div v-if="showHighlightPreview && selectedText" class="space-y-2 pt-2 border-t border-pink-100">
+                  <div class="text-xs font-medium text-gray-900">手动选中的高光金句</div>
+                  <div class="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg">
+                    <div class="text-xs text-gray-900 font-medium mb-2">{{ selectedText }}</div>
+                    <div class="flex justify-end gap-2">
+                      <button class="text-[10px] px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition" @click="addSelectedTextToGoldenSentences">
+                        添加到金句库
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
                 <div class="space-y-2">
                   <label class="text-xs font-medium text-gray-900">语义搜索</label>
                   <div class="flex gap-2">
@@ -3169,7 +3152,7 @@
                 </button>
                 <div v-if="goldenSentences.length" class="space-y-2 pt-2 border-t border-pink-100">
                   <div class="text-xs font-medium text-gray-900">推荐金句</div>
-                  <div v-for="sentence in goldenSentences" :key="sentence.id" class="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg hover:shadow-md transition">
+                  <div v-for="sentence in goldenSentences" :key="sentence.id" class="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg transition">
                     <div class="flex items-start justify-between mb-1">
                       <div class="flex items-center gap-2">
                         <span class="text-[10px] text-gray-600">{{ formatTime(sentence.startTime) }} - {{ formatTime(sentence.endTime) }}</span>
@@ -3208,6 +3191,8 @@
                 </div>
               </div>
             </section>
+            
+
 
             <!-- 语音分析 -->
             <section v-if="false">
@@ -3429,7 +3414,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from '../../stores/project'
 import weixinIcon from '../../static/weixin.png'
 import douyinIcon from '../../static/douyin.png'
@@ -3443,6 +3428,7 @@ import xiaohongshuImage from '../../assets/xiaohongshu.png'
 import weiboImage from '../../assets/weibo.png'
 
 const route = useRoute()
+const router = useRouter()
 const projectStore = useProjectStore()
 
 // 状态管理
@@ -3622,20 +3608,26 @@ const toggleTokenDelete = (segment, tokenIndex) => {
   segment.text = prefix + contentText
 }
 
+// 处理文本选择事件
+const handleTextSelection = () => {
+  const selection = window.getSelection()
+  const text = selection.toString().trim()
+  if (text) {
+    selectedText.value = text
+    showHighlightPreview.value = true
+    // 自动切换到高光金句面板
+    openRightPanel.value = 'highlights'
+  } else {
+    showHighlightPreview.value = false
+  }
+}
+
 // 插入 TTS 片段（待确认）
 const insertTTS = (index) => {
-  const baseSeg = mockTranscript.value[index]
-  const baseEnd = baseSeg?.endTime ?? 0
-  const newSeg = {
-    startTime: baseEnd,
-    endTime: baseEnd + 5,
-    speaker: 'AI',
-    text: '[TTS]请输入合成文本...',
-    originalText: baseSeg?.text || '', // 保存原文参考
-    confirmed: false
-  }
-  mockTranscript.value.splice(index + 1, 0, newSeg)
-  editingSegmentId.value = index + 1
+  // 记录插入位置
+  ttsInsertIndex.value = index
+  // 打开声演实验室
+  openRightPanel.value = 'voice' // 切换到声演实验室面板
 }
 
 // 确认 TTS 片段内容
@@ -3664,6 +3656,120 @@ const deleteTTSSegment = (index) => {
   const seg = mockTranscript.value[index]
   if (!seg || !seg.text.startsWith('[TTS]')) return
   mockTranscript.value.splice(index, 1)
+}
+
+// 插入生成的句子
+const insertGeneratedSentence = () => {
+  if (!generatedSentence.value || ttsInsertIndex.value === null) return
+  
+  const baseSeg = mockTranscript.value[ttsInsertIndex.value]
+  const baseEnd = baseSeg?.endTime ?? 0
+  const newSeg = {
+    startTime: baseEnd,
+    endTime: baseEnd + 5,
+    speaker: 'AI',
+    text: generatedSentence.value,
+    originalText: baseSeg?.text || '',
+    confirmed: false
+  }
+  
+  mockTranscript.value.splice(ttsInsertIndex.value + 1, 0, newSeg)
+  editingSegmentId.value = ttsInsertIndex.value + 1
+  
+  // 重置状态
+  ttsInsertIndex.value = null
+}
+
+// 从声演实验室插入生成的句子
+const insertGeneratedVoiceSentence = (sentence) => {
+  if (!sentence || ttsInsertIndex.value === null) return
+  
+  const baseSeg = mockTranscript.value[ttsInsertIndex.value]
+  const baseEnd = baseSeg?.endTime ?? 0
+  const newSeg = {
+    startTime: baseEnd,
+    endTime: baseEnd + (sentence.duration || 5),
+    speaker: 'AI',
+    text: sentence.text,
+    originalText: baseSeg?.text || '',
+    confirmed: false
+  }
+  
+  mockTranscript.value.splice(ttsInsertIndex.value + 1, 0, newSeg)
+  editingSegmentId.value = ttsInsertIndex.value + 1
+  
+  // 重置状态
+  ttsInsertIndex.value = null
+  
+  // 显示成功提示
+  alert('已插入到文字稿')
+}
+
+// 跳转到内容增值页面
+const goToContentEnhance = () => {
+  console.log('goToContentEnhance called')
+  console.log('router:', router)
+  // 跳转到内容增值标签页
+  router.push({
+    path: '/clip-studio',
+    query: { tab: 'enhance' }
+  })
+}
+
+// 将选中的文本添加到金句库
+const addSelectedTextToGoldenSentences = () => {
+  if (!selectedText.value) return
+  
+  const newGoldenSentence = {
+    id: Date.now(),
+    content: selectedText.value,
+    startTime: 0,
+    endTime: 0,
+    segmentIndex: 0,
+    viralPotential: 85,
+    logicScore: 80,
+    editing: false,
+    highlight: true
+  }
+  
+  goldenSentences.value.unshift(newGoldenSentence)
+  
+  // 重置状态
+  selectedText.value = ''
+  showHighlightPreview.value = false
+  
+  // 显示成功提示
+  alert('已添加到金句库')
+}
+
+// 标记或取消标记金句
+const toggleGoldenSentence = (segment, index) => {
+  segment.isGolden = !segment.isGolden
+  
+  if (segment.isGolden) {
+    // 添加到金句库
+    const newGoldenSentence = {
+      id: Date.now(),
+      content: segment.text,
+      startTime: segment.startTime,
+      endTime: segment.endTime,
+      segmentIndex: index,
+      viralPotential: 85,
+      logicScore: 80,
+      editing: false,
+      highlight: true
+    }
+    goldenSentences.value.unshift(newGoldenSentence)
+    
+    // 显示成功提示
+    alert('已标记为金句')
+  } else {
+    // 从金句库中移除
+    goldenSentences.value = goldenSentences.value.filter(sentence => sentence.segmentIndex !== index)
+    
+    // 显示成功提示
+    alert('已取消金句标记')
+  }
 }
 
 // 文稿删除编辑：阻止输入，仅支持选择后按删除键做留痕
@@ -4051,13 +4157,13 @@ const topicHeatmap = ref([])
 const goldenSentences = ref([])
 const isExtracting = ref(false)
 
-const loadSampleGoldenSentences = () => {
-  goldenSentences.value = [
-    { id: 101, content: '我觉得最核心的优势在于，AI能够帮助创作者从繁琐的机械劳动中解放出来。这就是播客创作的未来，让技术服务于创意。', startTime: 512, endTime: 535, segmentIndex: 5, viralPotential: 92, logicScore: 88, editing: false, highlight: false },
-    { id: 102, content: '其实，创作的本质在于真实性的表达，这才是真正能打动听众的关键所在。', startTime: 780, endTime: 805, segmentIndex: 7, viralPotential: 95, logicScore: 94, editing: false, highlight: false },
-    { id: 103, content: '技术只是工具，创意才是播客的灵魂所在。', startTime: 1050, endTime: 1075, segmentIndex: 9, viralPotential: 89, logicScore: 91, editing: false, highlight: false }
-  ]
-}
+// 文本选择和高光金句
+const selectedText = ref('')
+const showHighlightPreview = ref(false)
+
+// 语音生成相关
+const ttsInsertIndex = ref(null)
+const generatedSentence = ref('')
 
 // 获取说话人颜色类
 const getSpeakerColorClass = (speaker) => {
@@ -4806,7 +4912,7 @@ const videoTemplate = ref('digital-human')
 const isGeneratingVideo = ref(false)
 const generatedVideos = ref([])
 
-const toggleGoldenSentence = (s) => {
+const toggleSelectedSentence = (s) => {
   const idx = selectedSentences.value.indexOf(s.id)
   if (idx >= 0) {
     selectedSentences.value.splice(idx, 1)
@@ -4906,6 +5012,12 @@ const toolTabs = [
     icon: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>` 
   }
 ]
+
+// 检查路由参数，设置初始标签页
+if (route.query.tab && toolTabs.some(t => t.id === route.query.tab)) {
+  activeToolTab.value = route.query.tab
+}
+
 const handleTabClick = (tab) => {
   if (tab.id !== 'upload' && !hasUploaded.value) {
     activeToolTab.value = 'upload'
@@ -6347,6 +6459,8 @@ const extractGoldenSentences = async () => {
     if (!hasTooManyFillers && segment.text.length > 20) {
       const hasKeyword = keywords.some(k => segment.text.includes(k))
       if (hasKeyword) {
+        // 标记为金句
+        segment.isGolden = true
         results.push({
           id: `golden-${index}-${Date.now()}`,
           content: segment.text, // 直接使用原始文本
@@ -6365,6 +6479,14 @@ const extractGoldenSentences = async () => {
 }
 
 const deleteGoldenSentence = (id) => {
+  const sentenceToDelete = goldenSentences.value.find(s => s.id === id)
+  if (sentenceToDelete && sentenceToDelete.segmentIndex !== undefined) {
+    // 取消左侧文字稿的金句标记
+    const segment = mockTranscript.value[sentenceToDelete.segmentIndex]
+    if (segment) {
+      segment.isGolden = false
+    }
+  }
   goldenSentences.value = goldenSentences.value.filter(s => s.id !== id)
 }
 
@@ -6525,7 +6647,7 @@ const copyShareLink = () => {
 
 // 判断当前播放时间是否在某个文字片段内
 const isCurrentSegment = (segment) => {
-  return currentTime.value >= segment.startTime && currentTime.value <= segment.endTime
+  return false
 }
 
 onMounted(async () => {
@@ -6546,8 +6668,8 @@ onMounted(async () => {
     }
   }
   updateTimelineWidth()
-  // 载入示例金句，便于选择
-  loadSampleGoldenSentences()
+  // 自动生成 AI 总结
+  await generateAISummaries()
   // 同步右侧面板高度与中间剪辑区可视高度
   const measureCenter = () => {
     centerPanelHeight.value = timelineContentHeightPx.value
