@@ -2835,12 +2835,12 @@
                 声演实验室
               </h3>
                <div class="space-y-3">
-                 <!-- 提示词输入区域 -->
+                 <!-- 语音内容输入区域 -->
                  <div class="p-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg">
-                   <div class="text-xs font-medium text-gray-700 mb-2">输入提示词生成语音内容</div>
+                   <div class="text-xs font-medium text-gray-700 mb-2">输入语音内容</div>
                    <textarea
                      v-model="voicePrompt"
-                     placeholder="例如：用轻松友好的语气介绍播客开场，时长约10秒..."
+                     placeholder="请输入您想要生成的语音内容..."
                      class="w-full text-xs text-gray-700 bg-white border border-pink-200 rounded p-2 focus:outline-none focus:ring-2 focus:ring-pink-300 resize-none"
                      rows="3"
                    ></textarea>
@@ -2856,7 +2856,7 @@
                      <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                      </svg>
-                     {{ isGeneratingVoice ? '生成中...' : '生成语音内容' }}
+                     {{ isGeneratingVoice ? '生成中...' : '生成语音' }}
                    </button>
                    <!-- 生成进度显示 -->
                    <div v-if="isGeneratingVoice" class="mt-2">
@@ -5406,74 +5406,15 @@ const generateVoiceFromPrompt = async () => {
     // 模拟AI生成过程
     await new Promise(resolve => setTimeout(resolve, 1500))
     
-    // 根据提示词内容智能生成符合语境的句子
-    const prompt = voicePrompt.value.toLowerCase()
-    const sentences = []
-    
-    // 检测提示词中的场景和意图
-    const isOpening = prompt.includes('开场') || prompt.includes('开头') || prompt.includes('开始')
-    const isEnding = prompt.includes('结尾') || prompt.includes('结束') || prompt.includes('收场')
-    const isTransition = prompt.includes('过渡') || prompt.includes('转场') || prompt.includes('衔接')
-    const isIntroduction = prompt.includes('介绍') || prompt.includes('引入')
-    const isCasual = prompt.includes('轻松') || prompt.includes('随意') || prompt.includes('休闲')
-    const isProfessional = prompt.includes('专业') || prompt.includes('正式') || prompt.includes('严肃')
-    const isWarm = prompt.includes('温暖') || prompt.includes('亲切') || prompt.includes('友好')
-    
-    if (isOpening) {
-      if (isCasual) {
-        sentences.push(
-          { id: Date.now() + 1, text: '哈喽大家好，欢迎来到今天的节目，我是你们的主持人，今天我们要聊一个特别有意思的话题。', duration: 8, style: '轻松开场' },
-          { id: Date.now() + 2, text: '嘿，各位听众朋友，又见面啦！今天咱们不聊别的，就聊聊最近特别火的那些事儿。', duration: 7, style: '亲切开场' },
-          { id: Date.now() + 3, text: '大家好呀，欢迎来到这期节目，今天准备了一些新鲜内容，希望能给大家带来不一样的体验。', duration: 9, style: '自然开场' }
-        )
-      } else if (isProfessional) {
-        sentences.push(
-          { id: Date.now() + 1, text: '各位听众大家好，欢迎收听本期节目。今天我们将深入探讨行业发展趋势，为您带来专业的分析和见解。', duration: 10, style: '专业开场' },
-          { id: Date.now() + 2, text: '大家好，欢迎准时收听。本期节目我们邀请到了行业专家，一起解读最新的市场动态。', duration: 9, style: '正式开场' }
-        )
-      } else {
-        sentences.push(
-          { id: Date.now() + 1, text: '大家好，欢迎收听今天的节目。今天我们要和大家聊聊一个很多人都关心的话题。', duration: 8, style: '标准开场' },
-          { id: Date.now() + 2, text: '哈喽，各位好！欢迎来到这期节目，今天的内容很精彩，大家可要认真听哦。', duration: 7, style: '活泼开场' }
-        )
+    // 直接使用用户输入的内容作为生成的句子
+    const sentences = [
+      { 
+        id: Date.now(), 
+        text: voicePrompt.value, 
+        duration: Math.ceil(voicePrompt.value.length / 5), // 简单估算时长
+        style: '自定义内容' 
       }
-    } else if (isEnding) {
-      sentences.push(
-        { id: Date.now() + 1, text: '好了，今天的节目就到这里了，感谢大家的收听，我们下期再见！', duration: 6, style: '简洁收尾' },
-        { id: Date.now() + 2, text: '感谢各位的陪伴，希望今天的内容对你有所帮助。记得点赞订阅，我们下期节目不见不散！', duration: 9, style: '互动收尾' },
-        { id: Date.now() + 3, text: '今天的分享就到这里，如果你有什么想法，欢迎在评论区留言。感谢收听，拜拜！', duration: 8, style: '轻松收尾' }
-      )
-    } else if (isTransition) {
-      sentences.push(
-        { id: Date.now() + 1, text: '说完了这个，咱们再来聊聊另一个有意思的话题。', duration: 5, style: '自然过渡' },
-        { id: Date.now() + 2, text: '刚才我们谈到了问题的表面，接下来让我们深入看看背后的原因。', duration: 7, style: '深入过渡' },
-        { id: Date.now() + 3, text: '这个话题就先聊到这里，下面我们来听听嘉宾有什么看法。', duration: 6, style: '转场过渡' }
-      )
-    } else if (isIntroduction) {
-      sentences.push(
-        { id: Date.now() + 1, text: '在开始之前，我先简单介绍一下今天的嘉宾背景。', duration: 5, style: '介绍过渡' },
-        { id: Date.now() + 2, text: '可能有些听众对这个话题不太熟悉，我先给大家做个简单的背景说明。', duration: 7, style: '背景介绍' }
-      )
-    } else {
-      // 通用回复
-      if (isWarm) {
-        sentences.push(
-          { id: Date.now() + 1, text: '其实这个问题挺有意思的，我觉得可以从几个不同的角度来看。', duration: 6, style: '温和表达' },
-          { id: Date.now() + 2, text: '听到这里，不知道大家有没有同感？我自己是觉得挺有道理的。', duration: 6, style: '亲切互动' }
-        )
-      } else if (isProfessional) {
-        sentences.push(
-          { id: Date.now() + 1, text: '从专业角度分析，这个现象背后有几个关键因素值得我们关注。', duration: 7, style: '专业分析' },
-          { id: Date.now() + 2, text: '基于现有数据和行业经验，我们可以得出以下结论。', duration: 6, style: '严谨表达' }
-        )
-      } else {
-        sentences.push(
-          { id: Date.now() + 1, text: '这个问题确实值得好好聊聊，我个人的看法是这样的。', duration: 5, style: '自然表达' },
-          { id: Date.now() + 2, text: '不知道大家有没有注意到，最近这个现象越来越普遍了。', duration: 6, style: '引导思考' },
-          { id: Date.now() + 3, text: '说到这儿，我突然想到一个相关的例子，特别能说明问题。', duration: 6, style: '举例引入' }
-        )
-      }
-    }
+    ]
     
     generatedVoiceSentences.value = sentences
     
