@@ -58,11 +58,10 @@
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="lg:col-span-2 space-y-3">
-            <div class="aspect-video rounded-lg border border-pink-200 bg-gradient-to-br from-white to-pink-50 flex items-center justify-center text-gray-400 text-sm">
-              <div class="text-center">
-                <div class="text-xs mb-1">平台样式预览：{{ platformName(previewPlatform) }}</div>
-                <div class="text-[11px]">封面 / 金句视频 / 标题区块示意</div>
-              </div>
+            <div class="aspect-video rounded-lg border border-pink-200 overflow-hidden">
+              <video ref="videoRef" src="/src/assets/show.mp4" controls class="w-full h-full object-cover">
+                您的浏览器不支持视频播放
+              </video>
             </div>
             <div class="p-3 bg-white border border-pink-200 rounded-lg">
               <audio ref="audioRef" :src="selectedWork?.audioUrl || ''" controls class="w-full"></audio>
@@ -247,9 +246,25 @@
               <option value="artistic">文艺</option>
             </select>
           </div>
+          <div class="bg-gray-50 p-4 rounded border border-gray-200">
+            <div class="text-sm font-medium text-gray-700 mb-2">选择金句片段</div>
+            <div class="flex flex-wrap gap-2">
+              <button 
+                v-for="s in goldenSentences" 
+                :key="s.id"
+                @click="toggleSelectedSentence(s)"
+                class="px-3 py-1.5 rounded text-xs transition border"
+                :class="selectedSentences.includes(s.id) ? 'bg-blue-500 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-pink-300'"
+              >
+                金句片段 {{ s.id - 100 }} ({{ Math.max(1, Math.round((s.endTime - s.startTime))) }}s)
+              </button>
+              <div v-if="goldenSentences.length === 0" class="text-xs text-gray-500">暂无金句片段，请先在编辑页面标记金句</div>
+            </div>
+          </div>
           <button
             @click="generateVideo"
-            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
+            :disabled="selectedSentences.length === 0"
+            class="w-full px-4 py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             生成预览视频
           </button>
@@ -320,11 +335,20 @@ const videoSettings = ref({
   template: 'simple'
 })
 
+// 金句片段
+const goldenSentences = ref([
+  { id: 101, startTime: 10, endTime: 15, text: 'AI 不是在取代人类，而是在解放重复性劳动' },
+  { id: 102, startTime: 25, endTime: 30, text: '未来的创作者将是超级个体，拥有指挥 AI 军团的能力' },
+  { id: 103, startTime: 40, endTime: 45, text: '工具的平民化将带来新一轮的内容创作大爆发' }
+])
+const selectedSentences = ref([])
+
 // 作品仓库
 const works = ref([])
 const selectedWork = ref(null)
 const previewPlatform = ref('weixin')
 const audioRef = ref(null)
+const videoRef = ref(null)
 const shareUrl = ref('')
 
 const isGenerating = ref(false)
@@ -535,6 +559,15 @@ const platformName = (k) => {
 
 const formatDate = (iso) => {
   try { return new Date(iso).toLocaleDateString('zh-CN') } catch { return '' }
+}
+
+const toggleSelectedSentence = (sentence) => {
+  const index = selectedSentences.value.indexOf(sentence.id)
+  if (index === -1) {
+    selectedSentences.value.push(sentence.id)
+  } else {
+    selectedSentences.value.splice(index, 1)
+  }
 }
 
 onMounted(() => {
