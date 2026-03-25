@@ -543,7 +543,6 @@
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500 font-mono">{{ formatTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}</span>
-                    <span v-if="segment.isGolden" class="text-[10px] bg-yellow-500 text-white px-1.5 rounded">金句</span>
                     <span v-if="segment.text.startsWith('[TTS]')" class="text-[10px] bg-blue-500 text-white px-1.5 rounded">TTS</span>
                     <span v-if="deletedCount(segment.text) > 0" class="text-[10px] bg-red-100 text-red-700 px-1.5 rounded">已留痕</span>
                     <!-- AI 建议图标 -->
@@ -563,11 +562,6 @@
                       @click.stop="insertTTS(index)"
                       class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
                     >+ 插入补录</button>
-                    <button 
-                      @click.stop="toggleGoldenSentence(segment, index)"
-                      class="hidden group-hover:flex text-[10px] text-yellow-500 hover:text-yellow-700 font-medium"
-                      :class="segment.isGolden ? 'text-yellow-600' : 'text-yellow-500'"
-                    >{{ segment.isGolden ? '取消金句' : '标记金句' }}</button>
                     <button 
                       v-if="segment.text.startsWith('[TTS]')"
                       @click.stop="deleteTTSSegment(index)"
@@ -845,12 +839,7 @@
                         </button>
                       </div>
                     </div>
-                    <button 
-                      @click="addMarker"
-                      class="w-full mt-2 px-3 py-1.5 text-xs bg-pink-100 text-pink-600 rounded hover:bg-pink-200 transition"
-                    >
-                      + 添加标记点
-                    </button>
+
                   </div>
                 </div>
               </div>
@@ -2876,15 +2865,18 @@
                    <div
                      v-for="(sentence, idx) in generatedVoiceSentences"
                      :key="sentence.id"
-                     class="p-3 bg-white border border-pink-200 rounded-lg hover:border-pink-400 transition cursor-pointer group shadow-sm"
-                     @click="selectVoiceSentence(sentence)"
+                     class="p-3 bg-white border border-pink-200 rounded-lg hover:border-pink-400 transition group shadow-sm"
                    >
                      <div class="flex items-start gap-2">
                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-[10px] text-white flex-shrink-0">
                          {{ idx + 1 }}
                        </div>
                        <div class="flex-1 min-w-0">
-                         <p class="text-xs text-gray-800 leading-relaxed">{{ sentence.text }}</p>
+                         <div 
+                           contenteditable="true"
+                           @blur="updateSentenceText(sentence, $event)"
+                           class="text-xs text-gray-800 leading-relaxed outline-none focus:ring-2 focus:ring-pink-300 rounded p-1"
+                         >{{ sentence.text }}</div>
                          <div class="flex items-center gap-2 mt-2">
                            <span class="text-[10px] text-gray-500">{{ sentence.duration }}秒</span>
                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-100 text-pink-700">{{ sentence.style }}</span>
@@ -2901,21 +2893,21 @@
                            </svg>
                          </button>
                          <button
-                           @click.stop="openTTSPreviewForSentence(sentence)"
-                           class="p-1.5 text-blue-500 hover:bg-blue-100 rounded transition"
-                           title="编辑"
-                         >
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H7a2 2 0 00-2 2v4m0 0h4m-4 0l9 9m4-13a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                           </svg>
-                         </button>
-                         <button
                            @click.stop="insertGeneratedVoiceSentence(sentence)"
                            class="p-1.5 text-green-500 hover:bg-green-100 rounded transition"
                            title="插入到文字稿"
                          >
                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                           </svg>
+                         </button>
+                         <button
+                           @click.stop="deleteGeneratedVoiceSentence(sentence.id)"
+                           class="p-1.5 text-red-500 hover:bg-red-100 rounded transition"
+                           title="删除"
+                         >
+                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                            </svg>
                          </button>
                        </div>
@@ -3175,17 +3167,7 @@
                     </div>
                     <div class="mt-2">
                       <!-- 标记点功能 -->
-                      <div class="flex items-center gap-2">
-                        <button 
-                          class="text-[10px] px-3 py-1 rounded bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-md transition flex items-center gap-1"
-                          @click.stop="addMarkerAtSentence(sentence)"
-                        >
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                          </svg>
-                          添加标记点
-                        </button>
-                      </div>
+
                     </div>
                   </div>
                 </div>
@@ -3615,8 +3597,13 @@ const handleTextSelection = () => {
   if (text) {
     selectedText.value = text
     showHighlightPreview.value = true
-    // 自动切换到高光金句面板
-    openRightPanel.value = 'highlights'
+    // 检查是否在编辑TTS内容，如果是则不自动切换到高光金句面板
+    const activeElement = document.activeElement
+    const isEditingTTS = activeElement && activeElement.getAttribute('contenteditable') === 'true'
+    if (!isEditingTTS) {
+      // 自动切换到高光金句面板
+      openRightPanel.value = 'highlights'
+    }
   } else {
     showHighlightPreview.value = false
   }
@@ -3690,7 +3677,7 @@ const insertGeneratedVoiceSentence = (sentence) => {
     startTime: baseEnd,
     endTime: baseEnd + (sentence.duration || 5),
     speaker: 'AI',
-    text: sentence.text,
+    text: '[TTS]' + sentence.text,
     originalText: baseSeg?.text || '',
     confirmed: false
   }
@@ -3774,7 +3761,26 @@ const toggleGoldenSentence = (segment, index) => {
 
 // 文稿删除编辑：阻止输入，仅支持选择后按删除键做留痕
 const onSegmentKeydown = (segment, event, index) => {
-  // 禁止输入与换行
+  // 检查是否是TTS内容，如果是则允许正常编辑
+  const isTTSSegment = segment.text.startsWith('[TTS]')
+  
+  if (isTTSSegment) {
+    // TTS内容允许正常编辑，只阻止换行
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      return
+    }
+    // ESC 退出编辑
+    if (event.key === 'Escape') {
+      editingSegmentId.value = null
+      event.preventDefault()
+      return
+    }
+    // 允许其他按键（包括数字、字母、删除等）
+    return
+  }
+  
+  // 非TTS内容：禁止输入与换行
   if (event.key.length === 1 || event.key === 'Enter' || event.key === 'Tab') {
     event.preventDefault()
     return
@@ -5499,6 +5505,23 @@ const openTTSPreviewForSentence = (sentence) => {
   currentTTSTask.value = tempTask
   ttsDraftText.value = sentence.text
   showTTSModal.value = true
+}
+
+// 更新生成的句子文本
+const updateSentenceText = (sentence, event) => {
+  const newText = event.target.innerText.trim()
+  if (newText) {
+    sentence.text = newText
+    // 重新计算时长
+    sentence.duration = Math.ceil(newText.length / 5)
+  }
+}
+
+// 删除生成的句子
+const deleteGeneratedVoiceSentence = (sentenceId) => {
+  generatedVoiceSentences.value = generatedVoiceSentences.value.filter(s => s.id !== sentenceId)
+  // 同时从任务列表中删除
+  voiceTasks.value = voiceTasks.value.filter(t => t.id !== sentenceId)
 }
 
 // 语音生成按钮交互：生成一条任务记录
