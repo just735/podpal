@@ -2455,16 +2455,23 @@
               
               <!-- 预览卡片 -->
               <div class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden">
-                <!-- 封面区域 -->
-                <div class="h-48 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 relative flex items-center justify-center">
-                  <div class="text-center text-white">
-                    <div class="text-3xl font-bold mb-2">{{ shownotesData?.titles?.[0] || currentProject.name || '播客封面' }}</div>
-                    <div class="text-sm opacity-80">PodPal Studio</div>
-                  </div>
-                  <div class="absolute bottom-3 right-3 px-3 py-1 bg-black/30 rounded-full text-white text-xs backdrop-blur-sm">
-                    {{ formatTime(audioDuration) }}
-                  </div>
-                </div>
+               <!-- 封面区域 -->
+<div class="h-48 relative flex items-center justify-center overflow-hidden rounded-t-lg">
+  <!-- 替换为你的封面图 -->
+  <img 
+    src="/src/assets/fengmian.png" 
+    class="absolute inset-0 w-full h-full object-cover"
+    alt="播客封面"
+  />
+  <div class="absolute inset-0 bg-black/20"></div> <!-- 半透明遮罩，让文字更清晰 -->
+  <div class="text-center text-white relative z-10">
+    <div class="text-3xl font-bold mb-2">{{ shownotesData?.titles?.[0] || currentProject.name || '播客封面' }}</div>
+    <div class="text-sm opacity-90">PodPal Studio</div>
+  </div>
+  <div class="absolute bottom-3 right-3 px-3 py-1 bg-black/30 rounded-full text-white text-xs backdrop-blur-sm">
+    {{ formatTime(audioDuration) }}
+  </div>
+</div>
                 
                 <!-- 内容预览 -->
                 <div class="p-6 space-y-6">
@@ -2497,21 +2504,25 @@
                   </div>
                   
                   <!-- 金句视频预览 -->
-                  <div v-if="generatedVideos.length > 0">
-                    <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
-                      金句视频 ({{ generatedVideos.length }}个)
-                    </h3>
-                    <div class="grid grid-cols-3 gap-3">
-                      <div v-for="video in generatedVideos.slice(0, 3)" :key="video.id" class="aspect-video bg-gray-100 rounded-lg overflow-hidden relative group cursor-pointer">
-                        <img :src="video.thumbnail" class="w-full h-full object-cover" />
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                          <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
-                        <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{{ video.duration }}</div>
-                      </div>
-                    </div>
-                  </div>
+<div v-if="generatedVideos.length > 0">
+  <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+    <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
+    金句视频 ({{ generatedVideos.length }}个)
+  </h3>
+  <div class="grid grid-cols-3 gap-3">
+    <div v-for="video in generatedVideos.slice(0, 3)" :key="video.id" class="aspect-video bg-gray-100 rounded-lg overflow-hidden relative cursor-pointer">
+      <!-- ✅ 真视频：自动播放 + 静音 + 循环 -->
+      <video 
+        src="/src/assets/show.mp4" 
+        class="w-full h-full object-cover"
+        muted
+        loop
+        autoplay
+      ></video>
+      <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{{ video.duration }}</div>
+    </div>
+  </div>
+</div>
                   
                   <!-- 社交媒体文案预览 -->
                   <div v-if="socialCopyContent">
