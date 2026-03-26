@@ -563,6 +563,10 @@
                       class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
                     >+ 插入补录</button>
                     <button 
+                      @click.stop="toggleGoldenSentence(segment, index)"
+                      class="hidden group-hover:flex text-[10px] text-amber-500 hover:text-amber-700 font-medium"
+                    >{{ segment.isGolden ? '取消金句' : '标记金句' }}</button>
+                    <button 
                       v-if="segment.text.startsWith('[TTS]')"
                       @click.stop="deleteTTSSegment(index)"
                       class="hidden group-hover:flex text-[10px] text-red-500 hover:text-red-700 font-medium"
@@ -3426,6 +3430,8 @@ const isGenerating = ref(false)
 const openRightPanel = ref('content_post')
 const openEnhancePanel = ref('shownotes')
 
+
+
 // 文本编辑与同步相关状态
 const editingSegmentId = ref(null)
 
@@ -3643,6 +3649,8 @@ const deleteTTSSegment = (index) => {
   if (!seg || !seg.text.startsWith('[TTS]')) return
   mockTranscript.value.splice(index, 1)
 }
+
+
 
 // 插入生成的句子
 const insertGeneratedSentence = () => {
