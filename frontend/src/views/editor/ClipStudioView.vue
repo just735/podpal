@@ -1659,13 +1659,12 @@
                       <div v-if="generatedVideos.length" class="space-y-1.5 pt-2 border-t border-gray-100">
                         <div class="text-xs font-medium text-gray-900">已生成视频</div>
                         <div v-for="(video, idx) in generatedVideos" :key="video.id" class="flex gap-2 p-2 bg-gray-50 rounded border border-gray-200 hover:border-pink-200 transition group">
-                           <div class="w-16 h-12 bg-gray-300 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
-                             <img :src="video.thumbnail" class="w-full h-full object-cover">
-                             <div class="absolute bottom-0.5 right-0.5 px-1 py-0.5 bg-black/50 text-[8px] text-white rounded">{{ video.duration }}</div>
-                             <div class="absolute inset-0 bg-black/30 hidden group-hover:flex items-center justify-center transition">
-                                <svg class="w-5 h-5 text-white opacity-80 hover:opacity-100" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                             </div>
-                           </div>
+                            <div class="w-16 h-12 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
+                              <!-- 这里变成真正的视频！-->
+                          <video 
+                            src="/src/assets/show.mp4"  class="w-full h-full object-cover" muted>
+                          </video>
+                        </div>
                            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                               <div>
                                 <div class="text-xs font-medium text-gray-900 truncate">视频预览_{{ video.id }}</div>
