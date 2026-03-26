@@ -2460,32 +2460,43 @@
               <!-- 预览卡片 -->
               <div class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden">
                 <!-- 封面区域 -->
-                <div class="h-96 relative">
-                  <video ref="exportPreviewVideo" src="/src/assets/show.mp4" autoplay loop muted class="w-full h-full object-contain">
-                    您的浏览器不支持视频播放
-                  </video>
-                  <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
-                    <div class="text-center text-white">
-                      <div class="text-3xl font-bold mb-2">{{ shownotesData?.titles?.[0] || currentProject.name || '播客封面' }}</div>
-                      <div class="text-sm opacity-80">PodPal Studio</div>
-                    </div>
-                  </div>
-                  <div class="absolute bottom-3 right-3 px-3 py-1 bg-black/30 rounded-full text-white text-xs backdrop-blur-sm">
-                    {{ formatTime(audioDuration) }}
-                  </div>
-                  <!-- 进度条 -->
-                  <div class="absolute bottom-0 left-0 right-0 p-4">
-                    <input 
-                      type="range" 
-                      ref="progressBar" 
-                      min="0" 
-                      max="100" 
-                      value="0" 
-                      class="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                      @input="updateVideoProgress"
-                    />
-                  </div>
-                </div>
+                <div class="h-96 relative overflow-hidden rounded-lg">
+  <!-- 封面图片 -->
+  <img 
+    src="/src/assets/fengmian.png" 
+    class="absolute inset-0 w-full h-full object-cover"
+    alt="播客封面"
+  />
+  
+  <!-- 黑色半透明遮罩（让文字更清晰） -->
+  <div class="absolute inset-0 bg-black/30"></div>
+
+  <!-- 中间文字 -->
+  <div class="absolute inset-0 flex items-center justify-center">
+    <div class="text-center text-white">
+      <div class="text-3xl font-bold mb-2">{{ shownotesData?.titles?.[0] || currentProject.name || '播客封面' }}</div>
+      <div class="text-sm opacity-80">PodPal Studio</div>
+    </div>
+  </div>
+
+  <!-- 时长 -->
+  <div class="absolute bottom-3 right-3 px-3 py-1 bg-black/30 rounded-full text-white text-xs backdrop-blur-sm">
+    {{ formatTime(audioDuration) }}
+  </div>
+
+  <!-- 进度条 -->
+  <div class="absolute bottom-0 left-0 right-0 p-4">
+    <input 
+      type="range" 
+      ref="progressBar" 
+      min="0" 
+      max="100" 
+      value="0" 
+      class="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
+      @input="updateVideoProgress"
+    />
+  </div>
+</div>
                 
                 <!-- 内容预览 -->
                 <div class="p-6 space-y-6">
