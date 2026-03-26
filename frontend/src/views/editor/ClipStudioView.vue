@@ -563,6 +563,10 @@
                       class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
                     >+ 插入补录</button>
                     <button 
+                      @click.stop="toggleGoldenSentence(segment, index)"
+                      class="hidden group-hover:flex text-[10px] text-amber-500 hover:text-amber-700 font-medium"
+                    >{{ segment.isGolden ? '取消金句' : '标记金句' }}</button>
+                    <button 
                       v-if="segment.text.startsWith('[TTS]')"
                       @click.stop="deleteTTSSegment(index)"
                       class="hidden group-hover:flex text-[10px] text-red-500 hover:text-red-700 font-medium"
@@ -1659,13 +1663,12 @@
                       <div v-if="generatedVideos.length" class="space-y-1.5 pt-2 border-t border-gray-100">
                         <div class="text-xs font-medium text-gray-900">已生成视频</div>
                         <div v-for="(video, idx) in generatedVideos" :key="video.id" class="flex gap-2 p-2 bg-gray-50 rounded border border-gray-200 hover:border-pink-200 transition group">
-                           <div class="w-16 h-12 bg-gray-300 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
-                             <img :src="video.thumbnail" class="w-full h-full object-cover">
-                             <div class="absolute bottom-0.5 right-0.5 px-1 py-0.5 bg-black/50 text-[8px] text-white rounded">{{ video.duration }}</div>
-                             <div class="absolute inset-0 bg-black/30 hidden group-hover:flex items-center justify-center transition">
-                                <svg class="w-5 h-5 text-white opacity-80 hover:opacity-100" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                             </div>
-                           </div>
+                            <div class="w-16 h-12 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
+                              <!-- 这里变成真正的视频！-->
+                          <video 
+                            src="/src/assets/show.mp4"  class="w-full h-full object-cover" muted>
+                          </video>
+                        </div>
                            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                               <div>
                                 <div class="text-xs font-medium text-gray-900 truncate">视频预览_{{ video.id }}</div>
@@ -1682,6 +1685,28 @@
                         </div>
                       </div>
                    </div>
+                   <!-- 视频预览弹窗（真视频，已替换） -->
+<div v-if="showVideoPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+  <div class="bg-white rounded-lg w-full max-w-2xl overflow-hidden">
+    <div class="p-4 flex justify-between items-center border-b">
+      <h3 class="font-bold text-gray-800">视频预览</h3>
+      <button @click="showVideoPreview = false" class="text-gray-500 text-xl">×</button>
+    </div>
+
+    <!-- ✅ 这里是真视频！！！ -->
+    <video 
+      src="/src/assets/show.mp4" 
+      controls 
+      class="w-full h-auto"
+      autoplay
+      muted
+    ></video>
+
+    <div class="p-3 flex justify-end gap-2">
+      <button @click="showVideoPreview = false" class="px-4 py-2 bg-gray-100 rounded">关闭</button>
+    </div>
+  </div>
+</div>
                 </section>
 
                 <!-- 社交媒体文案 -->
@@ -1853,66 +1878,33 @@
                   </div>
                </div>
 
-               <!-- Video Preview Modal -->
-               <div v-if="showVideoPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showVideoPreview = false">
-                  <div class="bg-white rounded-xl shadow-2xl w-[640px] flex flex-col overflow-hidden animate-scaleIn">
-                     <div class="flex items-center justify-between p-4 border-b border-gray-100">
-                        <h3 class="text-lg font-bold text-gray-900">视频预览</h3>
-                        <button @click="showVideoPreview = false" class="text-gray-400 hover:text-gray-600">
-                           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                     </div>
-                     <div class="aspect-video bg-black flex items-center justify-center relative group">
-                        <!-- Mock Video Player -->
-                        <img :src="currentVideo?.thumbnail" class="w-full h-full object-cover opacity-80">
-                        <div class="absolute inset-0 flex items-center justify-center">
-                           <button 
-                              @click="toggleVideoPlay"
-                              class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:scale-110 transition"
-                           >
-                              <svg v-if="!isVideoPlaying" class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                              <svg v-else class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                           </button>
-                        </div>
-                        <!-- 音频播放进度条 -->
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                           <div class="flex items-center gap-3 mb-2">
-                              <button @click="toggleVideoPlay" class="text-white hover:text-pink-400 transition">
-                                 <svg v-if="!isVideoPlaying" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                                 <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                              </button>
-                              <span class="text-white text-xs font-mono">{{ formatVideoTime(videoCurrentTime) }}</span>
-                              <div 
-                                 class="flex-1 h-1.5 bg-white/30 rounded-full overflow-hidden cursor-pointer"
-                                 @click="seekVideoProgress"
-                              >
-                                 <div 
-                                    class="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-100"
-                                    :style="{ width: videoProgressPercent + '%' }"
-                                 ></div>
-                              </div>
-                              <span class="text-white text-xs font-mono">{{ currentVideo?.duration || '00:00' }}</span>
-                           </div>
-                           <!-- 波形可视化 -->
-                           <div class="flex items-center gap-0.5 h-6 opacity-60">
-                              <div 
-                                 v-for="(bar, idx) in videoWaveformBars" 
-                                 :key="idx"
-                                 class="w-1 bg-gradient-to-t from-pink-400 to-purple-400 rounded-full transition-all duration-75"
-                                 :style="{ 
-                                    height: isVideoPlaying ? (bar * 100) + '%' : (bar * 40) + '%',
-                                    opacity: idx / videoWaveformBars.length < videoProgressPercent / 100 ? 1 : 0.3
-                                 }"
-                              ></div>
-                           </div>
-                        </div>
-                     </div>
-                     <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
-                        <button class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg">下载视频</button>
-                        <button class="px-4 py-2 text-sm bg-pink-500 text-white rounded-lg hover:bg-pink-600 shadow-sm">分享</button>
-                     </div>
-                  </div>
-               </div>
+               <!-- Video Preview Modal - 真视频版本（缩小版） -->
+<div v-if="showVideoPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showVideoPreview = false">
+  <div class="bg-white rounded-xl shadow-2xl w-[480px] flex flex-col overflow-hidden animate-scaleIn">
+    <div class="flex items-center justify-between p-3 border-b border-gray-100">
+      <h3 class="text-base font-bold text-gray-900">视频预览</h3>
+      <button @click="showVideoPreview = false" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+
+    <!-- 真视频区域 -->
+    <div class="aspect-video bg-black">
+      <video 
+        src="/src/assets/show.mp4" 
+        controls 
+        class="w-full h-full object-cover"
+        autoplay
+        muted
+      ></video>
+    </div>
+
+    <div class="p-3 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+      <button class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg">下载视频</button>
+      <button class="px-3 py-1.5 text-sm bg-pink-500 text-white rounded-lg hover:bg-pink-600 shadow-sm">分享</button>
+    </div>
+  </div>
+</div>
 
                <!-- 模拟发布预览 Modal -->
                <div v-if="showPublishPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showPublishPreview = false">
@@ -2526,21 +2518,25 @@
                   </div>
                   
                   <!-- 金句视频预览 -->
-                  <div v-if="generatedVideos.length > 0">
-                    <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
-                      金句视频 ({{ generatedVideos.length }}个)
-                    </h3>
-                    <div class="grid grid-cols-3 gap-3">
-                      <div v-for="video in generatedVideos.slice(0, 3)" :key="video.id" class="aspect-video bg-gray-100 rounded-lg overflow-hidden relative group cursor-pointer">
-                        <img :src="video.thumbnail" class="w-full h-full object-cover" />
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                          <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
-                        <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{{ video.duration }}</div>
-                      </div>
-                    </div>
-                  </div>
+<div v-if="generatedVideos.length > 0">
+  <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+    <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
+    金句视频 ({{ generatedVideos.length }}个)
+  </h3>
+  <div class="grid grid-cols-3 gap-3">
+    <div v-for="video in generatedVideos.slice(0, 3)" :key="video.id" class="aspect-video bg-gray-100 rounded-lg overflow-hidden relative cursor-pointer">
+      <!-- ✅ 真视频：自动播放 + 静音 + 循环 -->
+      <video 
+        src="/src/assets/show.mp4" 
+        class="w-full h-full object-cover"
+        muted
+        loop
+        autoplay
+      ></video>
+      <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{{ video.duration }}</div>
+    </div>
+  </div>
+</div>
                   
                   <!-- 社交媒体文案预览 -->
                   <div v-if="socialCopyContent">
@@ -3665,6 +3661,8 @@ const deleteTTSSegment = (index) => {
   if (!seg || !seg.text.startsWith('[TTS]')) return
   mockTranscript.value.splice(index, 1)
 }
+
+
 
 // 插入生成的句子
 const insertGeneratedSentence = () => {
