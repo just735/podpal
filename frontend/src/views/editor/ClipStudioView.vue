@@ -505,6 +505,7 @@
                   :key="index"
                   :ref="el => setSegmentRef(el, index)"
                   class="group relative"
+                 
                 >
 
                 <!-- AI 总结卡片 -->
@@ -540,6 +541,7 @@
                   ]"
                   @click="seekToTime(segment.startTime)"
                 >
+                
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500 font-mono">{{ formatTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}</span>
@@ -559,23 +561,11 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <div class="relative">
-                      <button 
-                        @click.stop="showInsertMenu(index)"
-                        class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
-                      >+ 插入补录</button>
-                      <div 
-                        v-if="insertMenuIndex === index"
-                        class="absolute top-full left-0 mt-1 bg-white border border-pink-200 rounded-lg shadow-lg z-10"
-                      >
-                        <button 
-                          @click.stop="insertTTSAbove(index)"
-                          class="block w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition"
-                        >在本句上方插入</button>
-                        <button 
-                          @click.stop="insertTTSBelow(index)"
-                          class="block w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition"
-                        >在本句下方插入</button>
-                      </div>
+                     <button 
+  @click.stop="loadSegmentToVoiceLab(segment, index)"
+  class="hidden group-hover:flex text-[10px] text-pink-500 hover:text-pink-700 font-medium"
+>+ 插入补录</button>
+                     
                     </div>
                     <button 
                       @click.stop="toggleGoldenSentence(segment, index)"
@@ -636,6 +626,7 @@
                       </svg>
                       {{ segment.warning }}
                     </div>
+
                     <button 
                       @click.stop="confirmTTS(index)"
                       class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -2893,161 +2884,45 @@
               </div>
             </section>
 
-             <!-- 语音生成（示例交互） -->
-             <section v-show="openRightPanel==='voice'">
-              <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span class="w-1 h-4 bg-pink-500 rounded-full"></span>
-                声演实验室
-              </h3>
-               <div class="space-y-3">
-                 <!-- 锁定的补录内容显示 -->
-                 <div v-if="lockedTTSSegment" class="p-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg">
-                   <div class="text-xs font-medium text-gray-700 mb-2">补录内容</div>
-                   <div class="text-xs text-gray-900 bg-white border border-pink-200 rounded p-2">{{ lockedTTSSegment.text }}</div>
-                 </div>
+             <!-- 语音生成（简化版 - 你要的功能） -->
+<section v-show="openRightPanel==='voice'">
+  <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+    <span class="w-1 h-4 bg-pink-500 rounded-full"></span>
+    声演实验室
+  </h3>
+  <div class="space-y-3">
 
-                 <!-- 音色选择区域 -->
-                 <div v-if="lockedTTSSegment" class="p-3 bg-white border border-pink-200 rounded-lg">
-                   <div class="text-xs font-medium text-gray-700 mb-2">选择音色</div>
-                   <div class="grid grid-cols-2 gap-2">
-                     <button
-                       v-for="voice in voiceOptions"
-                       :key="voice.id"
-                       @click="selectVoice(voice)"
-                       :class="[
-                         'p-2 border rounded text-left transition',
-                         selectedVoice?.id === voice.id 
-                           ? 'border-pink-400 bg-pink-50' 
-                           : 'border-gray-200 hover:border-pink-300'
-                       ]"
-                     >
-                       <div class="flex items-center gap-2">
-                         <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-[10px] text-white">
-                           {{ voice.name.charAt(0) }}
-                         </div>
-                         <div class="flex-1 min-w-0">
-                           <div class="text-xs font-medium text-gray-900 truncate">{{ voice.name }}</div>
-                           <div class="text-[10px] text-gray-500">{{ voice.style }}</div>
-                         </div>
-                       </div>
-                     </button>
-                   </div>
-                 </div>
+    <!-- 已锁定的内容 → 显示输入框可编辑 -->
+    <div v-if="lockedTTSSegment" class="p-3 bg-white border border-gray-200 rounded-lg">
+      <div class="text-xs font-medium text-gray-700 mb-2">编辑补录内容</div>
+      <textarea 
+        v-model="editSupplementText"
+        class="w-full h-28 p-2 border rounded text-sm resize-none"
+        placeholder="在这里输入修改后的文字"
+      />
+    </div>
 
-                 <!-- 音色克隆按钮 -->
-                 <div v-if="lockedTTSSegment && selectedVoice" class="pt-2 border-t border-pink-100">
-                   <button
-                     @click="cloneVoice"
-                     :disabled="isCloningVoice"
-                     class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-xs font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                   >
-                     <svg v-if="isCloningVoice" class="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                     </svg>
-                     <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                     </svg>
-                     {{ isCloningVoice ? '生成中...' : '音色克隆' }}
-                   </button>
-                 </div>
+    <!-- 生成进度条 -->
+    <div v-if="isCloningVoice" class="mb-2">
+      <div class="text-xs text-gray-500 mb-1">正在生成补录文本...</div>
+      <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div class="h-full bg-pink-500 transition-all" :style="{ width: generateProgress + '%' }"></div>
+      </div>
+    </div>
 
-                 <!-- 生成的句子预览 -->
-                 <div v-if="clonedVoiceSentences.length > 0" class="space-y-2">
-                   <div class="text-xs font-medium text-gray-900 flex items-center justify-between">
-                     <span>生成的内容</span>
-                     <span class="text-[10px] text-gray-500">{{ clonedVoiceSentences.length }} 条</span>
-                   </div>
-                   <div
-                     v-for="(sentence, idx) in clonedVoiceSentences"
-                     :key="sentence.id"
-                     class="p-3 bg-white border border-pink-200 rounded-lg hover:border-pink-400 transition group shadow-sm"
-                   >
-                     <div class="flex items-start gap-2">
-                       <div class="w-5 h-5 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-[10px] text-white flex-shrink-0">
-                         {{ idx + 1 }}
-                       </div>
-                       <div class="flex-1 min-w-0">
-                         <div class="text-xs text-gray-800 leading-relaxed">{{ sentence.text }}</div>
-                         <div class="flex items-center gap-2 mt-2">
-                           <span class="text-[10px] text-gray-500">{{ sentence.duration }}秒</span>
-                           <span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-100 text-pink-700">{{ sentence.voiceName }}</span>
-                         </div>
-                       </div>
-                       <div class="flex flex-col gap-1">
-                         <button
-                           @click.stop="previewClonedVoice(sentence)"
-                           class="p-1.5 text-pink-500 hover:bg-pink-100 rounded transition"
-                           title="预览"
-                         >
-                           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                             <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                           </svg>
-                         </button>
-                         <button
-                           @click.stop="confirmInsertClonedVoice(sentence)"
-                           class="p-1.5 text-green-500 hover:bg-green-100 rounded transition"
-                           title="确认插入"
-                         >
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                           </svg>
-                         </button>
-                         <button
-                           @click.stop="deleteClonedVoice(sentence.id)"
-                           class="p-1.5 text-red-500 hover:bg-red-100 rounded transition"
-                           title="删除"
-                         >
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                           </svg>
-                         </button>
-                       </div>
-                     </div>
-                   </div>
-                 </div>
+    <!-- 确认生成按钮 -->
+    <button 
+      @click="confirmEditAndGenerate"
+      :disabled="isCloningVoice || !editSupplementText.trim()"
+      class="w-full py-2 bg-pink-500 text-white text-sm rounded-lg disabled:opacity-50"
+    >
+      {{ isCloningVoice ? '生成中...' : '✅ 确认生成并替换' }}
+    </button>
 
-                 <!-- 插入记录 -->
-                 <div v-if="insertedVoiceRecords.length > 0" class="pt-2 border-t border-pink-100 space-y-2">
-                   <div class="text-xs font-medium text-gray-900">插入记录</div>
-                   <div
-                     v-for="record in insertedVoiceRecords"
-                     :key="record.id"
-                     class="flex items-center justify-between px-2 py-2 rounded bg-pink-50 border border-pink-100 text-[11px] text-gray-700"
-                   >
-                     <div class="flex-1 min-w-0">
-                       <div class="font-medium text-gray-900 truncate">{{ record.text }}</div>
-                       <div class="text-[10px] text-gray-500">{{ record.voiceName }} · {{ record.createdAt }}</div>
-                     </div>
-                     <div class="ml-2 flex items-center gap-1">
-                       <button
-                         @click.stop="editInsertedVoice(record)"
-                         class="p-1 text-orange-500 hover:bg-orange-100 rounded transition"
-                         title="编辑"
-                       >
-                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                         </svg>
-                       </button>
-                       <button
-                         @click.stop="deleteInsertedVoice(record.id)"
-                         class="p-1 text-red-500 hover:bg-red-100 rounded transition"
-                         title="删除"
-                       >
-                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                         </svg>
-                       </button>
-                     </div>
-                   </div>
-                 </div>
+    
 
-                 <!-- 未锁定状态提示 -->
-                 <div v-if="!lockedTTSSegment" class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
-                   <div class="text-xs text-gray-500">请先在文字稿中输入补录内容并点击确认</div>
-                 </div>
-               </div>
-            </section>
+  </div>
+</section>
 
             <section v-show="openRightPanel==='content_post'">
               <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -3443,9 +3318,6 @@
               </div>
             </section>
           </div>
-
-
-
         </div>
       </aside>
     </div>
@@ -3736,67 +3608,43 @@ const showInsertMenu = (index) => {
   insertMenuIndex.value = index
 }
 
-// 在本句上方插入空白文字稿
-const insertTTSAbove = (index) => {
-  insertMenuIndex.value = null
-  
-  const baseSeg = mockTranscript.value[index]
-  const baseStart = baseSeg?.startTime ?? 0
-  const newSeg = {
-    startTime: baseStart - 5,
-    endTime: baseStart,
-    speaker: baseSeg?.speaker || 'A',
-    text: '',
-    isEditing: true,
-    isNew: true
-  }
-  
-  mockTranscript.value.splice(index, 0, newSeg)
-  editingSegmentId.value = index
-  // 切换到声演实验室
-  openRightPanel.value = 'voice'
-}
 
-// 在本句下方插入空白文字稿
-const insertTTSBelow = (index) => {
-  insertMenuIndex.value = null
-  
-  const baseSeg = mockTranscript.value[index]
-  const baseEnd = baseSeg?.endTime ?? 0
-  const newSeg = {
-    startTime: baseEnd,
-    endTime: baseEnd + 5,
-    speaker: baseSeg?.speaker || 'A',
-    text: '',
-    isEditing: true,
-    isNew: true
-  }
-  
-  mockTranscript.value.splice(index + 1, 0, newSeg)
-  editingSegmentId.value = index + 1
-  // 切换到声演实验室
-  openRightPanel.value = 'voice'
-}
-
-// 确认新插入的文字稿
-const confirmNewSegment = (index) => {
+// 直接修改本行！
+const confirmNewSegment = async (index) => {
   const seg = mockTranscript.value[index]
   if (!seg) return
-  
+
+  // ==============================================
+  // 👉 这里就是你要的【假装生成进度条】
+  // ==============================================
+  isCloningVoice.value = true
+  generateProgress.value = 0
+
+  await new Promise((resolve) => {
+    const timer = setInterval(() => {
+      generateProgress.value += 5
+      if (generateProgress.value >= 100) {
+        clearInterval(timer)
+        resolve()
+      }
+    }, 100)
+  })
+
+  // 生成完 → 直接修改本行，不插入、不新增
   seg.isEditing = false
   seg.isNew = false
-  // 标记为TTS补录
   if (!seg.text.startsWith('[TTS]')) {
     seg.text = `[TTS] ${seg.text}`
   }
-  editingSegmentId.value = null
-  
-  // 锁定到声演实验室
+
+  // 锁定到右边（显示你修改后的句子）
   lockedTTSSegment.value = {
     index: index,
     text: seg.text.replace('[TTS] ', '')
   }
-  openRightPanel.value = 'voice'
+
+  editingSegmentId.value = null
+  isCloningVoice.value = false
 }
 
 // 删除新插入的文字稿
@@ -3836,24 +3684,41 @@ const insertTTS = (index) => {
 }
 
 // 确认 TTS 片段内容
-const confirmTTS = (index) => {
+const confirmTTS = async (index) => {
   const seg = mockTranscript.value[index]
   if (!seg || !seg.text.startsWith('[TTS]')) return
-  
-  // 校验逻辑：确保生成的 TTS 文案与原始文稿内容在语义上保持一致
-  // 在实际场景中，这里可以调用 AI 接口进行语义相似度校验
+
+  // ========== 【开始：假装生成进度条】 ==========
+  isGeneratingTTS.value = true
+  generateProgress.value = 0
+
+  await new Promise((resolve) => {
+    const timer = setInterval(() => {
+      generateProgress.value += 6
+      if (generateProgress.value >= 100) {
+        clearInterval(timer)
+        resolve()
+      }
+    }, 100)
+  })
+  // ========== 【结束：假装生成进度条】 ==========
+
+  // 下面是你原来的逻辑，完全不动
   const originalText = seg.originalText || ''
   const ttsText = seg.text.replace('[TTS]', '')
-  
+
   if (originalText && ttsText !== originalText) {
     console.warn(`TTS 文案与原文不一致: 原文="${originalText}", TTS="${ttsText}"`)
     seg.warning = '文案与原文内容不一致，请确认是否继续'
   } else {
     delete seg.warning
   }
-  
+
   seg.confirmed = true
   editingSegmentId.value = null
+
+  // 关闭加载状态
+  isGeneratingTTS.value = false
 }
 
 // 删除 TTS 片段
@@ -4057,6 +3922,8 @@ const selectionStart = ref(null)
 const selectionEnd = ref(null)
 const isDraggingProgress = ref(false)
 const isSelecting = ref(false)
+const isGeneratingTTS = ref(false)       // 生成中状态
+
 
 // AI 总结生成函数
 const generateAISummaries = async () => {
@@ -5641,8 +5508,11 @@ const voiceOptions = ref([
   { id: 5, name: '知性女声', style: '优雅知性' },
   { id: 6, name: '可爱童声', style: '天真可爱' }
 ])
+
 const selectedVoice = ref(null)
 const isCloningVoice = ref(false)
+const generateProgress = ref(0)
+const editSupplementText = ref('')
 const clonedVoiceSentences = ref([])
 const insertedVoiceRecords = ref([])
 
@@ -5778,6 +5648,17 @@ const cloneVoice = async () => {
   if (!lockedTTSSegment.value || !selectedVoice.value) return
   
   isCloningVoice.value = true
+
+    // 👉 模拟进度条加载
+  await new Promise(resolve => {
+    const timer = setInterval(() => {
+      generateProgress.value += 4
+      if (generateProgress.value >= 100) {
+        clearInterval(timer)
+        resolve()
+      }
+    }, 80)
+  })
   
   try {
     // 模拟AI克隆过程
@@ -5875,6 +5756,45 @@ const editInsertedVoice = (record) => {
   
   // 打开声演实验室
   openRightPanel.value = 'voice'
+}
+
+
+// 点击句子 → 加载到右边
+const loadSegmentToVoiceLab = (segment, index) => {
+  lockedTTSSegment.value = {
+    index: index,
+    text: segment.text.replace(/^\[TTS\]\s*/, '')
+  }
+  editSupplementText.value = lockedTTSSegment.value.text
+  openRightPanel.value = 'voice'
+}
+
+// 生成并替换回左边
+const confirmEditAndGenerate = async () => {
+  if (!lockedTTSSegment.value || !editSupplementText.value.trim()) return
+
+  // 开始进度条
+  isCloningVoice.value = true
+  generateProgress.value = 0
+
+  await new Promise((resolve) => {
+    const timer = setInterval(() => {
+      generateProgress.value += 5
+      if (generateProgress.value >= 100) {
+        clearInterval(timer)
+        resolve()
+      }
+    }, 100)
+  })
+
+  // 替换回左边
+  const idx = lockedTTSSegment.value.index
+  mockTranscript.value[idx].text = `[TTS] ${editSupplementText.value}`
+
+  // 重置
+  editSupplementText.value = ''
+  lockedTTSSegment.value = null
+  isCloningVoice.value = false
 }
 
 // 删除插入的语音记录
@@ -6011,6 +5931,7 @@ const toggleEchoRemoval = () => {
 }
 
 // TTS 预览与插入
+
 const showTTSModal = ref(false)
 const currentTTSTask = ref(null)
 const ttsDraftText = ref('')
