@@ -1,4 +1,4 @@
-﻿﻿﻿﻿import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -942,95 +942,12 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
-  final List<Map<String, dynamic>> _tracks = [
-    {
-      'id': 1,
-      'name': '主人声 A',
-      'color': const Color(0xFF6366F1),
-      'clips': [
-        {'name': '大家好，欢迎来到...', 'start': 0.0, 'end': 7.5},
-        {'name': '没错，比如 PodPal...', 'start': 16.0, 'end': 24.0},
-        {'name': '这种个性化的处理...', 'start': 32.5, 'end': 40.0},
-        {'name': '说得太好了。其实...', 'start': 47.5, 'end': 55.0},
-        {'name': '这种理念非常契合...', 'start': 62.5, 'end': 70.0},
-      ]
-    },
-    {
-      'id': 2,
-      'name': '嘉宾声 B',
-      'color': const Color(0xFF10B981),
-      'clips': [
-        {'name': '是的，这确实是一个...', 'start': 7.5, 'end': 16.0},
-        {'name': '而且它它它还能够...', 'start': 24.0, 'end': 32.5},
-        {'name': '我觉得最核心的优势...', 'start': 40.0, 'end': 47.5},
-        {'name': '没错，我们不应该...', 'start': 55.0, 'end': 62.5},
-      ]
-    },
-    {
-      'id': 3,
-      'name': '背景音乐',
-      'color': const Color(0xFFF59E0B),
-      'clips': [
-        {'name': 'BGM - Jazz', 'start': 0.0, 'end': 111.0},
-      ]
-    },
-    {
-      'id': 4,
-      'name': '片头/片尾',
-      'color': const Color(0xFFEC4899),
-      'clips': [
-        {'name': 'Intro', 'start': 0.0, 'end': 5.0},
-      ]
-    },
-  ];
-
   double _zoomLevel = 10.0; // pixels per second
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 轨道编辑区域 (新设计)
-        Container(
-          height: 200,
-          color: Colors.grey[50],
-          child: Column(
-            children: [
-              _buildTimelineRuler(),
-              // 顶部波形预览（简化版条形波形）
-              SizedBox(
-                height: 28,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: List.generate(80, (i) {
-                      final h = 8 + (i % 9) * 2;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1),
-                        child: Container(
-                          width: 2,
-                          height: h.toDouble(),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFF6B9D).withOpacity(0.6 - (i % 5) * 0.08),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _tracks.length,
-                  itemBuilder: (context, index) => _buildTrackRow(_tracks[index]),
-                ),
-              ),
-            ]
-          ),
-        ),
-
         // 文案稿区域
         Expanded(
           child: Container(
@@ -2087,7 +2004,7 @@ class _EditStepState extends State<EditStep> {
                               maxLines: 4,
                               onChanged: (v) => setModalState(() {}),
                               decoration: InputDecoration(
-                                hintText: '请输入要转换的文本内容...',
+                                hintText: '请输入您想要生成的语音内容...',
                                 hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                 contentPadding: const EdgeInsets.all(12),
@@ -2780,11 +2697,7 @@ class _EditStepState extends State<EditStep> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.yellow.shade200, borderRadius: BorderRadius.circular(4)),
-                child: const Text('金句', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-              ),
+
             ],
           ),
           const SizedBox(height: 8),
@@ -3461,101 +3374,7 @@ class _EditStepState extends State<EditStep> {
     );
   }
 
-  Widget _buildTrackRow(Map<String, dynamic> track) {
-    return SizedBox(
-      height: 40,
-      child: Row(
-        children: [
-          Container(
-            width: 110,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                right: BorderSide(color: Colors.grey[300]!, width: 1),
-                bottom: BorderSide(color: Colors.grey[200]!, width: 1),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        track['name'],
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    Icon(Icons.lock_outline, size: 10, color: Colors.grey[300]),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                SizedBox(
-                  height: 12,
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 2,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 3),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 6),
-                      // 减少 Slider 的默认内边距
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: Slider(
-                      value: 80,
-                      onChanged: (v) {},
-                      max: 100,
-                      activeColor: track['color'],
-                      inactiveColor: Colors.grey[200],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: 1200, // Matching timeline width (111s * zoom)
-                child: Stack(
-                  children: [
-                    ...(track['clips'] as List).map((clip) {
-                      double start = clip['start'] * _zoomLevel;
-                      double width = (clip['end'] - clip['start']) * _zoomLevel;
-                      return Positioned(
-                        left: start,
-                        top: 4,
-                        bottom: 4,
-                        child: Container(
-                          width: width,
-                          decoration: BoxDecoration(
-                            color: (track['color'] as Color).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: (track['color'] as Color).withOpacity(0.5)),
-                          ),
-                          child: Center(
-                            child: Text(
-                              clip['name'],
-                              style: TextStyle(fontSize: 8, color: track['color'], overflow: TextOverflow.ellipsis),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildTranscriptItem(int itemIndex, String speaker, String time, List<Map<String, dynamic>> tokens) {
     final item = _transcript[itemIndex];

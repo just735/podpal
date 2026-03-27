@@ -2511,21 +2511,42 @@
               
               <!-- 预览卡片 -->
               <div class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden">
-               <!-- 封面区域 -->
-<div class="h-48 relative flex items-center justify-center overflow-hidden rounded-t-lg">
-  <!-- 替换为你的封面图 -->
+                <!-- 封面区域 -->
+                <div class="h-96 relative overflow-hidden rounded-lg">
+  <!-- 封面图片 -->
   <img 
     src="/src/assets/fengmian.png" 
     class="absolute inset-0 w-full h-full object-cover"
     alt="播客封面"
   />
-  <div class="absolute inset-0 bg-black/20"></div> <!-- 半透明遮罩，让文字更清晰 -->
-  <div class="text-center text-white relative z-10">
-    <div class="text-3xl font-bold mb-2">{{ shownotesData?.titles?.[0] || currentProject.name || '播客封面' }}</div>
-    <div class="text-sm opacity-90">PodPal Studio</div>
+  
+  <!-- 黑色半透明遮罩（让文字更清晰） -->
+  <div class="absolute inset-0 bg-black/30"></div>
+
+  <!-- 中间文字 -->
+  <div class="absolute inset-0 flex items-center justify-center">
+    <div class="text-center text-white">
+      <div class="text-3xl font-bold mb-2">{{ shownotesData?.titles?.[0] || currentProject.name || '播客封面' }}</div>
+      <div class="text-sm opacity-80">PodPal Studio</div>
+    </div>
   </div>
+
+  <!-- 时长 -->
   <div class="absolute bottom-3 right-3 px-3 py-1 bg-black/30 rounded-full text-white text-xs backdrop-blur-sm">
     {{ formatTime(audioDuration) }}
+  </div>
+
+  <!-- 进度条 -->
+  <div class="absolute bottom-0 left-0 right-0 p-4">
+    <input 
+      type="range" 
+      ref="progressBar" 
+      min="0" 
+      max="100" 
+      value="0" 
+      class="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
+      @input="updateVideoProgress"
+    />
   </div>
 </div>
                 
@@ -3524,7 +3545,9 @@ const isGenerating = ref(false)
 const openRightPanel = ref('content_post')
 const openEnhancePanel = ref('shownotes')
 
-
+// 视频预览相关
+const exportPreviewVideo = ref(null)
+const progressBar = ref(null)
 
 // 文本编辑与同步相关状态
 const editingSegmentId = ref(null)
@@ -7108,9 +7131,36 @@ onMounted(async () => {
       }
     }
   })
+  
+  // 监听视频时间更新，同步进度条
+  if (exportPreviewVideo.value) {
+    exportPreviewVideo.value.addEventListener('timeupdate', updateProgressBar)
+  }
 })
 
+const updateVideoProgress = () => {
+  if (!exportPreviewVideo.value || !progressBar.value) return
+  const progress = progressBar.value.value
+  const duration = exportPreviewVideo.value.duration
+  if (duration) {
+    exportPreviewVideo.value.currentTime = (progress / 100) * duration
+  }
+}
+
+const updateProgressBar = () => {
+  if (!exportPreviewVideo.value || !progressBar.value) return
+  const currentTime = exportPreviewVideo.value.currentTime
+  const duration = exportPreviewVideo.value.duration
+  if (duration > 0) {
+    progressBar.value.value = (currentTime / duration) * 100
+  }
+}
+
 onUnmounted(() => {
+  // 移除事件监听器
+  if (exportPreviewVideo.value) {
+    exportPreviewVideo.value.removeEventListener('timeupdate', updateProgressBar)
+  }
   // 清理音频播放定时器
   if (audioPlayInterval) {
     clearInterval(audioPlayInterval)
