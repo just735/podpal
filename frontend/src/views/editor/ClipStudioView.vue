@@ -2916,7 +2916,7 @@
       :disabled="isCloningVoice || !editSupplementText.trim()"
       class="w-full py-2 bg-pink-500 text-white text-sm rounded-lg disabled:opacity-50"
     >
-      {{ isCloningVoice ? '生成中...' : '✅ 确认内容并准备克隆' }}
+      {{ isCloningVoice ? '生成中...' : '确认内容' }}
     </button>
 
     <!-- 克隆语音结果 -->
@@ -2926,7 +2926,6 @@
         <div class="text-sm text-gray-900 mb-2">{{ sentence.text }}</div>
         <div class="flex items-center gap-2 text-xs text-gray-600 mb-3">
           <span class="px-2 py-0.5 bg-pink-50 rounded border border-pink-200">{{ sentence.voiceName }}</span>
-          <span>{{ sentence.voiceStyle }}</span>
           <span class="ml-auto">{{ sentence.duration }}秒</span>
         </div>
         <div class="flex gap-2">
@@ -2946,24 +2945,11 @@
       </div>
     </div>
 
-    <!-- 音色选择 -->
+    <!-- 音色克隆按钮 -->
     <div class="mt-4 space-y-3">
-      <div class="text-xs font-medium text-gray-700">选择音色</div>
-      <div class="grid grid-cols-2 gap-2">
-        <button 
-          v-for="voice in voiceOptions" 
-          :key="voice.id"
-          @click="selectVoice(voice)"
-          class="p-2 border rounded text-xs transition"
-          :class="selectedVoice?.id === voice.id ? 'bg-pink-500 border-pink-500 text-white' : 'border-gray-200 text-gray-700 hover:border-pink-300'"
-        >
-          <div class="font-medium">{{ voice.name }}</div>
-          <div class="text-[10px] opacity-80">{{ voice.style }}</div>
-        </button>
-      </div>
       <button 
         @click="cloneVoice"
-        :disabled="!lockedTTSSegment || !selectedVoice || isCloningVoice"
+        :disabled="!lockedTTSSegment || isCloningVoice"
         class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-sm rounded-lg disabled:opacity-50 transition"
       >
         {{ isCloningVoice ? '克隆中...' : '🎤 音色克隆' }}
@@ -5719,7 +5705,7 @@ const selectVoice = (voice) => {
 
 // 音色克隆
 const cloneVoice = async () => {
-  if (!lockedTTSSegment.value || !selectedVoice.value) return
+  if (!lockedTTSSegment.value) return
   
   isCloningVoice.value = true
 
@@ -5738,14 +5724,17 @@ const cloneVoice = async () => {
     // 模拟AI克隆过程
     await new Promise(resolve => setTimeout(resolve, 2000))
     
+    // 使用默认音色
+    const defaultVoice = voiceOptions.value[0] || { name: '默认音色', id: 'default' }
+    
     // 生成克隆的句子
     const clonedSentence = {
       id: Date.now(),
       text: lockedTTSSegment.value.text,
       duration: Math.ceil(lockedTTSSegment.value.text.length / 5),
-      voiceName: selectedVoice.value.name,
-      voiceStyle: selectedVoice.value.style,
-      voiceId: selectedVoice.value.id
+      voiceName: defaultVoice.name,
+      voiceStyle: defaultVoice.style || '',
+      voiceId: defaultVoice.id
     }
     
     clonedVoiceSentences.value = [clonedSentence]
