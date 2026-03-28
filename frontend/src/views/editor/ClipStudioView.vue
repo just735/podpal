@@ -2894,11 +2894,11 @@
 
     <!-- 已锁定的内容 → 显示输入框可编辑 -->
     <div v-if="lockedTTSSegment" class="p-3 bg-white border border-gray-200 rounded-lg">
-      <div class="text-xs font-medium text-gray-700 mb-2">编辑补录内容</div>
+      <div class="text-xs font-medium text-gray-700 mb-2">新建补录内容</div>
       <textarea 
         v-model="editSupplementText"
         class="w-full h-28 p-2 border rounded text-sm resize-none"
-        placeholder="在这里输入修改后的文字"
+        placeholder="在这里输入要补录的新内容"
       />
     </div>
 
@@ -2916,11 +2916,85 @@
       :disabled="isCloningVoice || !editSupplementText.trim()"
       class="w-full py-2 bg-pink-500 text-white text-sm rounded-lg disabled:opacity-50"
     >
-      {{ isCloningVoice ? '生成中...' : '✅ 确认生成并替换' }}
+      {{ isCloningVoice ? '生成中...' : '✅ 确认内容并准备克隆' }}
     </button>
 
-    
+    <!-- 克隆语音结果 -->
+    <div v-if="clonedVoiceSentences.length > 0" class="mt-4 space-y-3">
+      <div class="text-xs font-medium text-gray-700">克隆语音结果</div>
+      <div v-for="sentence in clonedVoiceSentences" :key="sentence.id" class="p-3 bg-white border border-gray-200 rounded-lg">
+        <div class="text-sm text-gray-900 mb-2">{{ sentence.text }}</div>
+        <div class="flex items-center gap-2 text-xs text-gray-600 mb-3">
+          <span class="px-2 py-0.5 bg-pink-50 rounded border border-pink-200">{{ sentence.voiceName }}</span>
+          <span>{{ sentence.voiceStyle }}</span>
+          <span class="ml-auto">{{ sentence.duration }}秒</span>
+        </div>
+        <div class="flex gap-2">
+          <button 
+            @click="previewClonedVoice(sentence)"
+            class="flex-1 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50 transition"
+          >
+            预览
+          </button>
+          <button 
+            @click="confirmInsertClonedVoice(sentence)"
+            class="flex-1 py-1.5 text-xs bg-pink-500 text-white rounded hover:bg-pink-600 transition"
+          >
+            确认插入
+          </button>
+        </div>
+      </div>
+    </div>
 
+    <!-- 音色选择 -->
+    <div class="mt-4 space-y-3">
+      <div class="text-xs font-medium text-gray-700">选择音色</div>
+      <div class="grid grid-cols-2 gap-2">
+        <button 
+          v-for="voice in voiceOptions" 
+          :key="voice.id"
+          @click="selectVoice(voice)"
+          class="p-2 border rounded text-xs transition"
+          :class="selectedVoice?.id === voice.id ? 'bg-pink-500 border-pink-500 text-white' : 'border-gray-200 text-gray-700 hover:border-pink-300'"
+        >
+          <div class="font-medium">{{ voice.name }}</div>
+          <div class="text-[10px] opacity-80">{{ voice.style }}</div>
+        </button>
+      </div>
+      <button 
+        @click="cloneVoice"
+        :disabled="!lockedTTSSegment || !selectedVoice || isCloningVoice"
+        class="w-full py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white text-sm rounded-lg disabled:opacity-50 transition"
+      >
+        {{ isCloningVoice ? '克隆中...' : '🎤 音色克隆' }}
+      </button>
+    </div>
+
+    <!-- 插入记录 -->
+    <div v-if="insertedVoiceRecords.length > 0" class="mt-4 space-y-3">
+      <div class="text-xs font-medium text-gray-700">插入记录</div>
+      <div v-for="record in insertedVoiceRecords" :key="record.id" class="p-3 bg-white border border-gray-200 rounded-lg">
+        <div class="text-sm text-gray-900 mb-1">{{ record.text }}</div>
+        <div class="flex items-center gap-2 text-xs text-gray-600 mb-2">
+          <span class="px-2 py-0.5 bg-pink-50 rounded border border-pink-200">{{ record.voiceName }}</span>
+          <span class="ml-auto">{{ record.createdAt }}</span>
+        </div>
+        <div class="flex gap-2">
+          <button 
+            @click="editInsertedVoice(record)"
+            class="flex-1 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50 transition"
+          >
+            编辑
+          </button>
+          <button 
+            @click="deleteInsertedVoice(record.id)"
+            class="flex-1 py-1.5 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50 transition"
+          >
+            删除
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -5694,17 +5768,25 @@ const previewClonedVoice = (sentence) => {
 // 确认插入克隆的语音
 const confirmInsertClonedVoice = (sentence) => {
   if (!lockedTTSSegment.value) return
-  
+
   const seg = mockTranscript.value[lockedTTSSegment.value.index]
   if (!seg) return
-  
-  // 更新文字稿
-  seg.text = `[TTS] ${sentence.text}`
-  seg.speaker = sentence.voiceName
-  seg.voiceStyle = sentence.voiceStyle
-  seg.voiceId = sentence.voiceId
-  seg.isCloned = true
-  
+
+  // 创建新的段落插入到当前位置之后
+  const newSeg = {
+    startTime: seg.endTime,
+    endTime: seg.endTime + sentence.duration,
+    speaker: sentence.voiceName,
+    text: `[TTS] ${sentence.text}`,
+    voiceStyle: sentence.voiceStyle,
+    voiceId: sentence.voiceId,
+    isCloned: true,
+    confirmed: true
+  }
+
+  // 在当前段落后插入新段落
+  mockTranscript.value.splice(lockedTTSSegment.value.index + 1, 0, newSeg)
+
   // 添加到插入记录
   const record = {
     id: sentence.id,
@@ -5712,19 +5794,19 @@ const confirmInsertClonedVoice = (sentence) => {
     voiceName: sentence.voiceName,
     voiceStyle: sentence.voiceStyle,
     voiceId: sentence.voiceId,
-    transcriptIndex: lockedTTSSegment.value.index,
+    transcriptIndex: lockedTTSSegment.value.index + 1,
     createdAt: new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }
-  
+
   insertedVoiceRecords.value.unshift(record)
-  
+
   // 清空克隆的句子
   clonedVoiceSentences.value = []
-  
+
   // 解锁
   lockedTTSSegment.value = null
   selectedVoice.value = null
-  
+
   // 显示提示
   audioOptimizeMessage.value = `已插入${sentence.voiceName}生成的语音`
   setTimeout(() => {
@@ -5741,31 +5823,37 @@ const deleteClonedVoice = (sentenceId) => {
 const editInsertedVoice = (record) => {
   const seg = mockTranscript.value[record.transcriptIndex]
   if (!seg) return
-  
+
   // 锁定到声演实验室，移除[TTS]前缀
+  const textWithoutPrefix = seg.text.replace('[TTS] ', '')
   lockedTTSSegment.value = {
     index: record.transcriptIndex,
-    text: seg.text.replace('[TTS] ', '')
+    text: textWithoutPrefix
   }
-  
+
+  // 同步设置编辑文本框的内容
+  editSupplementText.value = textWithoutPrefix
+
   // 选择原来的音色
   const voice = voiceOptions.value.find(v => v.id === record.voiceId)
   if (voice) {
     selectedVoice.value = voice
   }
-  
+
   // 打开声演实验室
   openRightPanel.value = 'voice'
 }
 
 
-// 点击句子 → 加载到右边
+// 点击句子 → 加载到右边（新建补录）
 const loadSegmentToVoiceLab = (segment, index) => {
+  // 标记插入位置，文本框置空让用户输入新内容
   lockedTTSSegment.value = {
     index: index,
-    text: segment.text.replace(/^\[TTS\]\s*/, '')
+    text: '',
+    isNew: true  // 标记为新建模式
   }
-  editSupplementText.value = lockedTTSSegment.value.text
+  editSupplementText.value = ''  // 文本框为空，让用户输入新内容
   openRightPanel.value = 'voice'
 }
 
@@ -5787,14 +5875,17 @@ const confirmEditAndGenerate = async () => {
     }, 100)
   })
 
-  // 替换回左边
-  const idx = lockedTTSSegment.value.index
-  mockTranscript.value[idx].text = `[TTS] ${editSupplementText.value}`
+  // 更新 lockedTTSSegment 的文本为编辑后的内容
+  lockedTTSSegment.value.text = editSupplementText.value
 
-  // 重置
-  editSupplementText.value = ''
-  lockedTTSSegment.value = null
+  // 重置生成状态，但保持 lockedTTSSegment 以便进行音色克隆
   isCloningVoice.value = false
+
+  // 显示提示
+  audioOptimizeMessage.value = '内容已更新，请选择音色进行克隆'
+  setTimeout(() => {
+    audioOptimizeMessage.value = ''
+  }, 2000)
 }
 
 // 删除插入的语音记录
@@ -5819,19 +5910,23 @@ const deleteInsertedVoice = (recordId) => {
 const editClonedSegment = (index) => {
   const seg = mockTranscript.value[index]
   if (!seg || !seg.isCloned) return
-  
+
   // 锁定到声演实验室，移除[TTS]前缀
+  const textWithoutPrefix = seg.text.replace('[TTS] ', '')
   lockedTTSSegment.value = {
     index: index,
-    text: seg.text.replace('[TTS] ', '')
+    text: textWithoutPrefix
   }
-  
+
+  // 同步设置编辑文本框的内容
+  editSupplementText.value = textWithoutPrefix
+
   // 选择原来的音色
   const voice = voiceOptions.value.find(v => v.id === seg.voiceId)
   if (voice) {
     selectedVoice.value = voice
   }
-  
+
   // 打开声演实验室
   openRightPanel.value = 'voice'
 }
