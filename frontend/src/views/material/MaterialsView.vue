@@ -82,6 +82,15 @@
                 </svg>
               </button>
               <button
+                @click="addToProject(material)"
+                class="p-2 hover:bg-blue-50 rounded-lg transition text-gray-600 hover:text-blue-600"
+                title="添加到项目"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <button
                 @click="deleteMaterial(material.id)"
                 class="p-2 hover:bg-red-50 rounded-lg transition text-gray-600 hover:text-red-600"
                 title="删除"
@@ -99,6 +108,12 @@
             >
               {{ material.type === 'audio' ? '音频' : '视频' }}
             </span>
+            <span
+              v-if="material.status === 'processing'"
+              class="px-2 py-1 rounded text-xs bg-pink-100 text-pink-700 border border-pink-300 animate-pulse"
+            >
+              制作中
+            </span>
             <span v-if="material.duration" class="text-xs text-gray-500">
               时长: {{ formatDuration(material.duration) }}
             </span>
@@ -112,18 +127,86 @@
         @close="showUploadModal = false"
         @uploaded="handleUploaded"
       />
+
+      <!-- 预览模态框 -->
+      <div v-if="showPreviewModal && currentPreview" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" @click.self="closePreview">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-gray-900">{{ currentPreview.name }}</h3>
+            <button @click="closePreview" class="text-gray-500 hover:text-gray-700">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div class="mb-4">
+            <div class="flex items-center gap-4 text-sm text-gray-600 mb-4">
+              <span>类型: {{ currentPreview.type === 'audio' ? '音频' : '视频' }}</span>
+              <span>大小: {{ formatFileSize(currentPreview.size) }}</span>
+              <span v-if="currentPreview.duration">时长: {{ formatDuration(currentPreview.duration) }}</span>
+            </div>
+            <div class="bg-gray-100 rounded-lg p-8 text-center">
+              <div class="text-6xl mb-4">{{ currentPreview.type === 'audio' ? '🎵' : '🎬' }}</div>
+              <p class="text-gray-600">预览播放器</p>
+              <p class="text-sm text-gray-500 mt-2">在实际环境中，这里会显示音频/视频播放器</p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button @click="addToProject(currentPreview)" class="px-4 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:opacity-90">
+              添加到项目
+            </button>
+            <button @click="closePreview" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 项目选择器模态框 -->
+      <div v-if="showProjectSelector" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showProjectSelector = false">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+          <h3 class="text-xl font-bold mb-4 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] bg-clip-text text-transparent">选择项目</h3>
+          <div class="max-h-96 overflow-y-auto space-y-2 mb-4">
+            <button
+              v-for="project in projectStore.projects"
+              :key="project.id"
+              @click="handleAddToProject(project.id)"
+              class="w-full text-left p-3 border border-pink-200 rounded-lg hover:bg-pink-50 hover:border-pink-300 transition"
+            >
+              <div class="font-semibold text-gray-900">{{ project.name }}</div>
+              <div class="text-sm text-gray-600">{{ project.description || '暂无描述' }}</div>
+            </button>
+            <button
+              @click="handleCreateNewProject"
+              class="w-full p-3 border-2 border-dashed border-pink-300 rounded-lg hover:bg-pink-50 transition text-pink-600 font-medium"
+            >
+              + 创建新项目
+            </button>
+          </div>
+          <div class="flex justify-end">
+            <button @click="showProjectSelector = false" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMaterialStore } from '../../stores/material'
+import { useProjectStore } from '../../stores/project'
 import UploadModal from '../../components/UploadModal.vue'
 import dayjs from 'dayjs'
 
+const router = useRouter()
+
 const materialStore = useMaterialStore()
+const projectStore = useProjectStore()
 const showUploadModal = ref(false)
+const showPreviewModal = ref(false)
+const showProjectSelector = ref(false)
+const currentPreview = ref(null)
+const selectedMaterialForProject = ref(null)
 const searchQuery = ref('')
 const filterType = ref('')
 const sortBy = ref('createdAt')
@@ -175,8 +258,22 @@ const formatDuration = (seconds) => {
 }
 
 const previewMaterial = (material) => {
-  // 简单的预览反馈，实际项目中可以弹出一个播放器模态框
-  alert(`正在预览: ${material.name}\n类型: ${material.type === 'audio' ? '音频' : '视频'}`)
+  currentPreview.value = material
+  showPreviewModal.value = true
+}
+
+const closePreview = () => {
+  showPreviewModal.value = false
+  currentPreview.value = null
+}
+
+const addToProject = async (material) => {
+  // 加载项目列表
+  if (!projectStore.projects?.length) {
+    await projectStore.fetchProjects()
+  }
+  showProjectSelector.value = true
+  selectedMaterialForProject.value = material
 }
 
 const deleteMaterial = async (id) => {
@@ -188,6 +285,20 @@ const deleteMaterial = async (id) => {
 const handleUploaded = () => {
   showUploadModal.value = false
   materialStore.fetchMaterials()
+}
+
+const handleAddToProject = (projectId) => {
+  if (selectedMaterialForProject.value) {
+    router.push(`/clip-studio/${projectId}?material=${selectedMaterialForProject.value.id}`)
+    showProjectSelector.value = false
+    selectedMaterialForProject.value = null
+  }
+}
+
+const handleCreateNewProject = () => {
+  router.push('/projects?create=true')
+  showProjectSelector.value = false
+  selectedMaterialForProject.value = null
 }
 
 onMounted(async () => {
@@ -204,6 +315,15 @@ onMounted(async () => {
         size: 15 * 1024 * 1024, 
         duration: 1200, 
         createdAt: new Date().toISOString() 
+      },
+      {
+        id: 6,
+        name: '新剪辑音频_20240131.mp3',
+        type: 'audio',
+        size: 2 * 1024 * 1024,
+        duration: 45,
+        status: 'processing',
+        createdAt: new Date().toISOString()
       },
       { 
         id: 2, 
@@ -238,6 +358,11 @@ onMounted(async () => {
         createdAt: new Date(Date.now() - 345600000).toISOString()
       }
     ]
+  }
+  
+  // 加载项目列表
+  if (!projectStore.projects?.length) {
+    await projectStore.fetchProjects()
   }
 })
 </script>
