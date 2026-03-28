@@ -203,7 +203,6 @@
         <div v-show="activeTab === 'clips'" class="flex-1 overflow-auto">
           <SmartClipView
             :clips="clips"
-            :transcript="transcript"
             @update="handleClipsUpdate"
           />
         </div>
@@ -274,11 +273,6 @@ const tabs = [
   { key: 'enhance', label: '内容增值', icon: '✨' },
   { key: 'export', label: '导出分发', icon: '📤' }
 ]
-
-// 支持通过路由 query(tab) 指定初始激活的功能页，比如 /editor?tab=export
-if (route.query.tab && tabs.some(t => t.key === route.query.tab)) {
-  activeTab.value = route.query.tab
-}
 
 const formatDuration = (seconds) => {
   if (!seconds) return '0:00'
@@ -358,8 +352,7 @@ const startSmartClip = async () => {
   error.value = ''
   try {
     const response = await api.post(`/projects/${projectId.value}/smart-clip`, {
-      podcastType: project.value?.podcastType || 'knowledge',
-      transcript: transcript.value // 传递当前文稿内容以确保生成文案的一致性
+      podcastType: project.value?.podcastType || 'knowledge'
     })
     clips.value = response.data.clips || []
     // 自动保存
