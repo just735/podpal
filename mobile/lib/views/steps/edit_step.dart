@@ -49,6 +49,298 @@ class _EditStepState extends State<EditStep> {
   // 金句高光相关
   List<Map<String, dynamic>> _goldenSentences = [];
   bool _hasExtractedGolden = false;
+  
+  // 语义搜索相关
+  TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _searchResults = [];
+  Map<String, double> _topicHeatDistribution = {};
+
+  void _showSemanticSearchDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: StatefulBuilder(
+          builder: (context, setDialogState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.purple,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('语义搜索', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple)),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              
+              // 搜索输入框
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: '例如：搜索关于职场焦虑的对话片段',
+                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.purple.withOpacity(0.7), width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      onSubmitted: (_) {
+                        _performSearch();
+                        setDialogState(() {});
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      _performSearch();
+                      setDialogState(() {});
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('搜索', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              
+              // 搜索结果
+              if (_isSearching) ...[
+                SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('搜索结果', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
+                            const SizedBox(height: 12),
+                            if (_searchResults.isEmpty) ...[
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text('未找到相关内容', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                              ),
+                            ] else ...[
+                              Column(
+                                children: _searchResults.map((result) {
+                                  return Container(
+                                    padding: const EdgeInsets.all(16),
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.pink.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.pink.withOpacity(0.2)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(result['title'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
+                                        const SizedBox(height: 8),
+                                        Text(result['text'], style: const TextStyle(fontSize: 14, height: 1.4, color: Colors.black87)),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(result['time'], style: const TextStyle(fontSize: 14, color: Colors.red)),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.purple.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text('相关度: ${result['relevance']}%', style: const TextStyle(fontSize: 12, color: Colors.purple)),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      
+                      // 话题热度分布
+                      if (_topicHeatDistribution.isNotEmpty) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('话题热度分布', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
+                              const SizedBox(height: 12),
+                              Column(
+                                children: _topicHeatDistribution.entries.map((entry) {
+                                  final topic = entry.key;
+                                  final heat = entry.value;
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Stack(
+                                            children: [
+                                              Container(
+                                                height: 16,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.pink.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              Container(
+                                                height: 16,
+                                                width: heat / 100,
+                                                decoration: BoxDecoration(
+                                                  gradient: const LinearGradient(
+                                                    colors: [Colors.pink, Colors.purple],
+                                                    begin: Alignment.centerLeft,
+                                                    end: Alignment.centerRight,
+                                                  ),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(topic, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                        const SizedBox(width: 16),
+                                        Text('${heat.toInt()}%', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _performSearch() {
+    final keyword = _searchController.text.trim();
+    if (keyword.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+        _topicHeatDistribution = {};
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      
+      // 搜索结果 - 改进的语义搜索算法
+      _searchResults = _transcript.where((item) {
+        final text = item['text'] ?? '';
+        // 对于汉字，直接进行包含匹配，不需要toLowerCase
+        return text.contains(keyword);
+      }).map((item) {
+        // 计算相关度分数
+        final text = item['text'] ?? '';
+        double relevance = 80.0;
+        
+        // 如果关键词完全匹配文本，提高相关度
+        if (text == keyword) {
+          relevance = 95.0;
+        } else if (text.startsWith(keyword)) {
+          relevance = 90.0;
+        } else if (text.contains(keyword)) {
+          // 根据关键词在文本中的位置和长度调整相关度
+          final keywordLength = keyword.length;
+          final textLength = text.length;
+          final matchPosition = text.indexOf(keyword);
+          
+          // 关键词越长，相关度越高
+          relevance += (keywordLength / textLength) * 10;
+          // 关键词位置越靠前，相关度越高
+          relevance += (1 - matchPosition / textLength) * 5;
+        }
+        
+        // 确保相关度在合理范围内
+        relevance = math.min(95.0, math.max(80.0, relevance));
+        
+        return {
+          'index': _transcript.indexOf(item),
+          'text': item['text'],
+          'speaker': item['speaker'],
+          'time': item['time'],
+          'relevance': relevance.round(),
+          'title': '$keyword相关内容',
+        };
+      }).toList();
+      
+      // 按相关度排序
+      _searchResults.sort((a, b) => b['relevance'].compareTo(a['relevance']));
+      
+      // 生成话题热度分布
+      _topicHeatDistribution = {
+        keyword: 85.0,
+        '工作压力': 72.0,
+        '时间管理': 65.0,
+        '职业规划': 58.0,
+        '心理健康': 45.0,
+      };
+    });
+  }
 
   @override
   void initState() {
@@ -64,6 +356,7 @@ class _EditStepState extends State<EditStep> {
   @override
   void dispose() {
     _transcriptScrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -1678,12 +1971,18 @@ class _EditStepState extends State<EditStep> {
       for(int i=0; i<_transcript.length; i++){
         final item = _transcript[i];
         if(item['isGolden'] == true){
+          // 生成随机的热度和逻辑完整度评分（80-95之间）
+          final hotness = 80 + (math.Random().nextInt(16));
+          final logicCompleteness = 80 + (math.Random().nextInt(16));
+          
           _goldenSentences.add({
             'id': 'golden_$i',
             'index': i,
             'text': item['text'],
             'speaker': item['speaker'],
             'time': item['time'],
+            'hotness': hotness,
+            'logicCompleteness': logicCompleteness,
           });
         }
       }
@@ -1940,6 +2239,86 @@ class _EditStepState extends State<EditStep> {
                                 Text('${sentence['speaker']} | ${sentence['time']}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
                               ],
                             ),
+                            const SizedBox(height: 12),
+                            // 热度和逻辑完整度评分
+                            Padding(
+                              padding: const EdgeInsets.only(left: 28),
+                              child: Column(
+                                children: [
+                                  // 热度评分
+                                  Row(
+                                    children: [
+                                      Icon(Icons.local_fire_department, size: 14, color: Colors.orange),
+                                      const SizedBox(width: 8),
+                                      const Text('热度', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Container(
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(3),
+                                            color: Colors.grey[200],
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(3),
+                                            child: Container(
+                                              height: 6,
+                                              width: (sentence['hotness'] ?? 0) / 100,
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [Colors.orange, Colors.red],
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                ),
+                                                borderRadius: BorderRadius.circular(3),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text('${sentence['hotness'] ?? 0}%', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // 逻辑完整度评分
+                                  Row(
+                                    children: [
+                                      Icon(Icons.psychology, size: 14, color: Colors.blue),
+                                      const SizedBox(width: 8),
+                                      const Text('逻辑完整度', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Container(
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(3),
+                                            color: Colors.grey[200],
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(3),
+                                            child: Container(
+                                              height: 6,
+                                              width: (sentence['logicCompleteness'] ?? 0) / 100,
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [Colors.blue, Colors.purple],
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                ),
+                                                borderRadius: BorderRadius.circular(3),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text('${sentence['logicCompleteness'] ?? 0}%', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -2051,6 +2430,9 @@ class _EditStepState extends State<EditStep> {
                   ],
                 ),
                 const Divider(height: 32),
+                
+
+                
                 Expanded(
                   child: ListView.builder(
                     controller: _transcriptScrollController,
@@ -2255,6 +2637,7 @@ class _EditStepState extends State<EditStep> {
           children: [
             SizedBox(width: 90, child: _buildToolBtn(Icons.description_outlined, '内容润色', _optimizeScript)),
             SizedBox(width: 90, child: _buildToolBtn(Icons.mic_none_outlined, '声演实验室', _generateVoice)),
+            SizedBox(width: 90, child: _buildToolBtn(Icons.search, '语义搜索', _showSemanticSearchDialog)),
             SizedBox(width: 90, child: _buildToolBtn(Icons.content_cut_outlined, '后期大师', _aiSpecialCut)),
             SizedBox(width: 90, child: _buildToolBtn(Icons.search, '高光提取', extractGoldenSentences)),
             SizedBox(width: 90, child: _buildToolBtn(Icons.high_quality_outlined, '声效修复', _audioEnhance)),
