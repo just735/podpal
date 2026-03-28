@@ -24,6 +24,14 @@ class _PublishStepState extends State<PublishStep> {
     {'name': '小红书', 'icon': Icons.camera_alt, 'color': const Color(0xFFDC2626), 'selected': false},
   ];
 
+
+
+
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -474,36 +482,74 @@ class _PublishStepState extends State<PublishStep> {
   }
 
   Widget _buildVideoPreview() {
+    if (_selectedFormat == 'audio') {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.grey.shade100,
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.music_note, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 12),
+                Text(
+                  '纯音频模式',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '当前选择为纯音频导出，无视频预览',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Container(
             width: double.infinity,
-            height: 200,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFF0F5), Color(0xFFF5F3FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.play_circle_outline, size: 64, color: const Color(0xFFFF6B9D)),
-                const SizedBox(height: 12),
-                Text(
-                  _selectedFormat == 'video_9_16' ? '9:16 竖屏视频' : '16:9 横屏视频',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+            clipBehavior: Clip.antiAlias,
+            child: AspectRatio(
+              aspectRatio: _selectedFormat == 'video_9_16' ? 9/16 : 16/9,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.black,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '点击播放预览',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.play_circle_outline, size: 64, color: Colors.white),
+                      const SizedBox(height: 12),
+                      Text(
+                        '视频预览',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'assets/show.mp4',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 20),

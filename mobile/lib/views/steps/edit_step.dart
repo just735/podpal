@@ -18,6 +18,7 @@ class _EditStepState extends State<EditStep> {
   
   List<Map<String, dynamic>> _transcript = [];
   List<Map<String, dynamic>> _aiSummaries = [];
+  int _insertPosition = 0; // 0: 上方, 1: 下方, 2: 内部
   List<Map<String, dynamic>> _voiceTasks = [
     {
       'id': '1',
@@ -971,6 +972,20 @@ class _EditStepState extends State<EditStep> {
     _showVoiceLabDialog();
   }
 
+  String _getSpeakerName() {
+    if (_lockedTTSSegment == null) {
+      return 'Speaker';
+    }
+    final index = _lockedTTSSegment!['index'];
+    if (index == null) {
+      return 'Speaker';
+    }
+    if (index < 0 || index >= _transcript.length || _transcript[index] == null) {
+      return 'Speaker';
+    }
+    return _transcript[index]['speaker'] ?? 'Speaker';
+  }
+
   void _showVoiceLabDialog() {
     showModalBottomSheet(
       context: context,
@@ -980,178 +995,331 @@ class _EditStepState extends State<EditStep> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              spreadRadius: 0,
+              blurRadius: 20,
+              offset: Offset(0, -5),
+            ),
+          ],
         ),
         padding: const EdgeInsets.all(20),
         child: StatefulBuilder(
-          builder: (context, setDialogState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Colors.pink,
-                          borderRadius: BorderRadius.circular(2),
+          builder: (context, setDialogState) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 标题栏
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.pink.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('声演实验室', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.pink)),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        _lockedTTSSegment = null;
-                        _editSupplementText = '';
-                        _clonedVoiceSentences = [];
-                      });
-                    },
-                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              TextField(
-                onChanged: (value) {
-                  setDialogState(() {
-                    _editSupplementText = value;
-                  });
-                },
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: '请输入补录内容...',
-                  hintStyle: const TextStyle(fontSize: 13),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  contentPadding: const EdgeInsets.all(12),
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _editSupplementText.trim().isEmpty ? null : () async {
-                        setDialogState(() {
-                          _isCloningVoice = true;
-                          _generateProgress = 0;
-                        });
-                        
-                        await confirmEditAndGenerate(setDialogState);
-                        
-                        setDialogState(() {
-                          _isCloningVoice = false;
+                        const SizedBox(width: 10),
+                        const Text('声演实验室', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.pinkAccent)),
+                      ],
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _lockedTTSSegment = null;
+                          _editSupplementText = '';
+                          _clonedVoiceSentences = [];
                         });
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.pink,
-                        disabledBackgroundColor: Colors.grey[200],
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text('确认', style: TextStyle(color: Colors.white)),
+                      icon: const Icon(Icons.close, size: 24, color: Colors.grey),
                     ),
-                  ),
-                ],
-              ),
-              
-              if (_isCloningVoice) ...[
-                const SizedBox(height: 20),
-                LinearProgressIndicator(
-                  value: _generateProgress / 100,
-                  backgroundColor: Colors.grey[200],
-                  color: Colors.pink,
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text('生成中... ${_generateProgress}%', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-              
-              if (_clonedVoiceSentences.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                
+                // 输入框
+                TextField(
+                  onChanged: (value) {
+                    setDialogState(() {
+                      _editSupplementText = value;
+                    });
+                  },
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: '请输入补录内容...',
+                    hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.pink.withOpacity(0.7), width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.all(16),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // 插入位置选择
                 const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 20),
-                const Text('克隆结果', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                ..._clonedVoiceSentences.map((sentence) => Container(
+                Container(
                   padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: Colors.pink.withOpacity(0.05),
+                    color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.pink.withOpacity(0.2)),
+                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(sentence['text'], style: const TextStyle(fontSize: 16, height: 1.5)),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text('${sentence['voiceName']} | ${sentence['duration']}s', style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                        ],
-                      ),
+                      const Text('插入位置', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black)),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          TextButton(
-                            onPressed: () => previewClonedVoice(sentence),
-                            child: const Text('预览', style: TextStyle(fontSize: 14, color: Colors.blue)),
+                          Expanded(
+                            child: RadioListTile<int>(
+                              title: const Text('上方', style: TextStyle(fontSize: 14)),
+                              value: 0,
+                              groupValue: _insertPosition,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  _insertPosition = value!;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
                           ),
-                          const SizedBox(width: 20),
-                          TextButton(
-                            onPressed: () {
-                              confirmInsertClonedVoice(sentence);
-                              Navigator.pop(context);
-                            },
-                            child: const Text('确认插入', style: TextStyle(fontSize: 14, color: Colors.pink)),
+                          Expanded(
+                            child: RadioListTile<int>(
+                              title: const Text('下方', style: TextStyle(fontSize: 14)),
+                              value: 1,
+                              groupValue: _insertPosition,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  _insertPosition = value!;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                          Expanded(
+                            child: RadioListTile<int>(
+                              title: const Text('内部', style: TextStyle(fontSize: 14)),
+                              value: 2,
+                              groupValue: _insertPosition,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  _insertPosition = value!;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                )).toList(),
-              ],
-
-              if (_insertedVoiceRecords.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 20),
+                ),
+                
+                // 确认按钮
+                const SizedBox(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('插入记录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
-                    Text('共 ${_insertedVoiceRecords.length} 条', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _editSupplementText.trim().isEmpty ? null : () async {
+                          setDialogState(() {
+                            _isCloningVoice = true;
+                            _generateProgress = 0;
+                          });
+                          
+                          await confirmEditAndGenerate(setDialogState);
+                          
+                          setDialogState(() {
+                            _isCloningVoice = false;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink.withOpacity(0.7),
+                          disabledBackgroundColor: Colors.grey[200],
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: const Text('确认', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _insertedVoiceRecords.length,
-                    itemBuilder: (context, index) {
-                      final record = _insertedVoiceRecords[index];
+                
+                // 进度指示器
+                if (_isCloningVoice) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.pink.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.pink.withOpacity(0.1)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('生成中...', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.pink.withOpacity(0.7))),
+                            Text('${_generateProgress}%', style: TextStyle(fontSize: 14, color: Colors.pink.withOpacity(0.7))),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(
+                          value: _generateProgress / 100,
+                          backgroundColor: Colors.grey[200],
+                          color: Colors.pink.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
+                // 克隆结果
+                if (_clonedVoiceSentences.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    height: 1,
+                    color: Colors.grey.withOpacity(0.2),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('克隆结果', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                      Text('共 ${_clonedVoiceSentences.length} 条', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ..._clonedVoiceSentences.map((sentence) => Container(
+                    padding: const EdgeInsets.all(18),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.pink.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.pink.withOpacity(0.1)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          spreadRadius: 0,
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(sentence['text'], style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.black)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Text('${_getSpeakerName()} | ${sentence['duration']}s', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => previewClonedVoice(sentence),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.blue.withOpacity(0.7)),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Text('预览', style: TextStyle(fontSize: 14, color: Colors.blue.withOpacity(0.7))),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  confirmInsertClonedVoice(sentence);
+                                  Navigator.pop(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.pink.withOpacity(0.7),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text('确认插入', style: TextStyle(fontSize: 14, color: Colors.white)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )).toList(),
+                ],
+
+                // 插入记录
+                if (_insertedVoiceRecords.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    height: 1,
+                    color: Colors.grey.withOpacity(0.2),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('插入记录', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                      Text('共 ${_insertedVoiceRecords.length} 条', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Column(
+                    children: _insertedVoiceRecords.map((record) {
                       return Container(
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(18),
+                        margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
                           color: Colors.blue.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              spreadRadius: 0,
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(record['text'], style: const TextStyle(fontSize: 16, height: 1.5)),
-                            const SizedBox(height: 8),
+                            Text(record['text'], style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.black)),
+                            const SizedBox(height: 12),
                             Row(
                               children: [
                                 Text('${record['voiceName']} | ${record['createdAt']}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
@@ -1180,11 +1348,11 @@ class _EditStepState extends State<EditStep> {
                           ],
                         ),
                       );
-                    },
+                    }).toList(),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -1257,31 +1425,90 @@ class _EditStepState extends State<EditStep> {
     if (_lockedTTSSegment == null) return;
 
     final index = _lockedTTSSegment!['index'];
-    final newSeg = {
-      'speaker': sentence['voiceName'],
-      'time': '00:00 - 00:00',
-      'text': sentence['text'],
-      'isOriginal': false,
-      'isTts': true,
-      'confirmed': true,
-      'isCloned': true,
-      'voiceId': sentence['voiceId'],
-      'voiceStyle': sentence['voiceStyle'],
-      'tokens': _parseTranscriptToTokens(sentence['text']),
-      'isGolden': false,
-      'editTrace': {
-        'oldText': '',
-        'newText': sentence['text'],
-        'type': 'AI 克隆语音插入',
-        'timestamp': DateTime.now().toString(),
-      },
-    };
-
+    final speaker = _getSpeakerName();
+    
     setState(() {
       if (index == -1) {
+        // 添加到末尾
+        final newSeg = {
+          'speaker': speaker,
+          'time': '00:00 - 00:00',
+          'text': sentence['text'],
+          'isOriginal': false,
+          'isTts': true,
+          'confirmed': true,
+          'isCloned': true,
+          'voiceId': sentence['voiceId'],
+          'voiceStyle': sentence['voiceStyle'],
+          'tokens': _parseTranscriptToTokens(sentence['text']),
+          'isGolden': false,
+          'editTrace': {
+            'oldText': '',
+            'newText': sentence['text'],
+            'type': 'AI 克隆语音插入',
+            'timestamp': DateTime.now().toString(),
+          },
+        };
         _transcript.add(newSeg);
       } else {
-        _transcript.insert(index + 1, newSeg);
+        if (_insertPosition == 0) {
+          // 插入到上方
+          final newSeg = {
+            'speaker': speaker,
+            'time': '00:00 - 00:00',
+            'text': sentence['text'],
+            'isOriginal': false,
+            'isTts': true,
+            'confirmed': true,
+            'isCloned': true,
+            'voiceId': sentence['voiceId'],
+            'voiceStyle': sentence['voiceStyle'],
+            'tokens': _parseTranscriptToTokens(sentence['text']),
+            'isGolden': false,
+            'editTrace': {
+              'oldText': '',
+              'newText': sentence['text'],
+              'type': 'AI 克隆语音插入',
+              'timestamp': DateTime.now().toString(),
+            },
+          };
+          _transcript.insert(index, newSeg);
+        } else if (_insertPosition == 1) {
+          // 插入到下方
+          final newSeg = {
+            'speaker': speaker,
+            'time': '00:00 - 00:00',
+            'text': sentence['text'],
+            'isOriginal': false,
+            'isTts': true,
+            'confirmed': true,
+            'isCloned': true,
+            'voiceId': sentence['voiceId'],
+            'voiceStyle': sentence['voiceStyle'],
+            'tokens': _parseTranscriptToTokens(sentence['text']),
+            'isGolden': false,
+            'editTrace': {
+              'oldText': '',
+              'newText': sentence['text'],
+              'type': 'AI 克隆语音插入',
+              'timestamp': DateTime.now().toString(),
+            },
+          };
+          _transcript.insert(index + 1, newSeg);
+        } else if (_insertPosition == 2) {
+          // 插入到内部，使用不同颜色标注
+          final originalText = _transcript[index]['text'];
+          final newText = originalText + ' ' + sentence['text'];
+          _transcript[index]['text'] = newText;
+          _transcript[index]['tokens'] = _parseTranscriptToTokens(newText);
+          _transcript[index]['isOriginal'] = false;
+          _transcript[index]['editTrace'] = {
+            'oldText': originalText,
+            'newText': newText,
+            'type': 'AI 克隆语音内部插入',
+            'timestamp': DateTime.now().toString(),
+          };
+        }
       }
 
       final record = {
@@ -2074,6 +2301,7 @@ class _EditStepState extends State<EditStep> {
     final Map<String, dynamic>? editTrace = item['editTrace'] is Map ? Map<String, dynamic>.from(item['editTrace']) : null;
     final bool allowTokenEdit = !(isTts && !confirmed);
     final bool isGolden = item['isGolden'] ?? false;
+    final bool hasInternalInsert = editTrace != null && editTrace['type'] == 'AI 克隆语音内部插入';
 
     return KeyedSubtree(
       key: _segmentKeyFor(itemIndex),
@@ -2081,15 +2309,21 @@ class _EditStepState extends State<EditStep> {
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: isGolden ? Colors.yellow[100]! : (isOriginal ? Colors.white : Colors.pink.withOpacity(0.02)),
+          color: isGolden ? Colors.yellow[100]! : hasInternalInsert ? Colors.green.withOpacity(0.05) : (isOriginal ? Colors.white : Colors.pink.withOpacity(0.02)),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isGolden ? Colors.yellow.shade400 : (isOriginal ? Colors.grey[100]! : Colors.pink.withOpacity(0.1)),
-            width: isGolden ? 2 : (isOriginal ? 1 : 1.5),
+            color: isGolden ? Colors.yellow.shade400 : hasInternalInsert ? Colors.green.withOpacity(0.3) : (isOriginal ? Colors.grey[100]! : Colors.pink.withOpacity(0.1)),
+            width: isGolden ? 2 : hasInternalInsert ? 1.5 : (isOriginal ? 1 : 1.5),
           ),
           boxShadow: isGolden ? [
             BoxShadow(
               color: Colors.yellow.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            )
+          ] : hasInternalInsert ? [
+            BoxShadow(
+              color: Colors.green.withOpacity(0.1),
               blurRadius: 6,
               offset: const Offset(0, 2),
             )
@@ -2201,7 +2435,7 @@ class _EditStepState extends State<EditStep> {
                               ),
                             ),
                           ),
-                        if (!isOriginal)
+                        if (!isOriginal && !hasInternalInsert)
                           Flexible(
                             child: IconButton(
                               onPressed: () => _deleteSegment(itemIndex),

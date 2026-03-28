@@ -655,7 +655,7 @@ class _UploadStepState extends State<UploadStep> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        '${track['name']} - ${track['segments'][0]['name']}',
+                                        '${track['name']}${track['segments'] != null && track['segments'].isNotEmpty ? ' - ${track['segments'][0]['name']}' : ''}',
                                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                                       ),
                                     ),
