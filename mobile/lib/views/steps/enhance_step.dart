@@ -690,7 +690,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               image: DecorationImage(
-                image: AssetImage('assets/fengmian.png'),
+                image: AssetImage('assets/images/vp.png'),
                 fit: BoxFit.cover,
               ),
             ),

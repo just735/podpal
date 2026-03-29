@@ -530,7 +530,7 @@ class _PublishStepState extends State<PublishStep> {
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage('assets/fengmian.png'),
+                    image: AssetImage('assets/images/vp.png'),
                     fit: BoxFit.cover,
                   ),
                 ),

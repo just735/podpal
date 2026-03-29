@@ -223,29 +223,32 @@ class _EditStepState extends State<EditStep> {
                                     final topic = entry.key;
                                     final heat = entry.value;
                                     return Container(
-                                      margin: const EdgeInsets.only(bottom: 8),
+                                      margin: const EdgeInsets.only(bottom: 12),
                                       child: Row(
                                         children: [
                                           Expanded(
                                             child: Stack(
                                               children: [
                                                 Container(
-                                                  height: 16,
+                                                  height: 20,
                                                   decoration: BoxDecoration(
                                                     color: Colors.pink.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderRadius: BorderRadius.circular(10),
                                                   ),
                                                 ),
                                                 Container(
-                                                  height: 16,
-                                                  width: heat / 100,
+                                                  height: 20,
+                                                  width: MediaQuery.of(context).size.width * 0.5 * (heat / 100),
                                                   decoration: BoxDecoration(
-                                                    gradient: const LinearGradient(
-                                                      colors: [Colors.pink, Colors.purple],
+                                                    gradient: LinearGradient(
+                                                      colors: [
+                                                        heat > 80 ? Colors.red : heat > 60 ? Colors.orange : heat > 40 ? Colors.yellow : Colors.green,
+                                                        heat > 80 ? Colors.pink : heat > 60 ? Colors.orangeAccent : heat > 40 ? Colors.yellowAccent : Colors.greenAccent,
+                                                      ],
                                                       begin: Alignment.centerLeft,
                                                       end: Alignment.centerRight,
                                                     ),
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderRadius: BorderRadius.circular(10),
                                                   ),
                                                 ),
                                               ],
@@ -254,7 +257,7 @@ class _EditStepState extends State<EditStep> {
                                           const SizedBox(width: 12),
                                           Text(topic, style: const TextStyle(fontSize: 14, color: Colors.black87)),
                                           const SizedBox(width: 16),
-                                          Text('${heat.toInt()}%', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                          Text('${heat.toInt()}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
                                         ],
                                       ),
                                     );
