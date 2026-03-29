@@ -604,44 +604,47 @@ class _PublishStepState extends State<PublishStep> {
     );
   }
 
-  int _selectedPlatform = 0; // 0: 通用, 1: 小宇宙, 2: 抖音, 3: 小红书
+  // 平台列表
+  final List<Map<String, dynamic>> _textPlatforms = [
+    {'name': '通用', 'icon': Icons.public, 'color': const Color(0xFF6B7280), 'selected': true},
+    {'name': '小宇宙', 'icon': Icons.rocket_launch, 'color': const Color(0xFFFBBF24), 'selected': false},
+    {'name': '抖音', 'icon': Icons.music_note, 'color': const Color(0xFF000000), 'selected': false},
+    {'name': '小红书', 'icon': Icons.camera_alt, 'color': const Color(0xFFDC2626), 'selected': false},
+  ];
+  
+  // 获取当前选中的平台索引
+  int get _selectedPlatformIndex {
+    return _textPlatforms.indexWhere((platform) => platform['selected'] == true);
+  }
+  
+  // 根据平台生成不同格式的文案
+  String getPlatformTitle(int platformIndex) {
+    switch (platformIndex) {
+      case 1: // 小宇宙
+        return '【AI赋能】播客创作的新纪元 | 让创作更简单';
+      case 2: // 抖音
+        return 'AI赋能播客创作！看完这个视频，你的创作效率提升50% #播客创作 #AI工具';
+      case 3: // 小红书
+        return '🔥播客创作新纪元：AI赋能让你告别繁琐后期';
+      default: // 通用
+        return 'AI赋能：播客创作的新纪元';
+    }
+  }
+  
+  String getPlatformSummary(int platformIndex) {
+    switch (platformIndex) {
+      case 1: // 小宇宙
+        return '在本期节目中，我们深入探讨了播客创作的核心痛点，分享了如何利用AI技术提升创作效率。从选题策划到后期剪辑，多个实用技巧等你来学！\n\n🎧 适合人群：播客新手、资深创作者\n🎯 核心亮点：AI智能去口癖、语音转写、自动剪辑\n\n#播客创作 #AI工具 #内容创作';
+      case 2: // 抖音
+        return '想知道如何用AI让播客创作更简单？本期视频告诉你！\n\n从选题到剪辑，AI全程助力，让你节省50%的后期时间！\n\n💡 关键技巧：智能去口癖、语音转写、自动剪辑\n⏰ 时长：15分钟\n\n#播客创作 #AI工具 #内容创作 #效率提升';
+      case 3: // 小红书
+        return '【播客创作必备工具】AI赋能让你告别繁琐后期\n\n作为一名播客创作者，你是否也被这些问题困扰？\n• 后期剪辑耗时太长\n• 口癖太多影响收听体验\n• 选题策划缺乏灵感\n\n本期分享AI工具如何解决这些痛点，让你的创作效率提升50%！\n\n#播客创作 #AI工具 #内容创作 #效率提升';
+      default: // 通用
+        return '在本期节目中，我们深入探讨了播客创作的核心痛点。从选题策划到后期剪辑，分享了多个实用的技巧和工具。无论你是刚入门的新手，还是遇到瓶颈的资深创作者，都能从中获得启发。';
+    }
+  }
   
   Widget _buildTextPreview() {
-    // 平台列表
-    final platforms = [
-      {'name': '通用', 'icon': Icons.public, 'color': const Color(0xFF6B7280)},
-      {'name': '小宇宙', 'icon': Icons.rocket_launch, 'color': const Color(0xFFFBBF24)},
-      {'name': '抖音', 'icon': Icons.music_note, 'color': const Color(0xFF000000)},
-      {'name': '小红书', 'icon': Icons.camera_alt, 'color': const Color(0xFFDC2626)},
-    ];
-    
-    // 根据平台生成不同格式的文案
-    String getPlatformTitle() {
-      switch (_selectedPlatform) {
-        case 1: // 小宇宙
-          return '【AI赋能】播客创作的新纪元 | 让创作更简单';
-        case 2: // 抖音
-          return 'AI赋能播客创作！看完这个视频，你的创作效率提升50% #播客创作 #AI工具';
-        case 3: // 小红书
-          return '🔥播客创作新纪元：AI赋能让你告别繁琐后期';
-        default: // 通用
-          return 'AI赋能：播客创作的新纪元';
-      }
-    }
-    
-    String getPlatformSummary() {
-      switch (_selectedPlatform) {
-        case 1: // 小宇宙
-          return '在本期节目中，我们深入探讨了播客创作的核心痛点，分享了如何利用AI技术提升创作效率。从选题策划到后期剪辑，多个实用技巧等你来学！\n\n🎧 适合人群：播客新手、资深创作者\n🎯 核心亮点：AI智能去口癖、语音转写、自动剪辑\n\n#播客创作 #AI工具 #内容创作';
-        case 2: // 抖音
-          return '想知道如何用AI让播客创作更简单？本期视频告诉你！\n\n从选题到剪辑，AI全程助力，让你节省50%的后期时间！\n\n💡 关键技巧：智能去口癖、语音转写、自动剪辑\n⏰ 时长：15分钟\n\n#播客创作 #AI工具 #内容创作 #效率提升';
-        case 3: // 小红书
-          return '【播客创作必备工具】AI赋能让你告别繁琐后期\n\n作为一名播客创作者，你是否也被这些问题困扰？\n• 后期剪辑耗时太长\n• 口癖太多影响收听体验\n• 选题策划缺乏灵感\n\n本期分享AI工具如何解决这些痛点，让你的创作效率提升50%！\n\n#播客创作 #AI工具 #内容创作 #效率提升';
-        default: // 通用
-          return '在本期节目中，我们深入探讨了播客创作的核心痛点。从选题策划到后期剪辑，分享了多个实用的技巧和工具。无论你是刚入门的新手，还是遇到瓶颈的资深创作者，都能从中获得启发。';
-      }
-    }
-    
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -653,13 +656,18 @@ class _PublishStepState extends State<PublishStep> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(platforms.length, (index) {
-                  final platform = platforms[index];
-                  final isSelected = _selectedPlatform == index;
+                children: List.generate(_textPlatforms.length, (index) {
+                  final platform = _textPlatforms[index];
+                  final isSelected = platform['selected'] == true;
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        _selectedPlatform = index;
+                        // 先取消所有平台的选择状态
+                        for (var p in _textPlatforms) {
+                          p['selected'] = false;
+                        }
+                        // 然后选择当前平台
+                        _textPlatforms[index]['selected'] = true;
                       });
                     },
                     child: Container(
@@ -728,7 +736,7 @@ class _PublishStepState extends State<PublishStep> {
                     border: Border.all(color: Colors.grey.shade100),
                   ),
                   child: Text(
-                    getPlatformTitle(),
+                    getPlatformTitle(_selectedPlatformIndex),
                     style: const TextStyle(fontSize: 13, color: Color(0xFF374151), fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -746,7 +754,7 @@ class _PublishStepState extends State<PublishStep> {
                     border: Border.all(color: Colors.grey.shade100),
                   ),
                   child: Text(
-                    getPlatformSummary(),
+                    getPlatformSummary(_selectedPlatformIndex),
                     style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF374151)),
                   ),
                 ),
@@ -784,7 +792,7 @@ class _PublishStepState extends State<PublishStep> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     // 复制文案到剪贴板
-                    final text = '${getPlatformTitle()}\n\n${getPlatformSummary()}\n\n时间轴要点：\n00:00 节目开场及主题介绍\n02:15 AI 语音转写技术的演进历程\n05:30 PodPal 核心功能演示：智能去口癖\n12:45 嘉宾分享：如何利用 AI 缩短 50% 的后期时间';
+                    final text = '${getPlatformTitle(_selectedPlatformIndex)}\n\n${getPlatformSummary(_selectedPlatformIndex)}\n\n时间轴要点：\n00:00 节目开场及主题介绍\n02:15 AI 语音转写技术的演进历程\n05:30 PodPal 核心功能演示：智能去口癖\n12:45 嘉宾分享：如何利用 AI 缩短 50% 的后期时间';
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('文案已复制到剪贴板')),
                     );

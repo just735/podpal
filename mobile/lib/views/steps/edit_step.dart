@@ -2218,6 +2218,45 @@ class _EditStepState extends State<EditStep> {
                                   child: Text(sentence['text'], style: const TextStyle(fontSize: 16, height: 1.5)),
                                 ),
                                 IconButton(
+                                  onPressed: () async {
+                                    // 编辑金句内容
+                                    final controller = TextEditingController(text: sentence['text']);
+                                    final newText = await showDialog<String>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('编辑金句'),
+                                        content: TextField(
+                                          controller: controller,
+                                          maxLines: 3,
+                                          decoration: const InputDecoration(
+                                            hintText: '请输入金句内容',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+                                          ElevatedButton(
+                                            onPressed: () => Navigator.pop(context, controller.text),
+                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.yellow.shade600),
+                                            child: const Text('保存'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (newText != null && newText.isNotEmpty) {
+                                      setState(() {
+                                        final idx = sentence['index'];
+                                        if(idx >=0 && idx < _transcript.length){
+                                          _transcript[idx]['text'] = newText;
+                                        }
+                                        _syncGoldenFromTranscript();
+                                      });
+                                      setDialogState(() {});
+                                    }
+                                  },
+                                  icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
+                                ),
+                                IconButton(
                                   onPressed: () {
                                     setState(() {
                                       final idx = sentence['index'];

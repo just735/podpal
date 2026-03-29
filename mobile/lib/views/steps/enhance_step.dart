@@ -11,13 +11,6 @@ class EnhanceStep extends StatefulWidget {
 
 class _EnhanceStepState extends State<EnhanceStep> {
   String _podcastType = 'knowledge';
-  final List<String> _platforms = ['公众号', '小红书', '微博', '短视频'];
-  final Map<String, bool> _platformSelection = {
-    '公众号': true,
-    '小红书': true,
-    '微博': false,
-    '短视频': false,
-  };
   
   String _videoAspectRatio = '9:16';
   String _videoTemplate = '简约风';
@@ -236,18 +229,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
   // ========== 3. 视频播客模块 ==========
   String _videoAvatarType = 'virtual'; // 'virtual' 或 'upload'
   String _videoSubtitleStyle = '简洁白底';
-  String _videoBGM = '';
   final List<String> _subtitleStyles = ['简洁白底', '卡拉OK高亮', '科技霓虹', '文艺清新'];
-  final Map<String, String> _emotionBGMMap = {
-    '平静': 'LoFi Chill',
-    '兴奋': 'Upbeat Pop',
-    '坚定': 'Epic Orchestral',
-    '温柔': 'Acoustic Guitar',
-    '幽默': 'Quirky Fun',
-    '严肃': 'Minimal Piano',
-    '亲切': 'Warm Jazz',
-    '激昂': 'Motivational Rock',
-  };
 
   Widget _buildVideoSection() {
     return Container(
@@ -341,45 +323,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
             ],
           ),
           const SizedBox(height: 16),
-          // AI 推荐 BGM
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFDF2F8),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFFBCFE8)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.music_note, size: 16, color: Color(0xFFF472B6)),
-                    const SizedBox(width: 6),
-                    const Text('AI 智能 BGM 推荐', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFF472B6))),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF472B6),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Text('自动匹配', style: TextStyle(fontSize: 10, color: Colors.white)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text('系统将根据金句情感自动推荐背景音乐', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _emotionBGMMap.entries.map((e) => _buildBGMChip(e.key, e.value)).toList(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
+
           _buildToggleItem('自动提取金句片段', _includeHighlights, (val) => setState(() => _includeHighlights = val)),
           const SizedBox(height: 16),
           _buildActionButton(
@@ -431,24 +375,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
     );
   }
 
-  Widget _buildBGMChip(String emotion, String bgm) {
-    final isSelected = _videoBGM == bgm;
-    return GestureDetector(
-      onTap: () => setState(() => _videoBGM = bgm),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF472B6) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? const Color(0xFFF472B6) : Colors.grey.shade300),
-        ),
-        child: Text(
-          '$emotion · $bgm',
-          style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : Colors.grey[700]),
-        ),
-      ),
-    );
-  }
+
 
   // ========== 4. 多平台文案模块 ==========
   Widget _buildSocialSection() {
@@ -458,14 +385,6 @@ class _EnhanceStepState extends State<EnhanceStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('目标平台', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _platforms.map((p) => _buildChip(p)).toList(),
-          ),
-          const SizedBox(height: 20),
           _buildActionButton(
             label: _isGeneratingSocial ? 'AI 正在创作...' : '生成全平台文案',
             icon: _isGeneratingSocial ? Icons.hourglass_empty : Icons.bolt,
@@ -763,6 +682,25 @@ class _EnhanceStepState extends State<EnhanceStep> {
               ],
             ),
           ),
+          // 视频预览
+          Container(
+            width: double.infinity,
+            height: 200,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: IconButton(
+                icon: const Icon(Icons.play_circle_outline, size: 64, color: Colors.white),
+                onPressed: () {
+                  // 这里可以添加视频播放逻辑
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Container(
             width: double.infinity,
             margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -814,7 +752,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
                     _buildMetric('逻辑完整度', logicScore ?? 85),
                   ],
                 ),
-                if (emotion != null || bgm != null) ...[
+                if (emotion != null) ...[
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -826,21 +764,9 @@ class _EnhanceStepState extends State<EnhanceStep> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (emotion != null) ...[
-                          Icon(Icons.emoji_emotions_outlined, size: 12, color: const Color(0xFFF472B6)),
-                          const SizedBox(width: 4),
-                          Text('情感: $emotion', style: const TextStyle(fontSize: 10, color: Color(0xFFF472B6))),
-                        ],
-                        if (emotion != null && bgm != null) ...[
-                          const SizedBox(width: 12),
-                          Container(width: 1, height: 10, color: const Color(0xFFFBCFE8)),
-                          const SizedBox(width: 12),
-                        ],
-                        if (bgm != null) ...[
-                          Icon(Icons.music_note, size: 12, color: const Color(0xFFF472B6)),
-                          const SizedBox(width: 4),
-                          Text('BGM: $bgm', style: const TextStyle(fontSize: 10, color: Color(0xFFF472B6))),
-                        ],
+                        Icon(Icons.emoji_emotions_outlined, size: 12, color: const Color(0xFFF472B6)),
+                        const SizedBox(width: 4),
+                        Text('情感: $emotion', style: const TextStyle(fontSize: 10, color: Color(0xFFF472B6))),
                       ],
                     ),
                   ),
@@ -931,31 +857,7 @@ class _EnhanceStepState extends State<EnhanceStep> {
     );
   }
 
-  Widget _buildChip(String label) {
-    bool isSelected = _platformSelection[label] ?? false;
-    return GestureDetector(
-      onTap: () => setState(() => _platformSelection[label] = !isSelected),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFB923C).withOpacity(0.1) : Colors.grey[100],
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFFB923C) : Colors.transparent,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isSelected ? const Color(0xFFFB923C) : Colors.grey[600],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildToggleItem(String label, bool value, ValueChanged<bool> onChanged) {
     return Row(
@@ -1131,9 +1033,8 @@ class _EnhanceStepState extends State<EnhanceStep> {
         ? 'AI 正在重塑音频内容的生产流程，这不仅是效率的提升，更是创意的解放。'
         : '未来播客的竞争力不再是剪辑技术，而是内容深度与情感共鸣。';
       
-      // 智能分析情感并推荐BGM
+      // 智能分析情感
       final emotion = _analyzeEmotion(content);
-      final bgm = _emotionBGMMap[emotion] ?? 'LoFi Chill';
       
       // 使用智能标题而非编号
       final smartTitle = _generateSmartTitle(content);
@@ -1146,7 +1047,6 @@ class _EnhanceStepState extends State<EnhanceStep> {
         'viralPotential': _generatedVideoTasks.isEmpty ? 92 : 85,
         'logicScore': _generatedVideoTasks.isEmpty ? 88 : 94,
         'emotion': emotion,
-        'bgm': _videoBGM.isNotEmpty ? _videoBGM : bgm,
       });
     });
   }
