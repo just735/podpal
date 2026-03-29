@@ -393,29 +393,38 @@ class _PublishStepState extends State<PublishStep> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFF0F5), Color(0xFFF5F3FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(
-              children: [
-                Icon(Icons.audiotrack, size: 64, color: const Color(0xFFFF6B9D)),
-                const SizedBox(height: 16),
-                const Text(
-                  '播客音频预览',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+            clipBehavior: Clip.antiAlias,
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/fengmian.png'),
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '时长: 15:30 | 格式: MP3 | 比特率: 128kbps',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.play_circle_outline, size: 64, color: Colors.white),
+                      const SizedBox(height: 12),
+                      Text(
+                        '音频预览',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '点击播放预览音频',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
