@@ -112,7 +112,7 @@ const handleEnterFeature = (route) => {
             </div>
             <div>
               <div class="text-gray-900 font-semibold text-xs">智能剪辑</div>
-              <div class="text-xs text-gray-700">自动提取高光片段</div>
+              <div class="text-xs text-gray-700">文本化剪辑、金句识别、片段补录</div>
             </div>
           </div>
           <div class="rounded-xl p-2 bg-white/70 hover:bg-white/90 hover:shadow-[0_2px_8px_rgba(147,51,234,0.08),0_0_6px_rgba(59,130,246,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 border border-purple-300/50">
@@ -134,8 +134,8 @@ const handleEnterFeature = (route) => {
               </svg>
             </div>
             <div>
-              <div class="text-gray-900 font-semibold text-xs">转写字幕</div>
-              <div class="text-xs text-gray-700">多语言精准转写</div>
+              <div class="text-gray-900 font-semibold text-xs">智能摘要</div>
+              <div class="text-xs text-gray-700">自动生成内容摘要</div>
             </div>
           </div>
           <div class="rounded-xl p-2 bg-white/70 hover:bg-white/90 hover:shadow-[0_2px_8px_rgba(147,51,234,0.08),0_0_6px_rgba(236,72,153,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 border border-purple-300/50">
@@ -145,8 +145,8 @@ const handleEnterFeature = (route) => {
               </svg>
             </div>
             <div>
-              <div class="text-gray-900 font-semibold text-xs">多平台导出</div>
-              <div class="text-xs text-gray-700">一键适配比例</div>
+              <div class="text-gray-900 font-semibold text-xs">视频播客生成</div>
+              <div class="text-xs text-gray-700">一键生成高质量视频播客</div>
             </div>
           </div>
         </div>
