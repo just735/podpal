@@ -528,8 +528,11 @@ class _PublishStepState extends State<PublishStep> {
             child: AspectRatio(
               aspectRatio: _selectedFormat == 'video_9_16' ? 9/16 : 16/9,
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.black,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/fengmian.png'),
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 child: Center(
                   child: Column(
@@ -543,7 +546,7 @@ class _PublishStepState extends State<PublishStep> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'assets/show.mp4',
+                        '点击播放预览视频',
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
                       ),
                     ],

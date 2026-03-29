@@ -70,205 +70,207 @@ class _EditStepState extends State<EditStep> {
         ),
         padding: const EdgeInsets.all(20),
         child: StatefulBuilder(
-          builder: (context, setDialogState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          builder: (context, setDialogState) {
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 4,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Colors.purple,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.purple,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('语义搜索', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple)),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      const Text('语义搜索', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple)),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                      ),
                     ],
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              // 搜索输入框
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: '例如：搜索关于职场焦虑的对话片段',
-                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.purple.withOpacity(0.7), width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      onSubmitted: (_) {
-                        _performSearch();
-                        setDialogState(() {});
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () {
-                      _performSearch();
-                      setDialogState(() {});
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('搜索', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              // 搜索结果
-              if (_isSearching) ...[
-                SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 20),
+                  
+                  // 搜索输入框
+                  Row(
                     children: [
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('搜索结果', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
-                            const SizedBox(height: 12),
-                            if (_searchResults.isEmpty) ...[
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[50],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text('未找到相关内容', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                              ),
-                            ] else ...[
-                              Column(
-                                children: _searchResults.map((result) {
-                                  return Container(
-                                    padding: const EdgeInsets.all(16),
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.pink.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.pink.withOpacity(0.2)),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(result['title'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
-                                        const SizedBox(height: 8),
-                                        Text(result['text'], style: const TextStyle(fontSize: 14, height: 1.4, color: Colors.black87)),
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(result['time'], style: const TextStyle(fontSize: 14, color: Colors.red)),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.purple.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Text('相关度: ${result['relevance']}%', style: const TextStyle(fontSize: 12, color: Colors.purple)),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ],
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: '例如：搜索关于职场焦虑的对话片段',
+                            hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.purple.withOpacity(0.7), width: 2),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onSubmitted: (_) {
+                            _performSearch();
+                            setDialogState(() {});
+                          },
                         ),
                       ),
-                      
-                      // 话题热度分布
-                      if (_topicHeatDistribution.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          _performSearch();
+                          setDialogState(() {});
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('搜索', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // 搜索结果
+                  if (_isSearching) ...[
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Container(
                           margin: const EdgeInsets.only(bottom: 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('话题热度分布', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
+                              const Text('搜索结果', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
                               const SizedBox(height: 12),
-                              Column(
-                                children: _topicHeatDistribution.entries.map((entry) {
-                                  final topic = entry.key;
-                                  final heat = entry.value;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Stack(
+                              if (_searchResults.isEmpty) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text('未找到相关内容', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                                ),
+                              ] else ...[
+                                Column(
+                                  children: _searchResults.map((result) {
+                                    return Container(
+                                      padding: const EdgeInsets.all(16),
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.pink.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.pink.withOpacity(0.2)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(result['title'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
+                                          const SizedBox(height: 8),
+                                          Text(result['text'], style: const TextStyle(fontSize: 14, height: 1.4, color: Colors.black87)),
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
+                                              Text(result['time'], style: const TextStyle(fontSize: 14, color: Colors.red)),
                                               Container(
-                                                height: 16,
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.pink.withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  color: Colors.purple.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(12),
                                                 ),
-                                              ),
-                                              Container(
-                                                height: 16,
-                                                width: heat / 100,
-                                                decoration: BoxDecoration(
-                                                  gradient: const LinearGradient(
-                                                    colors: [Colors.pink, Colors.purple],
-                                                    begin: Alignment.centerLeft,
-                                                    end: Alignment.centerRight,
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
+                                                child: Text('相关度: ${result['relevance']}%', style: const TextStyle(fontSize: 12, color: Colors.purple)),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(topic, style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                                        const SizedBox(width: 16),
-                                        Text('${heat.toInt()}%', style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
                             ],
                           ),
                         ),
+                        
+                        // 话题热度分布
+                        if (_topicHeatDistribution.isNotEmpty) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('话题热度分布', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black)),
+                                const SizedBox(height: 12),
+                                Column(
+                                  children: _topicHeatDistribution.entries.map((entry) {
+                                    final topic = entry.key;
+                                    final heat = entry.value;
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Stack(
+                                              children: [
+                                                Container(
+                                                  height: 16,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.pink.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                ),
+                                                Container(
+                                                  height: 16,
+                                                  width: heat / 100,
+                                                  decoration: BoxDecoration(
+                                                    gradient: const LinearGradient(
+                                                      colors: [Colors.pink, Colors.purple],
+                                                      begin: Alignment.centerLeft,
+                                                      end: Alignment.centerRight,
+                                                    ),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(topic, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                          const SizedBox(width: 16),
+                                          Text('${heat.toInt()}%', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

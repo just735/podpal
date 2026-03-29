@@ -688,8 +688,11 @@ class _EnhanceStepState extends State<EnhanceStep> {
             height: 200,
             margin: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              color: Colors.black,
               borderRadius: BorderRadius.circular(12),
+              image: DecorationImage(
+                image: AssetImage('assets/fengmian.png'),
+                fit: BoxFit.cover,
+              ),
             ),
             child: Center(
               child: IconButton(
