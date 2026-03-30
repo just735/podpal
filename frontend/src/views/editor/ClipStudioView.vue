@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-screen bg-white flex flex-col overflow-auto">
     <!-- 1. 顶部导航 & 用户管理 (Feature 1, 6) -->
     <header class="h-16 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50 px-6 flex items-center justify-between sticky top-0 z-50">
@@ -3574,7 +3574,7 @@ const parseSegmentText = (text) => {
     const wordRegex = /(\s+|[，。！？、；：,.!?…—-])/g
                 const subs = part.split(wordRegex)
                 // 改进的口吃匹配：匹配连续重复的单字，如“我我我”、“这这”
-                const stutterPattern = /([\u4e00-\u9fa5A-Za-z])\1+/g
+                const stutterPattern = /([\u4e00-\u9fa5A-Za-z])\1{2,}/g
                 
                 subs.forEach(sub => {
                   if (!sub) return
@@ -4806,7 +4806,7 @@ const seekVideoProgress = (event) => {
 }
 
 // 口癖 / 语气词列表，用于高亮和一键删除
-const fillerWords = ['就是', '然后', '那个', '嗯', '啊', '你知道', '其实', '对吧', '可以说', '怎么说呢']
+const fillerWords = ['就是', '然后', '那个', '嗯', '啊', '你知道', '对吧', '可以说', '怎么说呢', '诶', '呃']
 
 // 音频增强开关
 const voiceEnhanceEnabled = ref(false)
