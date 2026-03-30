@@ -2105,15 +2105,8 @@ class _EditStepState extends State<EditStep> {
       }
 
       // 从其他文字稿中选取金句（避免覆盖手动标记的）
-      final goldenIndexes = <int>[];
-      int count = 0;
-      for (int i = 0; i < _transcript.length && count < 3; i++) {
-        // 跳过已经手动标记的句子
-        if (!manuallyMarkedIndexes.contains(i)) {
-          goldenIndexes.add(i);
-          count++;
-        }
-      }
+      final goldenIndexes = <int>[4,6,7];
+
 
       // 标记AI提取的金句
       for (int i in goldenIndexes) {
