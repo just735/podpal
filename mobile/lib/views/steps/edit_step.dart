@@ -1262,7 +1262,7 @@ class _EditStepState extends State<EditStep> {
     setState(() {
       _lockedTTSSegment = {
         'index': index,
-        'text': '',
+        'text': segment['text'] ?? '',
         'isNew': true
       };
       _editSupplementText = '';
@@ -1307,252 +1307,270 @@ class _EditStepState extends State<EditStep> {
         ),
         padding: const EdgeInsets.all(20),
         child: StatefulBuilder(
-          builder: (context, setDialogState) => SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 标题栏
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: Colors.pink.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Text('声演实验室', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.pinkAccent)),
-                      ],
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        setState(() {
-                          _lockedTTSSegment = null;
-                          _editSupplementText = '';
-                          _clonedVoiceSentences = [];
-                        });
-                      },
-                      icon: const Icon(Icons.close, size: 24, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                
-                // 输入框
-                TextField(
-                  onChanged: (value) {
-                    setDialogState(() {
-                      _editSupplementText = value;
-                    });
-                  },
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: '请输入补录内容...',
-                    hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.pink.withOpacity(0.7), width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.all(16),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // 插入位置选择
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('插入位置', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black)),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RadioListTile<int>(
-                              title: const Text('上方', style: TextStyle(fontSize: 14)),
-                              value: 0,
-                              groupValue: _insertPosition,
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  _insertPosition = value!;
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          Expanded(
-                            child: RadioListTile<int>(
-                              title: const Text('下方', style: TextStyle(fontSize: 14)),
-                              value: 1,
-                              groupValue: _insertPosition,
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  _insertPosition = value!;
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          Expanded(
-                            child: RadioListTile<int>(
-                              title: const Text('内部', style: TextStyle(fontSize: 14)),
-                              value: 2,
-                              groupValue: _insertPosition,
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  _insertPosition = value!;
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // 确认按钮
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _editSupplementText.trim().isEmpty ? null : () async {
-                          setDialogState(() {
-                            _isCloningVoice = true;
-                            _generateProgress = 0;
-                          });
-                          
-                          await confirmEditAndGenerate(setDialogState);
-                          
-                          setDialogState(() {
-                            _isCloningVoice = false;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink.withOpacity(0.7),
-                          disabledBackgroundColor: Colors.grey[200],
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: const Text('确认', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // 进度指示器
-                if (_isCloningVoice) ...[
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.pink.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.pink.withOpacity(0.1)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('生成中...', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.pink.withOpacity(0.7))),
-                            Text('${_generateProgress}%', style: TextStyle(fontSize: 14, color: Colors.pink.withOpacity(0.7))),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        LinearProgressIndicator(
-                          value: _generateProgress / 100,
-                          backgroundColor: Colors.grey[200],
-                          color: Colors.pink.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                
-                // 克隆结果
-                if (_clonedVoiceSentences.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Container(
-                    height: 1,
-                    color: Colors.grey.withOpacity(0.2),
-                  ),
-                  const SizedBox(height: 24),
+          builder: (context, setDialogState) {
+            // 当插入位置为内部时，将原文本放入输入框
+            if (_insertPosition == 2 && _editSupplementText.isEmpty && _lockedTTSSegment != null) {
+              setDialogState(() {
+                _editSupplementText = _lockedTTSSegment!['text'] ?? '';
+              });
+            }
+            
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 标题栏
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('克隆结果', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-                      Text('共 ${_clonedVoiceSentences.length} 条', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Colors.pink.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text('声演实验室', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.pinkAccent)),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _lockedTTSSegment = null;
+                            _editSupplementText = '';
+                            _clonedVoiceSentences = [];
+                          });
+                        },
+                        icon: const Icon(Icons.close, size: 24, color: Colors.grey),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  ..._clonedVoiceSentences.map((sentence) => Container(
-                    padding: const EdgeInsets.all(18),
-                    margin: const EdgeInsets.only(bottom: 16),
+                  const SizedBox(height: 24),
+                  
+                  // 输入框
+                  TextField(
+                    controller: TextEditingController(text: _editSupplementText),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        _editSupplementText = value;
+                      });
+                    },
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: _insertPosition == 2 ? '请编辑内容...' : '请输入补录内容...',
+                      hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.pink.withOpacity(0.7), width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // 插入位置选择
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.pink.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.pink.withOpacity(0.1)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          spreadRadius: 0,
-                          blurRadius: 10,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(sentence['text'], style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.black)),
+                        const Text('插入位置', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black)),
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Text('${_getSpeakerName()} | ${sentence['duration']}s', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                            Expanded(
+                              child: RadioListTile<int>(
+                                title: const Text('上方', style: TextStyle(fontSize: 14)),
+                                value: 0,
+                                groupValue: _insertPosition,
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    _insertPosition = value!;
+                                    if (_insertPosition != 2) {
+                                      _editSupplementText = '';
+                                    }
+                                  });
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<int>(
+                                title: const Text('下方', style: TextStyle(fontSize: 14)),
+                                value: 1,
+                                groupValue: _insertPosition,
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    _insertPosition = value!;
+                                    if (_insertPosition != 2) {
+                                      _editSupplementText = '';
+                                    }
+                                  });
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<int>(
+                                title: const Text('内部', style: TextStyle(fontSize: 14)),
+                                value: 2,
+                                groupValue: _insertPosition,
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    _insertPosition = value!;
+                                    if (_insertPosition == 2 && _lockedTTSSegment != null) {
+                                      _editSupplementText = _lockedTTSSegment!['text'] ?? '';
+                                    }
+                                  });
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => previewClonedVoice(sentence),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Colors.blue.withOpacity(0.7)),
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                      ],
+                    ),
+                  ),
+                  
+                  // 确认按钮
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _editSupplementText.trim().isEmpty ? null : () async {
+                            setDialogState(() {
+                              _isCloningVoice = true;
+                              _generateProgress = 0;
+                            });
+                            
+                            await confirmEditAndGenerate(setDialogState);
+                            
+                            setDialogState(() {
+                              _isCloningVoice = false;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.pink.withOpacity(0.7),
+                            disabledBackgroundColor: Colors.grey[200],
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: const Text('确认', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  // 进度指示器
+                  if (_isCloningVoice) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.pink.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.pink.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('生成中...', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.pink.withOpacity(0.7))),
+                              Text('${_generateProgress}%', style: TextStyle(fontSize: 14, color: Colors.pink.withOpacity(0.7))),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          LinearProgressIndicator(
+                            value: _generateProgress / 100,
+                            backgroundColor: Colors.grey[200],
+                            color: Colors.pink.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  
+                  // 克隆结果
+                  if (_clonedVoiceSentences.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      height: 1,
+                      color: Colors.grey.withOpacity(0.2),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('克隆结果', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                        Text('共 ${_clonedVoiceSentences.length} 条', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ..._clonedVoiceSentences.map((sentence) => Container(
+                      padding: const EdgeInsets.all(18),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.pink.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.pink.withOpacity(0.1)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            spreadRadius: 0,
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(sentence['text'], style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.black)),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Text('${_getSpeakerName()} | ${sentence['duration']}s', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => previewClonedVoice(sentence),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: Colors.blue.withOpacity(0.7)),
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
-                                ),
-                                child: Text('预览', style: TextStyle(fontSize: 14, color: Colors.blue.withOpacity(0.7))),
+                                  child: Text('预览', style: TextStyle(fontSize: 14, color: Colors.blue.withOpacity(0.7))),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1651,7 +1669,8 @@ class _EditStepState extends State<EditStep> {
                 ],
               ],
             ),
-          ),
+          );
+        }
         ),
       ),
     );
@@ -1794,16 +1813,21 @@ class _EditStepState extends State<EditStep> {
           };
           _transcript.insert(index + 1, newSeg);
         } else if (_insertPosition == 2) {
-          // 插入到内部，使用不同颜色标注
+          // 插入到内部，替换原文本
           final originalText = _transcript[index]['text'];
-          final newText = originalText + ' ' + sentence['text'];
+          final newText = sentence['text'];
           _transcript[index]['text'] = newText;
           _transcript[index]['tokens'] = _parseTranscriptToTokens(newText);
           _transcript[index]['isOriginal'] = false;
+          _transcript[index]['isTts'] = true;
+          _transcript[index]['confirmed'] = true;
+          _transcript[index]['isCloned'] = true;
+          _transcript[index]['voiceId'] = sentence['voiceId'];
+          _transcript[index]['voiceStyle'] = sentence['voiceStyle'];
           _transcript[index]['editTrace'] = {
             'oldText': originalText,
             'newText': newText,
-            'type': 'AI 克隆语音内部插入',
+            'type': 'AI 克隆语音内部替换',
             'timestamp': DateTime.now().toString(),
           };
         }
