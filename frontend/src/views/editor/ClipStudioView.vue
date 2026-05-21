@@ -2502,17 +2502,6 @@
                   {{ lastScriptOptimizationType === 'logic' ? '已应用逻辑优化' : '逻辑纠错' }}
                 </button>
               </div>
-              <div v-if="scriptOptimizeMessage" class="mt-2 flex items-center justify-between gap-2 text-[11px] text-gray-600">
-                <span class="leading-relaxed">{{ scriptOptimizeMessage }}</span>
-                <button
-                  v-if="scriptOptimizationUndoSnapshot"
-                  class="shrink-0 px-2 py-1 rounded bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 transition"
-                  @click="undoLastScriptOptimization"
-                >
-                  撤销刚刚处理
-                </button>
-              </div>
-
               <!-- 脚本优化建议列表 -->
               <div v-if="scriptSuggestions.length" class="mt-4 space-y-2">
                 <div v-for="s in scriptSuggestions" :key="s.id" class="p-3 bg-white border border-blue-200 rounded text-xs text-gray-700 flex flex-col gap-2 shadow-sm">
@@ -2529,6 +2518,11 @@
                       @click="applyScriptSuggestion(s)"
                       class="px-3 py-1 bg-blue-500 text-white rounded-full text-[10px] hover:bg-blue-600 transition shadow-sm"
                     >确认</button>
+                    <button 
+                      v-if="s.type && appliedOptimizations && appliedOptimizations[s.type]"
+                      @click="undoScriptSuggestion(s)"
+                      class="px-3 py-1 bg-white text-emerald-600 border border-emerald-100 rounded-full text-[10px] hover:bg-emerald-50 transition"
+                    >撤销</button>
                     <button 
                       @click="scriptSuggestions = scriptSuggestions.filter(item => item.id !== s.id)"
                       class="px-3 py-1 bg-white text-gray-400 border border-gray-100 rounded-full text-[10px] hover:bg-gray-50 transition"
@@ -3484,7 +3478,7 @@ const parseSegmentText = (text) => {
 const isPauseContextToken = (token) => {
   if (!token || token.type === 'space') return false
   if (token.type !== 'deleted') return true
-  return ['呃', '嗯', '啊', '额', '那个', '怎么说呢', '你知道', '对吧'].some(word => token.text.includes(word)) || /[，,：:；;]$/.test(token.text)
+  return ['呃', '嗯', '啊', '诶', '额', '那个', '怎么说呢', '你知道', '对吧'].some(word => token.text.includes(word)) || /[，,：:；;]$/.test(token.text)
 }
 
 const getStableRandomInRange = (seedText, min, max) => {
@@ -3520,7 +3514,7 @@ const getPauseTokenMeta = (segment, tokenIndex) => {
   const rawLength = Array.from(pauseText).length
   const prevText = prevToken?.text || ''
   const nextText = nextToken?.text || ''
-  const hesitationHints = ['呃', '嗯', '啊', '额', '那个', '怎么说呢', '你知道', '对吧']
+  const hesitationHints = ['呃', '嗯', '啊', '诶', '额', '那个', '怎么说呢', '你知道', '对吧']
   const looksAbnormal = hesitationHints.some(word => prevText.includes(word) || nextText.includes(word)) || /[，,：:；;]$/.test(prevText)
   const durationSeed = [segment?.speaker || '', segment?.startTime ?? '', tokenIndex, pauseText, prevText, nextText, rawLength].join('|')
   const seconds = looksAbnormal
@@ -5094,7 +5088,7 @@ const distributeToPlatforms = async () => {
     return map[id]
   }).join('、')
   
-  alert(`正在分发到：${platformNames}...\n\n（模拟：实际项目中会调用各平台 API）`)
+  alert(`正在分发到：${platformNames}...`)
 }
 
 const copyFullShownotes = () => {
@@ -5249,7 +5243,7 @@ const seekVideoProgress = (event) => {
 // 口癖 / 语气词列表，用于高亮和一键删除
 const fillerWords = [
   '然后', '那个', '这个',
-  '嗯', '嗯嗯', '啊', '啊啊', '呃', '呃呃', '额', '额额',
+  '嗯', '嗯嗯', '啊', '啊啊', '呃', '呃呃', '诶', '诶诶', '额', '额额',
   '你知道', '对吧', '可以说', '怎么说呢'
 ]
 
@@ -5620,6 +5614,9 @@ const selectedSentences = ref([])
 const videoTemplate = ref('digital-human')
 const isGeneratingVideo = ref(false)
 const generatedVideos = ref([])
+
+// 记录已应用但未撤销的脚本优化（type -> snapshot），用于按钮「已使用」状态和保留上次处理结果
+const appliedOptimizations = ref({})
 
 const videoSentenceCandidates = computed(() => {
   const sourceSentences = (goldenSentences.value || []).length
@@ -6362,11 +6359,41 @@ const undoLastScriptOptimization = () => {
   const snapshot = scriptOptimizationUndoSnapshot.value
   if (!snapshot) return
 
+  // 清除对应已应用标记（如果有的话）
+  if (snapshot.appliedType && appliedOptimizations.value && appliedOptimizations.value[snapshot.appliedType]) {
+    delete appliedOptimizations.value[snapshot.appliedType]
+  }
+
   mockTranscript.value = JSON.parse(JSON.stringify(snapshot.transcript))
   scriptSuggestions.value = JSON.parse(JSON.stringify(snapshot.suggestions))
   lastScriptOptimizationType.value = snapshot.lastType
   scriptOptimizeMessage.value = '已撤销刚刚的处理操作。'
   scriptOptimizationUndoSnapshot.value = null
+  recalculateTranscriptDurationsFromText()
+}
+
+// 对应单条建议的撤销：使用 appliedOptimizations 中保存的 snapshot 恢复并清理标记
+const undoScriptSuggestion = (suggestion) => {
+  if (!suggestion || !suggestion.type) return
+  const type = suggestion.type
+  const applied = appliedOptimizations.value && appliedOptimizations.value[type]
+  if (!applied || !applied.snapshot) {
+    scriptOptimizeMessage.value = '未找到对应的应用记录，无法撤销。'
+    return
+  }
+
+  const snap = applied.snapshot || {}
+  if (snap.transcript) {
+    mockTranscript.value = JSON.parse(JSON.stringify(snap.transcript))
+  }
+  if (snap.suggestions) {
+    scriptSuggestions.value = JSON.parse(JSON.stringify(snap.suggestions))
+  }
+  lastScriptOptimizationType.value = snap.lastType || null
+  scriptOptimizeMessage.value = `已撤销「${type}」的处理。`
+  // 清理 applied 标记
+  delete appliedOptimizations.value[type]
+  // 重新计算时长/暂停等元信息
   recalculateTranscriptDurationsFromText()
 }
 
@@ -6378,8 +6405,29 @@ const removeFiller = (segment, word) => {
 
 // 脚本优化按钮交互：对当前页面数据做「可见」的示例性修改
 const applyScriptOptimization = (type) => {
+  // 如果该类型已经被应用（且未撤销），不重复执行，直接展示提示和高亮原处理结果
+  if (appliedOptimizations.value && appliedOptimizations.value[type]) {
+    scriptOptimizeMessage.value = appliedOptimizations.value[type].message || '此项已应用，保留上次处理结果。'
+    if (Array.isArray(appliedOptimizations.value[type].processedIndices) && appliedOptimizations.value[type].processedIndices.length) {
+      flashProcessedTranscriptIndices(appliedOptimizations.value[type].processedIndices, type)
+    }
+    return
+  }
+
   saveScriptOptimizationUndoSnapshot()
+  // 标记当前即将应用的类型，便于撤销时清理对应的已应用标记
+  if (scriptOptimizationUndoSnapshot.value) {
+    scriptOptimizationUndoSnapshot.value.appliedType = type
+  }
   lastScriptOptimizationType.value = type
+
+  // 保存一个用于精确撤销的快照到 appliedOptimizations（以便可以对单条记录进行撤销）
+  appliedOptimizations.value = appliedOptimizations.value || {}
+  appliedOptimizations.value[type] = {
+    snapshot: JSON.parse(JSON.stringify(scriptOptimizationUndoSnapshot.value || {})),
+    message: '',
+    processedIndices: []
+  }
   // 去口语冗余：自动删除所有片段里的口癖（留痕模式）
   if (type === 'filler' || type === 'stutter' || type === 'pause-abnormal') {
     let hasChanges = false
@@ -6444,12 +6492,18 @@ const applyScriptOptimization = (type) => {
       }
       scriptSuggestions.value.unshift({
         id: Date.now(),
+        type: type,
         label: optimizationMeta[type]?.label || '已应用口语冗余清理',
         preview: optimizationMeta[type]?.preview || '自动识别并留痕删除了冗余口语内容。',
         tag: optimizationMeta[type]?.tag || '口癖优化'
       })
       scriptOptimizeMessage.value = optimizationMeta[type]?.preview || '已对文字稿中的冗余口语内容进行留痕删除，提升内容精炼度。'
       flashProcessedTranscriptIndices(changedSegmentIndices, type)
+      // 记录为已应用，保留本次处理结果和被处理的片段索引
+      appliedOptimizations.value = appliedOptimizations.value || {}
+      appliedOptimizations.value[type] = appliedOptimizations.value[type] || {}
+      appliedOptimizations.value[type].message = scriptOptimizeMessage.value
+      appliedOptimizations.value[type].processedIndices = changedSegmentIndices.slice()
     } else {
       const emptyMessageMap = {
         filler: '未检测到可删除的语气词，文稿保持原样。',
@@ -6488,12 +6542,17 @@ const applyScriptOptimization = (type) => {
     if (hasChanges) {
       scriptSuggestions.value.unshift({
         id: Date.now(),
+        type: 'logic',
         label: '已应用逻辑纠错建议',
         preview: '识别到话语逻辑较为生硬，已自动添加补位过渡词。如果不满意，可直接点击文字稿中的绿色高亮部分撤回。',
         tag: '逻辑优化'
       })
       scriptOptimizeMessage.value = '已在文稿中应用逻辑纠错建议，新增内容已用绿色高亮标注。点击高亮内容可一键撤回。'
       flashProcessedTranscriptIndices(changedSegmentIndices, 'logic')
+      appliedOptimizations.value = appliedOptimizations.value || {}
+      appliedOptimizations.value['logic'] = appliedOptimizations.value['logic'] || {}
+      appliedOptimizations.value['logic'].message = scriptOptimizeMessage.value
+      appliedOptimizations.value['logic'].processedIndices = changedSegmentIndices.slice()
     } else {
       scriptOptimizeMessage.value = '未检测到明显的逻辑断层，文稿逻辑基本通顺。'
     }
