@@ -1,6 +1,6 @@
 <template>
   <div class="flex-1 flex flex-col overflow-hidden">
-    <!-- 工具�?-->
+    <!-- 工具栏 -->
     <div class="p-4 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">

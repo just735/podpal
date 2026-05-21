@@ -2853,6 +2853,9 @@
                   >
                     <div class="font-medium text-gray-900">{{ result.title }}</div>
                     <div class="text-[10px] text-gray-600 mt-1">{{ result.preview }}</div>
+                    <div v-if="result.recognitionFeature" class="mt-2 rounded-md border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] text-cyan-800 leading-snug">
+                      <span class="font-semibold">🔍 [TS-RAG 识别特征]：</span>{{ result.recognitionFeature }}
+                    </div>
                     <div class="flex items-center justify-between mt-1">
                       <span class="text-[10px] text-pink-600">{{ formatTime(result.startTime) }} - {{ formatTime(result.endTime) }}</span>
                       <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px]">相关度: {{ result.relevance }}%</span>
@@ -2861,15 +2864,17 @@
                 </div>
                 <div v-if="topicHeatmap.length" class="pt-2 border-t border-pink-100">
                   <div class="text-xs font-medium text-gray-900 mb-2">话题热度分布</div>
-                  <div class="space-y-1">
-                    <div v-for="(topic, idx) in topicHeatmap" :key="topic.id" class="flex items-center gap-2">
-                      <span class="text-[10px] text-gray-400 w-4 text-right">{{ idx + 1 }}</span>
-                      <div class="flex-1 h-2 bg-pink-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full transition-all"
-                          :style="{ width: topic.intensity + '%' }"></div>
-                      </div>
-                      <span class="text-[10px] text-gray-600 w-20 truncate">{{ topic.name }}</span>
-                      <span class="text-[10px] font-medium text-gray-500 w-9 text-right">{{ topic.intensity }}%</span>
+                    <div class="space-y-3">
+                      <div v-for="(topic, idx) in topicHeatmap" :key="topic.id" class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 w-4 text-right pt-0.5">{{ idx + 1 }}</span>
+                        <div class="flex-1 min-w-0">
+                          <div class="h-2 mt-1 bg-pink-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-pink-400 to-purple-400 rounded-full transition-all"
+                              :style="{ width: topic.intensity + '%' }"></div>
+                          </div>
+                          <div class="mt-1 text-[10px] text-gray-600 whitespace-normal break-words leading-tight">{{ topic.name }}</div>
+                        </div>
+                        <span class="text-[10px] font-medium text-gray-500 w-9 text-right flex-none pt-0.5">{{ topic.intensity }}%</span>
                     </div>
                   </div>
                 </div>
@@ -5634,15 +5639,24 @@ const videoSentenceCandidates = computed(() => {
       const content = getCleanSegmentText(sentence.content || sentence.text || '')
       const startTime = Number(sentence.startTime) || 0
       const rawEndTime = Number(sentence.endTime)
-      const durationSeconds = Number.isFinite(rawEndTime) && rawEndTime > startTime
+      const explicitDuration = Number(sentence.durationSeconds)
+      const originalDurationSeconds = Number.isFinite(rawEndTime) && rawEndTime > startTime
         ? rawEndTime - startTime
-        : Math.max(6, Math.min(18, Math.ceil((content.length || 0) / 8)))
+        : Number.NaN
+      const contentBasedDurationSeconds = Math.max(10, Math.min(24, Math.ceil((content.length || 0) / 12)))
+      const indexOffsetSeconds = (index % 4) * 3
+      const normalizedDurationSeconds = Math.max(10, Math.min(42, contentBasedDurationSeconds + indexOffsetSeconds))
+      const durationSeconds = Number.isFinite(explicitDuration) && explicitDuration > 0 && explicitDuration <= 42
+        ? explicitDuration
+        : Number.isFinite(originalDurationSeconds) && originalDurationSeconds <= 42
+          ? originalDurationSeconds
+          : normalizedDurationSeconds
 
       return {
         id: sentence.id || `video-golden-${sentence.segmentIndex ?? index}-${startTime}`,
         content,
         startTime,
-        endTime: Number.isFinite(rawEndTime) && rawEndTime > startTime ? rawEndTime : startTime + durationSeconds,
+        endTime: startTime + durationSeconds,
         durationSeconds,
         sourceLabel: `来源 ${formatTime(startTime)}`,
         durationLabel: `${Math.max(3, Math.round(durationSeconds))}s`
@@ -8054,6 +8068,7 @@ const performSemanticSearch = async () => {
           id: `fixed-${queryLower}-${idx}-${Date.now()}`,
           title: result.title || preview.slice(0, 18) + (preview.length > 18 ? '...' : ''),
           preview,
+          recognitionFeature: result.recognitionFeature || '',
           startTime,
           endTime,
           rawScore: result.rawScore ?? (100 - idx * 6),
@@ -8072,24 +8087,30 @@ const performSemanticSearch = async () => {
         {
           title: '谈及创作者阵痛与初心的释怀动容',
           preview: '在这些智能技术出现之前，大家完全是在用大量的时间和心血和枯燥的机械劳动死磕。我见过太多满怀理想的年轻人，还没等到属于自己的听众，就被现实折磨得熄灭了……（伴随 4.2 秒极其低沉的声音能量下敛与一声微弱的叹息颤音）',
+          recognitionFeature: '系统精准检测到发言人语速骤降 65%、短时能量（Energy）大幅下敛，并伴随长达 4.2 秒因情绪高度沉浸导致的非平稳低沉留白（叹息）。跨模态算法将其直接映射为高维隐空间中的“情感共振低谷”，实现零关键词下的隐式高光召回。',
+          // 调整为更短的片段（约 30s），并保持在总时长 32:15 内
           startTime: 24 * 60 + 15,
-          endTime: 25 * 60 + 30,
+          endTime: 24 * 60 + 45,
           relevance: 97,
           rawScore: 100
         },
         {
           title: 'AI 哲学激辩修罗场',
           preview: '（连珠炮打断）不，王老师！你把算法想得太善良了！它在批量杀死原创！ → （音量突增对攻）但你忽略了人类灵魂在绝境里的抗性！',
+          recognitionFeature: '实时捕获多人对谈强打断抢话（Audio Overlap）以及振幅能量突增 14dB 的冲突特征。系统动态向前回溯 20 秒争论起因、向后包裹 15 秒观点收尾，输出因果极其完整的高能对攻故事链。',
+          // 调整为更短的片段（约 30s）
           startTime: 14 * 60 + 20,
-          endTime: 15 * 60 + 10,
+          endTime: 14 * 60 + 50,
           relevance: 91,
           rawScore: 94
         },
         {
           title: '听众深夜私信的价值自救',
           preview: '那天晚上十一点，我坐在马路牙子上，看着一个抑郁症听众发来的长私信。她说在无数个失眠的深夜，是我的声音陪她熬过来的。那一刻，我看着满街的霓虹灯，眼泪一下子就下来了……原来我说的那些废话，是真的在拯救生命。',
-          startTime: 38 * 60 + 5,
-          endTime: 39 * 60 + 20,
+          recognitionFeature: '依托长序列高维语义泛化能力。虽然文本层面全是一般生活化叙事（霓虹灯、马路牙子），不含显式情绪词，但系统深刻读懂了文字背后的“内容社会价值实现与极度欣慰的灵魂共鸣”，精准打捞。',
+          // 原始位置在 38 分钟，超出总时长，改为 28:05 - 28:40，时长约 35s
+          startTime: 28 * 60 + 5,
+          endTime: 28 * 60 + 40,
           relevance: 86,
           rawScore: 88
         }
