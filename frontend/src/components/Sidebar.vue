@@ -9,7 +9,8 @@ const menuItems = [
   { path: '/projects?action=create&from=clip', icon: 'plus', label: '新建' },
   { path: '/clip-studio', icon: 'edit', label: '编辑' },
   { path: '/materials?from=clip', icon: 'audio', label: '素材' },
-  { path: '/tools?from=clip', icon: 'refresh', label: '工具' }
+  { path: '/tools?from=clip', icon: 'refresh', label: '工具' },
+  { path: '/profile', icon: 'user', label: '个人' }
 ]
 
 const isActive = (path) => {
@@ -52,6 +53,10 @@ const isActive = (path) => {
         <!-- Refresh图标 -->
         <svg v-else-if="item.icon === 'refresh'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <!-- User图标 -->
+        <svg v-else-if="item.icon === 'user'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A11.955 11.955 0 0112 15.75c2.54 0 4.896.79 6.879 2.054M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
         
         <!-- 工具提示 -->

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="$emit('close')">
     <div class="glass-card rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto bg-gradient-to-br from-pink-50/95 to-purple-50/95 border-2 border-pink-200/60 backdrop-blur-xl">
       <div class="flex items-center justify-between mb-6">
@@ -16,8 +16,9 @@
       <!-- 拖拽上传区域 -->
       <div
         @drop="handleDrop"
-        @dragover.prevent
-        @dragenter.prevent
+        @dragover.prevent="handleDragOver"
+        @dragenter.prevent="handleDragEnter"
+        @dragleave.prevent="handleDragLeave"
         class="border-2 border-dashed border-pink-200 rounded-xl p-12 text-center mb-6 hover:border-pink-400 transition bg-white"
         :class="{ 'border-pink-400 bg-pink-50': isDragging }"
       >
@@ -34,6 +35,7 @@
         </svg>
         <p class="text-gray-900 mb-2">拖拽文件到此处或</p>
         <button
+          type="button"
           @click="fileInput?.click()"
           class="px-6 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg hover:scale-105 transition"
         >
@@ -107,10 +109,29 @@ const fileInput = ref(null)
 const files = ref([])
 const uploadProgress = ref({})
 const isDragging = ref(false)
+const dragDepth = ref(0)
 const uploading = ref(false)
+const SUPPORTED_UPLOAD_EXTENSIONS = ['mp3', 'wav', 'm4a', 'flac', 'aac', 'ogg', 'mp4', 'mov', 'mkv', 'webm']
+
+const handleDragEnter = () => {
+  dragDepth.value += 1
+  isDragging.value = true
+}
+
+const handleDragOver = () => {
+  isDragging.value = true
+}
+
+const handleDragLeave = () => {
+  dragDepth.value = Math.max(0, dragDepth.value - 1)
+  if (dragDepth.value === 0) {
+    isDragging.value = false
+  }
+}
 
 const handleDrop = (e) => {
   isDragging.value = false
+  dragDepth.value = 0
   const droppedFiles = Array.from(e.dataTransfer.files)
   addFiles(droppedFiles)
 }
@@ -122,8 +143,10 @@ const handleFileSelect = (e) => {
 
 const addFiles = (newFiles) => {
   const validFiles = newFiles.filter(file => {
-    const validTypes = ['audio/', 'video/']
-    return validTypes.some(type => file.type.startsWith(type)) && file.size <= 300 * 1024 * 1024
+    const ext = (file.name?.split('.').pop() || '').toLowerCase()
+    const isMimeSupported = file.type?.startsWith('audio/') || file.type?.startsWith('video/')
+    const isExtensionSupported = SUPPORTED_UPLOAD_EXTENSIONS.includes(ext)
+    return (isMimeSupported || isExtensionSupported) && file.size <= 300 * 1024 * 1024
   })
   files.value.push(...validFiles)
   validFiles.forEach((_, index) => {

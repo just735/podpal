@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup>
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { computed } from 'vue'
@@ -93,6 +93,14 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
       >
         素材管理
       </RouterLink>
+      <RouterLink
+        v-if="userStore.isAuthenticated"
+        to="/profile"
+        class="transition"
+        :class="$route.path === '/profile' ? 'text-pink-700 font-semibold' : 'hover:text-pink-700'"
+      >
+        个人中心
+      </RouterLink>
       <RouterLink 
         to="/solutions" 
         class="transition"
@@ -100,22 +108,8 @@ const isClipStudio = computed(() => route.path.startsWith('/clip-studio') || rou
       >
         解决方案
       </RouterLink>
-      <RouterLink 
-        to="/profile" 
-        class="transition"
-        :class="$route.path === '/profile' ? 'text-pink-700 font-semibold' : 'hover:text-pink-700'"
-      >
-        个人中心
-      </RouterLink>
     </div>
     <div class="flex items-center gap-4">
-      <RouterLink
-        v-if="userStore.isAuthenticated"
-        to="/profile"
-        class="px-4 py-2 text-sm transition text-pink-600 hover:text-pink-700"
-      >
-        个人中心
-      </RouterLink>
       <RouterLink
         v-if="!userStore.isAuthenticated"
         to="/login"

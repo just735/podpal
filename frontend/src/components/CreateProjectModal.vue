@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿<template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="$emit('close')">
     <div class="glass-card rounded-2xl p-8 max-w-lg w-full mx-4 bg-gradient-to-br from-pink-50/95 to-purple-50/95 border-2 border-pink-200/60 backdrop-blur-xl">
       <div class="flex items-center justify-between mb-6">
