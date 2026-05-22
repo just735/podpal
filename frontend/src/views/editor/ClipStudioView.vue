@@ -261,6 +261,7 @@
                     @play="handleAssetAudioPlay(asset)"
                     @pause="handleAssetAudioPause(asset)"
                     @ended="handleAssetAudioEnded(asset)"
+                    @error="handleAssetAudioError(asset)"
                   ></audio>
                 </div>
 
@@ -275,6 +276,7 @@
                   @play="handleAssetAudioPlay(asset)"
                   @pause="handleAssetAudioPause(asset)"
                   @ended="handleAssetAudioEnded(asset)"
+                  @error="handleAssetAudioError(asset)"
                 ></audio>
               </div>
               <div class="flex items-center justify-between text-xs mt-2 pt-2 border-t border-pink-100">
@@ -2246,7 +2248,7 @@
                   <div v-if="hasAnySocialCopy">
                     <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                       <span class="w-1 h-4 bg-green-500 rounded-full"></span>
-                      {{ platformNames[socialPlatform] }} 推广文案
+                      {{ socialPlatformLabel }} 推广文案
                     </h3>
                     <div class="bg-green-50 rounded-lg p-4 border border-green-100">
                       <div class="text-sm text-gray-700 whitespace-pre-line">{{ currentSocialCopy }}</div>
@@ -2274,147 +2276,88 @@
                 </div>
               </div>
               
-              <!-- AI 传播预测 -->
-              <div class="bg-white rounded-xl border border-pink-200 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    AI 传播预测
-                  </h3>
-                  <button @click="generatePropagationForecast" :disabled="isGeneratingForecast" class="text-sm text-pink-600 hover:text-pink-700 flex items-center gap-1">
-                    <svg v-if="isGeneratingForecast" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    </svg>
-                    <span>{{ isGeneratingForecast ? '分析中...' : '重新分析' }}</span>
-                  </button>
-                </div>
-                
-                <div v-if="propagationForecast" class="space-y-4">
-                  <!-- 预测数据卡片 -->
-                  <div class="grid grid-cols-4 gap-4">
-                    <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 text-center">
-                      <div class="text-2xl font-bold text-pink-600">{{ propagationForecast.expectedPlays }}</div>
-                      <div class="text-xs text-gray-500 mt-1">预计播放量</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 text-center">
-                      <div class="text-2xl font-bold text-blue-600">{{ propagationForecast.expectedLikes }}</div>
-                      <div class="text-xs text-gray-500 mt-1">预计点赞</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 text-center">
-                      <div class="text-2xl font-bold text-green-600">{{ propagationForecast.expectedShares }}</div>
-                      <div class="text-xs text-gray-500 mt-1">预计分享</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg p-4 text-center">
-                      <div class="text-2xl font-bold text-orange-600">{{ propagationForecast.viralScore }}</div>
-                      <div class="text-xs text-gray-500 mt-1">传播指数</div>
-                    </div>
-                  </div>
-                  
-                  <!-- 平台表现预测 -->
-                  <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="text-sm font-semibold text-gray-700 mb-3">各平台表现预测</div>
-                    <div class="space-y-2">
-                      <div v-for="platform in propagationForecast.platformPredictions" :key="platform.name" class="flex items-center gap-3">
-                        <span class="text-xs text-gray-600 w-16">{{ platform.name }}</span>
-                        <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div class="h-full rounded-full" :style="{ width: platform.score + '%', backgroundColor: platform.color }"></div>
-                        </div>
-                        <span class="text-xs font-medium text-gray-700 w-12 text-right">{{ platform.score }}分</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- AI 建议 -->
-                  <div class="bg-pink-50 rounded-lg p-4 border border-pink-100">
-                    <div class="text-sm font-semibold text-pink-700 mb-2">💡 AI 优化建议</div>
-                    <ul class="space-y-1">
-                      <li v-for="(tip, idx) in propagationForecast.tips" :key="idx" class="text-sm text-gray-700 flex items-start gap-2">
-                        <span class="text-pink-500 mt-0.5">•</span>
-                        {{ tip }}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                
-                <div v-else class="text-center py-8 text-gray-400">
-                  <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <p class="text-sm">{{ isGeneratingForecast ? 'AI 正在自动分析中…' : '正在准备 AI 传播预测…' }}</p>
-                </div>
-              </div>
             </div>
           </div>
           
-          <!-- 右侧：智能分发建议 -->
+          <!-- 右侧：AI 发布时间分析 + RSS 模板 -->
           <aside class="flex-[2] min-w-0 bg-white border-l border-pink-200 flex flex-col overflow-hidden">
             <div class="p-4 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50">
               <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
                 <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                智能分发建议
+                AI 发布分析
               </h2>
-              <p class="text-xs text-gray-500 mt-1">AI 推荐的最佳发布策略</p>
+              <p class="text-xs text-gray-500 mt-1">强调听众听到时间，倒推审核提交时间</p>
             </div>
             
             <div class="flex-1 overflow-y-auto p-4 space-y-4">
-              <!-- 最佳发布时间 -->
               <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 border border-pink-200">
-                <div class="flex items-center gap-2 mb-3">
-                  <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div class="flex items-center justify-between mb-3">
+                  <div class="text-sm font-semibold text-gray-900">发布时间策略（定时发布）</div>
+                  <button @click="generatePropagationForecast" :disabled="isGeneratingForecast" class="text-xs text-pink-600 hover:text-pink-700 flex items-center gap-1">
+                    <svg v-if="isGeneratingForecast" class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     </svg>
-                  </div>
-                  <div>
-                    <div class="text-sm font-semibold text-gray-900">最佳发布时间</div>
-                    <div class="text-xs text-gray-500">基于听众活跃度分析</div>
-                  </div>
+                    <span>{{ isGeneratingForecast ? '分析中...' : '重新分析' }}</span>
+                  </button>
                 </div>
-                <div class="space-y-2">
-                  <div v-for="(time, idx) in distributionSuggestions.bestTimes" :key="idx" class="flex items-center justify-between p-2 bg-white rounded-lg">
-                    <div class="flex items-center gap-2">
-                      <span class="text-lg">{{ time.icon }}</span>
-                      <span class="text-sm font-medium text-gray-900">{{ time.time }}</span>
+
+                <div v-if="propagationForecast" class="space-y-3">
+                  <div class="grid grid-cols-1 gap-2">
+                    <div class="p-3 rounded-lg bg-white border border-pink-100">
+                      <div class="text-[11px] text-gray-500">建议听众听到时间（定时上线）</div>
+                      <div class="text-lg font-bold text-pink-600">{{ propagationForecast.listenerGoLiveAt }}</div>
                     </div>
-                    <span class="text-xs px-2 py-0.5 rounded-full" :class="time.score >= 90 ? 'bg-green-100 text-green-700' : time.score >= 70 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'">{{ time.score }}分</span>
+                    <div class="p-3 rounded-lg bg-white border border-pink-100">
+                      <div class="text-[11px] text-gray-500">预计审核耗时（小宇宙）</div>
+                      <div class="text-sm font-semibold text-gray-900">{{ propagationForecast.reviewEstimate }}</div>
+                    </div>
+                    <div class="p-3 rounded-lg bg-white border border-pink-100">
+                      <div class="text-[11px] text-gray-500">建议最晚送审时间</div>
+                      <div class="text-sm font-semibold text-rose-600">{{ propagationForecast.submitBefore }}</div>
+                    </div>
+                  </div>
+
+                  <div class="bg-white rounded-lg p-3 border border-pink-100">
+                    <div class="text-xs font-semibold text-gray-800 mb-2">各平台黄金发布时段</div>
+                    <div class="space-y-2">
+                      <div v-for="slot in propagationForecast.platformWindows" :key="slot.platform" class="text-xs text-gray-700">
+                        <span class="font-semibold text-gray-900">{{ slot.platform }}：</span>{{ slot.window }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bg-white rounded-lg p-3 border border-pink-100">
+                    <div class="text-xs font-semibold text-gray-800 mb-2">实操时间搭配（定档 {{ propagationForecast.listenerGoLiveAt }}）</div>
+                    <ol class="space-y-1.5 text-xs text-gray-700 list-decimal ml-4">
+                      <li v-for="step in propagationForecast.executionPlan" :key="step">{{ step }}</li>
+                    </ol>
+                  </div>
+
+                  <div class="bg-white rounded-lg p-3 border border-pink-100">
+                    <div class="text-xs font-semibold text-gray-800 mb-2">AI 小贴士</div>
+                    <ul class="space-y-1 text-xs text-gray-700">
+                      <li v-for="tip in propagationForecast.tips" :key="tip">• {{ tip }}</li>
+                    </ul>
                   </div>
                 </div>
+
+                <div v-else class="text-xs text-gray-500">{{ isGeneratingForecast ? 'AI 正在分析发布节奏…' : '点击“重新分析”生成发布建议。' }}</div>
               </div>
-              
-              <!-- 平台推荐 -->
+
               <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <div class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  平台推荐排序
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-sm font-semibold text-gray-900">通用 RSS 模板（AI 生成）</div>
+                  <button @click="copyRssTemplate" class="text-xs text-pink-600 hover:text-pink-700">复制 XML</button>
                 </div>
-                <div class="space-y-2">
-                  <div v-for="(platform, idx) in distributionSuggestions.platformRanking" :key="platform.id" class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition cursor-pointer" @click="togglePlatform(platform.id)">
-                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold" :class="idx < 3 ? 'text-pink-600' : 'text-gray-500'">{{ idx + 1 }}</div>
-                    <img :src="platform.icon" class="w-6 h-6 rounded" />
-                    <div class="flex-1">
-                      <div class="text-sm font-medium text-gray-900">{{ platform.name }}</div>
-                      <div class="text-xs text-gray-500">{{ platform.reason }}</div>
-                    </div>
-                    <div v-if="selectedPlatforms.includes(platform.id)" class="text-pink-600">
-                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                    </div>
-                  </div>
-                </div>
+                <p class="text-[11px] text-gray-500 mb-3">无需选择导出平台，RSS 为通用格式，可直接用于播客托管平台。</p>
+                <textarea
+                  :value="rssTemplateXml"
+                  readonly
+                  class="w-full h-80 p-3 text-[11px] leading-5 font-mono bg-gray-50 border border-gray-200 rounded-lg text-gray-700"
+                ></textarea>
               </div>
-              
-              <!-- 一键分发按钮 -->
-              <button @click="distributeToPlatforms" class="w-full py-3 bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white rounded-lg hover:shadow-lg transition font-medium flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                一键分发 ({{ selectedPlatforms.length }}个平台)
-              </button>
             </div>
           </aside>
         </div>
@@ -3142,13 +3085,7 @@
         </div>
         <div class="p-6 space-y-3">
           <div class="text-sm text-gray-700">音频文件已成功导出。</div>
-          <div class="text-xs text-gray-500">已选分发平台：</div>
-          <div class="flex flex-wrap gap-2">
-            <span v-for="p in selectedPlatforms" :key="p" class="px-2 py-0.5 text-xs rounded bg-pink-100 text-pink-700 border border-pink-200">
-              {{ platformNames[p] || p }}
-            </span>
-            <span v-if="selectedPlatforms.length === 0" class="text-xs text-gray-400">暂无选择</span>
-          </div>
+          <div class="text-xs text-gray-500">已同步生成通用 RSS 模板，可直接复制到托管平台发布。</div>
         </div>
         <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
           <button @click="showExportSuccess = false" class="px-4 py-2 text-sm bg-pink-500 text-white rounded hover:bg-pink-600">好的</button>
@@ -3174,7 +3111,9 @@ import xiaoyuzhouCoverImage from '../../assets/xiaoyuzhou.png'
 import wechatImage from '../../assets/wechat.png'
 import xiaohongshuImage from '../../assets/xiaohongshu.png'
 import weiboImage from '../../assets/weibo.png'
-import jiaodaZhixingDasha3Audio from '../../assets/交大知行大厦 3.m4a'
+import uneditedAudio from '../../assets/未剪辑版.m4a'
+import editedAudio from '../../assets/剪辑版.m4a'
+import supplementAudio from '../../assets/补录.m4a'
 
 const route = useRoute()
 const router = useRouter()
@@ -4005,10 +3944,8 @@ const insertGeneratedVoiceSentence = (sentence) => {
     voiceLabGenerated: true
   })
 
-  // 如果 sentence 带有音频地址，关联到文字稿段
-  if (sentence.audioUrl) {
-    newSeg.audioUrl = sentence.audioUrl
-  }
+  const sentenceAudioUrl = sentence.audioUrl || supplementAudio
+  newSeg.audioUrl = sentenceAudioUrl
 
   if (ttsInsertPosition.value === 'before') {
     newSeg.startTime = baseSeg.startTime
@@ -4030,38 +3967,36 @@ const insertGeneratedVoiceSentence = (sentence) => {
   
   // 重置状态
   ttsInsertIndex.value = null
-  // 如果有音频地址，向时间轴对应轨道添加 clip，便于播放与导出
-  if (sentence.audioUrl) {
-    let aiTrack = tracks.value.find(t => t.name.includes('AI'))
-    if (!aiTrack) {
-      aiTrack = {
-        id: Date.now() + 10,
-        name: 'AI 合成',
-        type: '音频',
-        color: 'bg-[#8B5CF6]',
-        muted: false,
-        solo: false,
-        volume: 80,
-        pan: 0,
-        collapsed: false,
-        locked: false,
-        recording: false,
-        clips: []
-      }
-      tracks.value.push(aiTrack)
+  // 为补录结果落一条时间轴 clip，便于播放与导出
+  let aiTrack = tracks.value.find(t => t.name.includes('AI'))
+  if (!aiTrack) {
+    aiTrack = {
+      id: Date.now() + 10,
+      name: 'AI 合成',
+      type: '音频',
+      color: 'bg-[#8B5CF6]',
+      muted: false,
+      solo: false,
+      volume: 80,
+      pan: 0,
+      collapsed: false,
+      locked: false,
+      recording: false,
+      clips: []
     }
-    const clip = {
-      id: Date.now() + 11,
-      name: '声演补录',
-      start: newSeg.startTime,
-      end: newSeg.endTime,
-      audioUrl: sentence.audioUrl,
-      color: 'bg-gradient-to-r from-[#8B5CF6]/80 to-[#A78BFA]/80 border-[#A78BFA]',
-      fadeIn: false,
-      fadeOut: false
-    }
-    aiTrack.clips.push(clip)
+    tracks.value.push(aiTrack)
   }
+  const clip = {
+    id: Date.now() + 11,
+    name: '声演补录',
+    start: newSeg.startTime,
+    end: newSeg.endTime,
+    audioUrl: sentenceAudioUrl,
+    color: 'bg-gradient-to-r from-[#8B5CF6]/80 to-[#A78BFA]/80 border-[#A78BFA]',
+    fadeIn: false,
+    fadeOut: false
+  }
+  aiTrack.clips.push(clip)
   ttsInsertPosition.value = 'after'
   ttsMiddleDraftText.value = ''
   
@@ -4132,7 +4067,7 @@ const saveAndGoToContentEnhance = async () => {
       createdAt: new Date().toISOString(),
       description: '来自剪辑工作台的一键保存稿，可继续内容增值处理',
       tags: ['剪辑稿', '待增值'],
-      audioUrl: ''
+      audioUrl: editedAudio
     }
     localStorage.setItem('lastExportedWork', JSON.stringify(draftWork))
     goToContentEnhance()
@@ -4945,6 +4880,14 @@ const socialCopies = ref({
   xiaohongshu: '',
   weibo: ''
 })
+const socialPlatformLabel = computed(() => {
+  const map = {
+    wechat: '视频号',
+    xiaohongshu: '小红书',
+    weibo: '微博'
+  }
+  return map[socialPlatform.value] || '社交平台'
+})
 const isGeneratingCopy = ref(false)
 const currentSocialCopy = computed({
   get: () => socialCopies.value[socialPlatform.value] || '',
@@ -4960,22 +4903,60 @@ const hasAnySocialCopy = computed(() => {
 const propagationForecast = ref(null)
 const isGeneratingForecast = ref(false)
 
-// 智能分发建议
-const distributionSuggestions = ref({
-  bestTimes: [
-    { icon: '🌅', time: '早上 7:30', score: 85 },
-    { icon: '🌞', time: '中午 12:00', score: 92 },
-    { icon: '🌆', time: '晚上 20:00', score: 95 },
-  ],
-  platformRanking: [
-    { id: 'xiaoyuzhou', name: '小宇宙', icon: xiaoyuzhouIcon, reason: '播客用户活跃度高', score: 95 },
-    { id: 'weixin', name: '微信听书', icon: weixinIcon, reason: '知识类内容受欢迎', score: 88 },
-    { id: 'xiaohongshu', name: '小红书', icon: xiaohongshuIcon, reason: '年轻用户群体匹配', score: 82 },
-    { id: 'apple', name: 'Apple 播客', icon: appleIcon, reason: '专业播客平台', score: 78 },
-    { id: 'qq', name: 'QQ 音乐', icon: qqIcon, reason: '音乐用户转化', score: 72 },
-    { id: 'douyin', name: '抖音', icon: douyinIcon, reason: '短视频引流', score: 68 },
-  ]
+const buildPodcastPubDate = () => {
+  return new Date().toUTCString()
+}
+
+const rssTemplateXml = computed(() => {
+  const podcastTitle = currentProject.value?.name || '播客名称'
+  const episodeTitle = shownotesData.value?.titles?.[0] || `${podcastTitle} - 最新一期`
+  const episodeSummary = shownotesData.value?.summary || '单集简介（由 AI 生成）'
+  const author = 'PodPal 主播'
+  const contactEmail = 'hello@podpal.ai'
+  const website = location?.origin || 'https://example.com'
+  const imageUrl = `${website}/src/assets/fengmian.png`
+  const audioUrl = editedAudio || `${website}/audio/latest.mp3`
+  const duration = PROJECT_DURATION_TEXT?.length >= 4 ? `00:${PROJECT_DURATION_TEXT}` : '00:25:30'
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<channel>
+    <title>${podcastTitle}</title>
+    <link>${website}</link>
+    <description>${episodeSummary}</description>
+    <language>zh-CN</language>
+    <copyright>${new Date().getFullYear()} ${podcastTitle}</copyright>
+
+    <itunes:author>${author}</itunes:author>
+    <itunes:email>${contactEmail}</itunes:email>
+    <itunes:image href="${imageUrl}"/>
+    <itunes:category text="Society &amp; Culture"/>
+    <itunes:explicit>no</itunes:explicit>
+
+    <item>
+        <title>${episodeTitle}</title>
+        <description>${episodeSummary}</description>
+        <pubDate>${buildPodcastPubDate()}</pubDate>
+        <guid>${audioUrl}</guid>
+        <enclosure url="${audioUrl}" length="0" type="audio/mpeg"/>
+        <itunes:duration>${duration}</itunes:duration>
+        <itunes:episode>1</itunes:episode>
+    </item>
+</channel>
+</rss>`
 })
+
+const copyRssTemplate = async () => {
+  try {
+    await navigator.clipboard.writeText(rssTemplateXml.value)
+    alert('RSS 模板已复制')
+  } catch (error) {
+    console.error('复制 RSS 模板失败:', error)
+    alert('复制失败，请重试')
+  }
+}
 
 const generateSocialCopy = async () => {
   if (isGeneratingCopy.value) return
@@ -5054,41 +5035,29 @@ const generatePropagationForecast = async () => {
   await new Promise(resolve => setTimeout(resolve, 2000))
   
   propagationForecast.value = {
-    expectedPlays: '2.5k-5k',
-    expectedLikes: '150-300',
-    expectedShares: '50-100',
-    viralScore: 78,
-    platformPredictions: [
-      { name: '小宇宙', score: 92, color: '#FFD700' },
-      { name: '微信', score: 85, color: '#07C160' },
-      { name: '小红书', score: 78, color: '#FF2442' },
-      { name: 'Apple', score: 72, color: '#FF9500' },
-      { name: 'QQ音乐', score: 65, color: '#31C27C' },
+    listenerGoLiveAt: '20:00',
+    reviewEstimate: '约 2-6 小时（波动区间 10 分钟 - 1 天）',
+    submitBefore: '14:00 - 16:00 提交审核更稳妥',
+    platformWindows: [
+      { platform: '抖音', window: '12:00-13:30、18:30-22:00（晚高峰最高）' },
+      { platform: '小红书', window: '11:30-13:00、19:00-23:00（休闲刷帖活跃）' },
+      { platform: '视频号', window: '12:00、20:00（社交传阅强）' },
+      { platform: '小宇宙播客', window: '19:30-21:00（正式上线优选）' }
+    ],
+    executionPlan: [
+      '14:00-16:00：上传播客并提交审核，预留充足审核时长',
+      '17:00-18:00：发布抖音/小红书/视频号宣发短片并引导收听入口',
+      '20:00：播客定时正式上线，短视频评论区同步引导收听'
     ],
     tips: [
-      '建议在晚上 20:00 发布，此时用户活跃度最高',
-      '标题中包含"AI"关键词可提升 15% 点击率',
-      '配合金句视频在短视频平台同步发布效果更佳',
-      'Shownotes 中的时间戳有助于提升完播率',
+      '“发布时间”是听众听到内容的时间，不是提交审核时间。',
+      '短视频平台先预热，再在播客上线时集中导流，转化更高。',
+      '如果内容敏感度高，建议再提前 2-4 小时提交审核。',
+      'AI 分析建议分开提：先算播客上线窗口，再算短视频各平台宣发时点。'
     ]
   }
   
   isGeneratingForecast.value = false
-}
-
-// 一键分发
-const distributeToPlatforms = async () => {
-  if (selectedPlatforms.value.length === 0) {
-    alert('请至少选择一个平台')
-    return
-  }
-  
-  const platformNames = selectedPlatforms.value.map(id => {
-    const map = { weixin: '微信听书', douyin: '抖音', qq: 'QQ音乐', xiaohongshu: '小红书', apple: 'Apple播客', xiaoyuzhou: '小宇宙' }
-    return map[id]
-  }).join('、')
-  
-  alert(`正在分发到：${platformNames}...`)
 }
 
 const copyFullShownotes = () => {
@@ -5472,15 +5441,16 @@ const showMindMap = ref(false)
 
 // 作品仓库
 const workRepository = ref([
-  { id: 'work-1', name: 'AI播客创作指南_最终版.mp3', duration: '32:15', exportTime: '2024-03-08 14:30' },
-  { id: 'work-2', name: '职场焦虑与应对_剪辑版.mp3', duration: '28:45', exportTime: '2024-03-07 09:15' },
-  { id: 'work-3', name: '科技趋势解读_第15期.mp3', duration: '45:20', exportTime: '2024-03-05 16:45' },
+  { id: 'work-1', name: 'AI播客创作指南_最终版.mp3', duration: '32:15', exportTime: '2024-03-08 14:30', audioUrl: editedAudio },
+  { id: 'work-2', name: '职场焦虑与应对_剪辑版.mp3', duration: '28:45', exportTime: '2024-03-07 09:15', audioUrl: editedAudio },
+  { id: 'work-3', name: '科技趋势解读_第15期.mp3', duration: '45:20', exportTime: '2024-03-05 16:45', audioUrl: editedAudio },
 ])
 const currentProjectExport = ref({
   id: 'current',
   name: '当前项目_待导出.mp3',
   duration: PROJECT_DURATION_TEXT,
-  exportTime: '刚刚'
+  exportTime: '刚刚',
+  audioUrl: editedAudio
 })
 const selectedWork = ref(null)
 
@@ -5701,31 +5671,10 @@ const toggleSelectedSentence = (s) => {
   }
 }
 
-// 分发平台映射
-const platformNames = {
-  weixin: '微信听书',
-  douyin: '抖音',
-  qq: 'QQ 音乐',
-  xiaohongshu: '小红书',
-  apple: 'Apple 播客',
-  xiaoyuzhou: '小宇宙'
-}
-
-// 分发平台选择
-const selectedPlatforms = ref([])
-const togglePlatform = (platform) => {
-  const idx = selectedPlatforms.value.indexOf(platform)
-  if (idx >= 0) {
-    selectedPlatforms.value.splice(idx, 1)
-  } else {
-    selectedPlatforms.value.push(platform)
-  }
-}
-
 // 素材库 Mock Data (Feature 2)
 const assets = ref([
-  { id: 1, name: '原始录音_Track1.wav', url: jiaodaZhixingDasha3Audio, type: 'audio', duration: '45:20', format: 'M4A', category: '人声', used: false, playing: false, summary: '嘉宾与主持围绕 AI 剪辑展开的长对话录音。', tags: ['现场', '录音', '人声'], editingSummary: false },
-  { id: 2, name: '背景音乐.mp3', url: '/background_music.mp3', type: 'audio', duration: '03:15', format: 'MP3', category: '背景音', used: false, playing: false, summary: '轻柔爵士 BGM，适合对话段落的低侵入背景。', tags: ['轻柔', '爵士', '低侵入'], editingSummary: false },
+  { id: 1, name: '原始录音_Track1.wav', url: uneditedAudio, type: 'audio', duration: '45:20', format: 'M4A', category: '人声', used: false, playing: false, summary: '嘉宾与主持围绕 AI 剪辑展开的长对话录音。', tags: ['现场', '录音', '人声'], editingSummary: false },
+  { id: 2, name: '补录音频_最新.m4a', url: supplementAudio, type: 'audio', duration: '00:15', format: 'M4A', category: '人声', used: false, playing: false, summary: '用于补录试听与插入的最新补录音频。', tags: ['补录', '人声'], editingSummary: false },
   { id: 3, name: 'Intro_Video.mp4', type: 'video', duration: '00:15', format: 'MP4', category: '效果音', used: false, playing: false, summary: '片头视频短片，包含品牌开场动画与音乐。', tags: ['片头', '品牌'], editingSummary: false },
   { id: 4, name: '转场音效_Swoosh.wav', type: 'audio', duration: '00:03', format: 'WAV', category: '效果音', used: false, playing: false, summary: '平滑的转场音效，适用于章节切换。', tags: ['转场', '平滑'], editingSummary: false },
   { id: 5, name: '嘉宾采访_Alice.wav', type: 'audio', duration: '12:30', format: 'WAV', category: '人声', used: false, playing: false, summary: '嘉宾 Alice 关于 AI 技术发展的深度访谈。', tags: ['访谈', 'AI技术', '深度'], editingSummary: false },
@@ -6065,6 +6014,18 @@ const toggleInlineAssetAudio = (asset) => {
   }
 }
 
+const getAssetFallbackAudioUrl = (asset) => {
+  if (asset?.name?.includes('补录')) return supplementAudio
+  return editedAudio
+}
+
+const handleAssetAudioError = (asset) => {
+  if (!asset) return
+  const fallbackUrl = getAssetFallbackAudioUrl(asset)
+  if (!fallbackUrl || asset.url === fallbackUrl) return
+  asset.url = fallbackUrl
+}
+
 const seekInlineAssetAudio = (asset, rawSeconds) => {
   const el = assetAudioRefs.value[asset?.id]
   if (!asset || !el) return
@@ -6159,7 +6120,7 @@ const playAsset = (asset) => {
 
   previewAudio.value.pause()
   previewAudio.value.currentTime = 0
-  previewAudio.value.src = asset.url || ''
+  previewAudio.value.src = asset.url || getAssetFallbackAudioUrl(asset)
 
   asset.playing = true
   currentPlayingAsset.value = asset
@@ -6654,7 +6615,8 @@ const generateVoiceFromPrompt = async () => {
         id: Date.now(), 
         text: voicePrompt.value, 
         duration: Math.ceil(voicePrompt.value.length / 5), // 简单估算时长
-        style: '自定义内容' 
+        style: '自定义内容',
+        audioUrl: supplementAudio
       }
     ]
     
@@ -6718,8 +6680,44 @@ const selectVoiceSentence = (sentence) => {
 
 // 预览语音句子
 const previewVoiceSentence = (sentence) => {
-  // 模拟预览功能
-  audioOptimizeMessage.value = `正在预览：${sentence.text.substring(0, 20)}...`
+  if (!sentence) return
+
+  if (!previewAudio.value) {
+    previewAudio.value = new Audio()
+    previewAudio.value.addEventListener('ended', () => {
+      if (currentPlayingAsset.value) {
+        currentPlayingAsset.value.playing = false
+      }
+      currentPlayingAsset.value = null
+    })
+  }
+
+  if (currentPlayingAsset.value) {
+    currentPlayingAsset.value.playing = false
+    currentPlayingAsset.value = null
+  }
+
+  const previewUrl = sentence.audioUrl || supplementAudio
+  previewAudio.value.pause()
+  previewAudio.value.currentTime = 0
+  previewAudio.value.src = previewUrl
+
+  previewAudio.value.onerror = () => {
+    if (previewAudio.value && previewAudio.value.src !== supplementAudio) {
+      previewAudio.value.src = supplementAudio
+      const fallbackPlay = previewAudio.value.play()
+      if (fallbackPlay && typeof fallbackPlay.catch === 'function') {
+        fallbackPlay.catch(() => {})
+      }
+    }
+  }
+
+  const p = previewAudio.value.play()
+  if (p && typeof p.catch === 'function') {
+    p.catch(() => {})
+  }
+
+  audioOptimizeMessage.value = `正在预览补录音频：${sentence.text.substring(0, 20)}...`
   setTimeout(() => {
     audioOptimizeMessage.value = ''
   }, 2000)
@@ -6735,7 +6733,8 @@ const openTTSPreviewForSentence = (sentence) => {
     status: '已完成',
     ttsText: sentence.text,
     duration: sentence.duration,
-    style: sentence.style
+    style: sentence.style,
+    audioUrl: sentence.audioUrl || supplementAudio
   }
   
   // 打开TTS预览模态框
@@ -6827,10 +6826,7 @@ const confirmInsertClonedVoice = (sentence) => {
   seg.voiceStyle = sentence.voiceStyle
   seg.voiceId = sentence.voiceId
   seg.isCloned = true
-  // 如果克隆生成返回了音频地址，关联到文字稿段
-  if (sentence.audioUrl) {
-    seg.audioUrl = sentence.audioUrl
-  }
+  seg.audioUrl = sentence.audioUrl || supplementAudio
   recalculateTranscriptDurationsFromText()
   
   // 添加到插入记录
@@ -6841,7 +6837,7 @@ const confirmInsertClonedVoice = (sentence) => {
     voiceStyle: sentence.voiceStyle,
     voiceId: sentence.voiceId,
     transcriptIndex: lockedTTSSegment.value.index,
-    audioUrl: sentence.audioUrl || '',
+    audioUrl: sentence.audioUrl || supplementAudio,
     createdAt: new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }
   
@@ -7068,7 +7064,10 @@ const showTTSModal = ref(false)
 const currentTTSTask = ref(null)
 const ttsDraftText = ref('')
 const openTTSPreview = (task) => {
-  currentTTSTask.value = task
+  currentTTSTask.value = {
+    ...task,
+    audioUrl: task?.audioUrl || supplementAudio
+  }
   ttsDraftText.value = task.ttsText || '请输入合成文稿...'
   showTTSModal.value = true
 }
@@ -7122,12 +7121,10 @@ const confirmTTSInsertToTranscript = () => {
     fadeIn: false,
     fadeOut: false
   })
-  // 如果当前任务包含真实音频地址，则把它关联到新建片段和时间轴剪辑上
-  if (currentTTSTask.value && currentTTSTask.value.audioUrl) {
-    newSeg.audioUrl = currentTTSTask.value.audioUrl
-    const lastClip = aiTrack.clips[aiTrack.clips.length - 1]
-    if (lastClip) lastClip.audioUrl = currentTTSTask.value.audioUrl
-  }
+  const ttsAudioUrl = currentTTSTask.value?.audioUrl || supplementAudio
+  newSeg.audioUrl = ttsAudioUrl
+  const lastClip = aiTrack.clips[aiTrack.clips.length - 1]
+  if (lastClip) lastClip.audioUrl = ttsAudioUrl
   if (currentTTSTask.value) {
     currentTTSTask.value.inserted = true
   }
@@ -7148,7 +7145,7 @@ const doExport = async () => {
       createdAt: new Date().toISOString(),
       description: '来自剪辑工作台的成品音频',
       tags: ['最新', '成品'],
-      audioUrl: '' // 可在后端接入真实地址
+      audioUrl: editedAudio
     }
     localStorage.setItem('lastExportedWork', JSON.stringify(work))
   } catch (e) {
@@ -7869,9 +7866,11 @@ const handleFileSelect = (event) => {
   const file = event.target.files[0]
   if (!file) return
   selectedAssetIds.value = []
+  const objectUrl = URL.createObjectURL(file)
   assets.value.unshift({
     id: Date.now(),
     name: file.name,
+    url: objectUrl,
     type: file.type.startsWith('video') ? 'video' : 'audio',
     duration: '00:00',
     format: file.name.split('.').pop().toUpperCase(),
@@ -7887,8 +7886,7 @@ const handleFileSelect = (event) => {
 }
 
 const selectAsset = (asset) => {
-  console.log('Selected asset:', asset)
-  // 可以在这里添加将素材添加到轨道的逻辑
+  if (!asset) return
 }
 
 const showAssetMenu = (asset) => {
@@ -8626,7 +8624,7 @@ onMounted(async () => {
     refreshAutoSaveStatus()
   }, 5000)
 
-  // 导出页的 AI 传播预测：默认自动生成一次
+  // 导出页的 AI 发布时间分析：默认自动生成一次
   if (!propagationForecast.value && !isGeneratingForecast.value) {
     generatePropagationForecast()
   }
