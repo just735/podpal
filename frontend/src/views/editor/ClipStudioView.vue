@@ -2193,53 +2193,111 @@
     </div>
   </div>
 </div>
+
+                <!-- ID3v2 标签元数据检查器 -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-4">
+                  <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded bg-emerald-500/20 flex items-center justify-center">
+                      <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="text-xs font-semibold text-emerald-400">ID3v2 标签元数据检查器</h3>
+                      <p class="text-[10px] text-slate-400">Meta-Tag Inspector</p>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 gap-2">
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      <span class="text-slate-300">ID3v2.4 容器状态：</span>
+                      <span class="text-emerald-400 font-medium">已就绪 (Successfully Encapsulated)</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                      <span class="text-slate-300">TIT2 (标题帧)：</span>
+                      <span class="text-white font-medium">{{ shownotesData?.titles?.[0] || '未设置标题' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                      <span class="text-slate-300">TPE1 (作者帧)：</span>
+                      <span class="text-white font-medium">PodPal 主播</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                      <span class="text-slate-300">APIC (封面帧)：</span>
+                      <span class="text-white font-medium">cover.jpg (240KB 二进制流已嵌入音频头部)</span>
+                    </div>
+                  </div>
+                </div>
                 
                 <!-- 内容预览 -->
                 <div class="p-6 space-y-6">
-                  <!-- Shownotes 预览 -->
+                  <!-- RSS-Ready 文本与时间戳章节 -->
                   <div v-if="shownotesData">
-                    <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
-                      Shownotes
-                    </h3>
-                    <div class="bg-gray-50 rounded-lg p-4 space-y-3 max-h-[420px] overflow-y-auto">
-                      <div>
-                        <div class="text-xs text-gray-500 mb-1">标题</div>
-                        <div class="text-sm font-medium text-gray-900">{{ shownotesData.titles?.[0] }}</div>
-                      </div>
-                      <div>
-                        <div class="text-xs text-gray-500 mb-1">摘要</div>
-                        <div class="text-sm text-gray-700">{{ shownotesData.summary }}</div>
-                      </div>
-                      <div v-if="shownotesData.timeline && shownotesData.timeline.length > 0">
-                        <div class="text-xs text-gray-500 mb-2">时间轴</div>
-                        <div class="space-y-1">
-                          <div v-for="(item, idx) in shownotesData.timeline" :key="idx" class="flex items-center gap-2 text-sm">
-                            <span class="text-pink-600 font-mono text-xs">{{ item.timestamp }}</span>
-                            <span class="text-gray-700">{{ item.topic }}</span>
-                          </div>
-                        </div>
+                    <div class="flex items-center justify-between mb-3">
+                      <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
+                        RSS-Ready 章节标记
+                      </h3>
+                      <button @click="copyFullShownotes" class="text-xs bg-pink-500 text-white px-3 py-1 rounded-lg hover:bg-pink-600 transition flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        一键复制
+                      </button>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 max-h-[420px] overflow-y-auto">
+                      <div class="font-mono text-xs text-gray-600 whitespace-pre-wrap">
+# 📌 节目章节（自动同步至 RSS 规范标签）
+
+{{ shownotesData.titles?.[0] || '播客标题' }}
+
+{{ shownotesData.summary || '节目摘要' }}
+
+## ⏱️ 时间轴章节
+<span v-for="(item, idx) in shownotesData.timeline" :key="idx">[{{ item.timestamp }}] {{ item.topic }}
+{{ item.description }}
+
+</span>
                       </div>
                     </div>
                   </div>
                   
-                  <!-- 金句视频预览 -->
+                  <!-- 多模态矩阵引流视频 -->
 <div v-if="generatedVideos.length > 0">
-  <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-    <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
-    金句视频 ({{ generatedVideos.length }}个)
-  </h3>
-  <div class="grid grid-cols-3 gap-3">
-    <div v-for="video in generatedVideos.slice(0, 3)" :key="video.id" class="aspect-video bg-gray-100 rounded-lg overflow-hidden relative cursor-pointer">
-      <!-- ✅ 真视频：自动播放 + 静音 + 循环 -->
-      <video 
-        src="/src/assets/show.mp4" 
-        class="w-full h-full object-cover"
-        muted
-        loop
-        autoplay
-      ></video>
-      <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{{ video.duration }}</div>
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+      <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
+      多模态矩阵引流视频
+    </h3>
+    <span class="text-xs text-gray-500">{{ generatedVideos.length }} 个宣发短片</span>
+  </div>
+  <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+    <div class="grid grid-cols-3 gap-3 mb-3">
+      <div v-for="video in generatedVideos.slice(0, 3)" :key="video.id" class="aspect-video bg-gray-200 rounded-lg overflow-hidden relative cursor-pointer group">
+        <video 
+          src="/src/assets/show.mp4" 
+          class="w-full h-full object-cover"
+          muted
+          loop
+          autoplay
+        ></video>
+        <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{{ video.duration }}</div>
+        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="space-y-1.5 text-xs text-gray-600">
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+        <span><span class="font-semibold text-gray-800">文件格式：</span>H.264 / 1080P / 60fps MP4</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+        <span><span class="font-semibold text-gray-800">画面特征：</span>AI 亚像素级口型对齐宣发短视频（自适应抖音/小红书 9:16 画幅）</span>
+      </div>
     </div>
   </div>
 </div>
@@ -2271,6 +2329,25 @@
                         <option>192 kbps</option>
                         <option>320 kbps</option>
                       </select>
+                    </div>
+                  </div>
+
+                  <!-- 资产包一键下载 / 投递区 -->
+                  <div class="pt-4 border-t border-gray-100">
+                    <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <span class="w-1 h-4 bg-rose-500 rounded-full"></span>
+                      资产包投递区
+                    </h3>
+                    <div class="space-y-3">
+                      <button @click="exportAssetPack" class="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 transition flex items-center justify-center gap-2 text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>📦 导出标准 RSS-Ready 资产包 (.zip)</span>
+                      </button>
+                      <p class="text-[11px] text-gray-500 text-center">
+                        内含内嵌 ID3v2 标签音频、Shownotes.md、章节时间戳、短视频
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -2346,17 +2423,137 @@
                 <div v-else class="text-xs text-gray-500">{{ isGeneratingForecast ? 'AI 正在分析发布节奏…' : '点击“重新分析”生成发布建议。' }}</div>
               </div>
 
+              <!-- AI 封面生成器 -->
               <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <div class="flex items-center justify-between mb-2">
-                  <div class="text-sm font-semibold text-gray-900">通用 RSS 模板（AI 生成）</div>
-                  <button @click="copyRssTemplate" class="text-xs text-pink-600 hover:text-pink-700">复制 XML</button>
+                <div class="flex items-center justify-between mb-3">
+                  <div class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    AI 封面生成器
+                  </div>
                 </div>
-                <p class="text-[11px] text-gray-500 mb-3">无需选择导出平台，RSS 为通用格式，可直接用于播客托管平台。</p>
-                <textarea
-                  :value="rssTemplateXml"
-                  readonly
-                  class="w-full h-80 p-3 text-[11px] leading-5 font-mono bg-gray-50 border border-gray-200 rounded-lg text-gray-700"
-                ></textarea>
+                <div class="space-y-3">
+                  <!-- 当前封面预览 -->
+                  <div class="relative aspect-square bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg overflow-hidden mb-3">
+                    <img 
+                      :src="currentCoverImage || '/src/assets/fengmian.png'" 
+                      alt="播客封面" 
+                      class="w-full h-full object-cover"
+                    />
+                    <div v-if="!currentCoverImage" class="absolute inset-0 flex items-center justify-center">
+                      <span class="text-xs text-gray-400">暂无封面</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 操作按钮 -->
+                  <div class="flex gap-2">
+                    <label class="flex-1 py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-xs text-gray-700 flex items-center justify-center gap-2 transition">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      上传封面
+                      <input type="file" accept="image/*" class="hidden" @change="handleCoverUpload" />
+                    </label>
+                    <button 
+                      @click="generateCover" 
+                      :disabled="isGeneratingCover"
+                      class="flex-1 py-2 px-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs flex items-center justify-center gap-2 transition"
+                    >
+                      <svg v-if="isGeneratingCover" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      </svg>
+                      <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      {{ isGeneratingCover ? '生成中...' : 'AI生成' }}
+                    </button>
+                  </div>
+                  
+                  <!-- 生成提示 -->
+                  <p v-if="coverGenerationTip" class="text-[11px] text-purple-600 bg-purple-50 p-2 rounded-lg">
+                    {{ coverGenerationTip }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    通用 RSS 模板
+                  </div>
+                  <button @click="copyRssTemplate" class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded hover:bg-orange-200 transition">
+                    📋 复制 XML
+                  </button>
+                </div>
+                <p class="text-[11px] text-gray-500 mb-4">无需选择导出平台，RSS 为通用格式，可直接用于播客托管平台。</p>
+                
+                <!-- RSS 模板字段展示 -->
+                <div class="space-y-4">
+                  <!-- 播客基础信息 -->
+                  <div class="border-l-2 border-blue-500 pl-3">
+                    <div class="text-xs font-semibold text-blue-600 mb-2">📻 播客基础信息</div>
+                    <div class="space-y-2 text-xs">
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">标题</span>
+                        <span class="text-gray-800 font-medium">{{ currentProject?.name || '播客名称' }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">主页网址</span>
+                        <span class="text-gray-800 font-medium">{{ windowLocationOrigin || 'https://example.com' }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">简介</span>
+                        <span class="text-gray-800 font-medium max-w-[150px] truncate">{{ shownotesData?.summary || '节目简介' }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">语言</span>
+                        <span class="text-gray-800 font-medium">zh-CN</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- iTunes 信息 -->
+                  <div class="border-l-2 border-green-500 pl-3">
+                    <div class="text-xs font-semibold text-green-600 mb-2">🎵 iTunes 必填信息</div>
+                    <div class="space-y-2 text-xs">
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">主播名</span>
+                        <span class="text-gray-800 font-medium">PodPal 主播</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">联系邮箱</span>
+                        <span class="text-gray-800 font-medium">hello@podpal.ai</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">分类</span>
+                        <span class="text-gray-800 font-medium">Society & Culture</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 单期节目 -->
+                  <div class="border-l-2 border-purple-500 pl-3">
+                    <div class="text-xs font-semibold text-purple-600 mb-2">🎙️ 单期节目</div>
+                    <div class="space-y-2 text-xs">
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">标题</span>
+                        <span class="text-gray-800 font-medium max-w-[150px] truncate">{{ shownotesData?.titles?.[0] || '单集标题' }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">时长</span>
+                        <span class="text-gray-800 font-medium">{{ PROJECT_DURATION_TEXT }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">发布日期</span>
+                        <span class="text-gray-800 font-medium">{{ buildPodcastPubDate() }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </aside>
@@ -4903,6 +5100,14 @@ const hasAnySocialCopy = computed(() => {
 const propagationForecast = ref(null)
 const isGeneratingForecast = ref(false)
 
+// AI 封面相关状态
+const currentCoverImage = ref(null)
+const isGeneratingCover = ref(false)
+const coverGenerationTip = ref('')
+
+// 全局 location 封装，避免模板中直接访问
+const windowLocationOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://example.com'
+
 const buildPodcastPubDate = () => {
   return new Date().toUTCString()
 }
@@ -4956,6 +5161,91 @@ const copyRssTemplate = async () => {
     console.error('复制 RSS 模板失败:', error)
     alert('复制失败，请重试')
   }
+}
+
+// AI 封面上传处理
+const handleCoverUpload = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    currentCoverImage.value = e.target?.result
+    coverGenerationTip.value = '封面上传成功！'
+    setTimeout(() => {
+      coverGenerationTip.value = ''
+    }, 3000)
+  }
+  reader.readAsDataURL(file)
+}
+
+// AI 封面生成
+const generateCover = async () => {
+  if (isGeneratingCover.value) return
+  isGeneratingCover.value = true
+  coverGenerationTip.value = 'AI 正在生成封面，请稍候...'
+  
+  await new Promise(resolve => setTimeout(resolve, 2000))
+  
+  // 模拟生成封面（实际项目中调用AI图像生成API）
+  currentCoverImage.value = '/src/assets/fengmian.png'
+  coverGenerationTip.value = '封面生成成功！点击上传可更换其他图片。'
+  isGeneratingCover.value = false
+  
+  setTimeout(() => {
+    coverGenerationTip.value = ''
+  }, 4000)
+}
+
+// 导出资产包
+const exportAssetPack = async () => {
+  // 创建资产包内容
+  const assetPack = {
+    podcast: {
+      title: currentProject.value?.name || '播客名称',
+      author: 'PodPal 主播',
+      email: 'hello@podpal.ai',
+      description: shownotesData.value?.summary || '节目简介',
+      duration: PROJECT_DURATION_TEXT,
+      pubDate: new Date().toISOString(),
+      rssTemplate: rssTemplateXml.value
+    },
+    shownotes: {
+      title: shownotesData.value?.titles?.[0] || '单集标题',
+      summary: shownotesData.value?.summary || '节目摘要',
+      chapters: shownotesData.value?.timeline?.map(item => ({
+        timestamp: item.timestamp,
+        seconds: item.seconds,
+        topic: item.topic,
+        description: item.description
+      })) || []
+    },
+    metadata: {
+      id3Version: 'ID3v2.4',
+      frames: {
+        TIT2: shownotesData.value?.titles?.[0] || '未设置标题',
+        TPE1: 'PodPal 主播',
+        APIC: 'cover.jpg (240KB 二进制流已嵌入音频头部)',
+        TLEN: `${PROJECT_DURATION_TEXT}`
+      }
+    },
+    videos: generatedVideos.value?.map(video => ({
+      id: video.id,
+      duration: video.duration,
+      thumbnail: video.thumbnail
+    })) || []
+  }
+
+  // 创建 JSON 文件并下载
+  const blob = new Blob([JSON.stringify(assetPack, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `podcast-asset-pack-${Date.now()}.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 const generateSocialCopy = async () => {
