@@ -2315,20 +2315,74 @@
                   
                   <!-- 导出设置 -->
                   <div class="pt-4 border-t border-gray-100">
-                    <h3 class="text-sm font-bold text-gray-900 mb-3">导出设置</h3>
-                    <div class="flex items-center gap-6">
-                      <div class="flex items-center gap-2">
-                        <input type="radio" name="exportFormat" value="mp3" checked class="text-pink-600 focus:ring-pink-500" />
-                        <span class="text-sm text-gray-700">MP3 (推荐)</span>
+                    <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
+                      音频导出设置
+                    </h3>
+                    
+                    <!-- 格式选择 -->
+                    <div class="space-y-4">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">格式</span>
+                        <div class="flex items-center gap-2">
+                          <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" v-model="exportSettings.format" value="mp3" class="text-purple-600 focus:ring-purple-500" />
+                            <span class="text-xs text-gray-700">MP3</span>
+                          </label>
+                          <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" v-model="exportSettings.format" value="wav" class="text-purple-600 focus:ring-purple-500" />
+                            <span class="text-xs text-gray-700">WAV (无损)</span>
+                          </label>
+                        </div>
                       </div>
-                      <div class="flex items-center gap-2">
-                        <input type="radio" name="exportFormat" value="wav" class="text-pink-600 focus:ring-pink-500" />
-                        <span class="text-sm text-gray-700">WAV (无损)</span>
+                      
+                      <!-- 比特率选择 -->
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">比特率</span>
+                        <select v-model="exportSettings.bitrate" class="text-xs bg-gray-100 rounded-lg px-3 py-1.5 border-none focus:ring-2 focus:ring-purple-500">
+                          <option value="192">192 kbps</option>
+                          <option value="256">256 kbps</option>
+                          <option value="320">320 kbps</option>
+                        </select>
                       </div>
-                      <select class="rounded border-gray-300 text-sm py-1">
-                        <option>192 kbps</option>
-                        <option>320 kbps</option>
-                      </select>
+                      
+                      <!-- 采样率选择 -->
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">采样率</span>
+                        <select v-model="exportSettings.samplerate" class="text-xs bg-gray-100 rounded-lg px-3 py-1.5 border-none focus:ring-2 focus:ring-purple-500">
+                          <option value="44100">44100 Hz</option>
+                          <option value="48000">48000 Hz</option>
+                        </select>
+                      </div>
+                      
+                      <!-- 音量优化 -->
+                      <div class="pt-3 border-t border-gray-100">
+                        <div class="flex items-center justify-between mb-3">
+                          <div>
+                            <div class="text-xs font-medium text-gray-800">优化节目音量大小</div>
+                            <div class="text-[10px] text-gray-500">选择上传的平台，会自动优化对应的音量</div>
+                          </div>
+                          <button 
+                            @click="exportSettings.volumeOptimization = !exportSettings.volumeOptimization"
+                            class="w-10 h-5 rounded-full transition-colors"
+                            :class="exportSettings.volumeOptimization ? 'bg-purple-500' : 'bg-gray-300'"
+                          >
+                            <span 
+                              class="block w-4 h-4 bg-white rounded-full shadow transition-transform"
+                              :class="exportSettings.volumeOptimization ? 'translate-x-5' : 'translate-x-0.5'"
+                            ></span>
+                          </button>
+                        </div>
+                        <select 
+                          v-model="exportSettings.lufs" 
+                          :disabled="!exportSettings.volumeOptimization"
+                          class="w-full text-xs bg-gray-100 rounded-lg px-3 py-2 border-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="-14">-14 LUFS（视频音轨推荐响度）</option>
+                          <option value="-16">-16 LUFS（播客音频推荐响度）</option>
+                          <option value="-23">-23 LUFS（传统广播电视标准响度）</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -3293,7 +3347,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from '../../stores/project'
 import { useMaterialStore } from '../../stores/material'
@@ -5104,6 +5158,15 @@ const isGeneratingForecast = ref(false)
 const currentCoverImage = ref(null)
 const isGeneratingCover = ref(false)
 const coverGenerationTip = ref('')
+
+// 导出设置
+const exportSettings = reactive({
+  format: 'mp3',
+  bitrate: '192',
+  samplerate: '44100',
+  volumeOptimization: true,
+  lufs: '-16'
+})
 
 // 全局 location 封装，避免模板中直接访问
 const windowLocationOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://example.com'
