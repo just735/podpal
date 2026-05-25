@@ -1130,8 +1130,8 @@
                            <!-- 音频播放器 -->
                            <div class="bg-white rounded-lg border border-gray-200 p-2">
                              <div class="flex items-center gap-2">
-                               <button @click="toggleAudioPlay" class="w-7 h-7 rounded-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white flex items-center justify-center hover:shadow-md transition">
-                                 <svg v-if="!isAudioPlaying" class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                               <button @click="toggleContentAudio" class="w-7 h-7 rounded-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] text-white flex items-center justify-center hover:shadow-md transition">
+                                 <svg v-if="!isContentAudioPlaying" class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                                  </svg>
                                  <svg v-else class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -1139,15 +1139,22 @@
                                  </svg>
                                </button>
                                <div class="flex-1">
-                                 <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden cursor-pointer" @click="seekAudioProgress">
-                                   <div class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] rounded-full transition-all" :style="{ width: audioProgress + '%' }"></div>
+                                 <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden cursor-pointer" @click="seekContentAudio">
+                                   <div class="h-full bg-gradient-to-r from-[#FF6B9D] to-[#C084FC] rounded-full transition-all" :style="{ width: contentAudioProgress + '%' }"></div>
                                  </div>
                                  <div class="flex justify-between text-[10px] text-gray-500 mt-1">
-                                   <span>{{ formatTime(currentAudioTime) }}</span>
-                                   <span>{{ PROJECT_DURATION_TEXT }}</span>
+                                   <span>{{ formatTime(contentAudioCurrentTime) }}</span>
+                                   <span>32:15</span>
                                  </div>
                                </div>
                              </div>
+                             <audio 
+                               ref="contentAudioPlayer"
+                               src="/src/assets/剪辑版.m4a" 
+                               class="hidden"
+                               @timeupdate="updateContentAudioProgress"
+                               @ended="contentAudioEnded"
+                            ></audio>
                            </div>
                            
                            <div class="space-y-2">
@@ -1340,7 +1347,7 @@
                             <div class="w-16 h-12 rounded overflow-hidden flex-shrink-0 relative cursor-pointer" @click="previewVideo(video)">
                               <!-- 这里变成真正的视频！-->
                           <video 
-                            src="/src/assets/show.mp4"  class="w-full h-full object-cover" muted>
+                            src="/src/assets/video.mp4"  class="w-full h-full object-cover" muted>
                           </video>
                         </div>
                            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
@@ -1369,7 +1376,7 @@
 
     <!-- ✅ 这里是真视频！！！ -->
     <video 
-      src="/src/assets/show.mp4" 
+      src="/src/assets/video.mp4" 
       controls 
       class="w-full h-auto"
       autoplay
@@ -1565,7 +1572,7 @@
     <!-- 真视频区域 -->
     <div class="aspect-video bg-black">
       <video 
-        src="/src/assets/show.mp4" 
+        src="/src/assets/video.mp4" 
         controls 
         class="w-full h-full object-cover"
         autoplay
@@ -2277,7 +2284,7 @@
     <div class="grid grid-cols-3 gap-3 mb-3">
       <div v-for="video in generatedVideos.slice(0, 3)" :key="video.id" class="aspect-video bg-gray-200 rounded-lg overflow-hidden relative cursor-pointer group">
         <video 
-          src="/src/assets/show.mp4" 
+          src="/src/assets/video.mp4" 
           class="w-full h-full object-cover"
           muted
           loop
@@ -5013,7 +5020,6 @@ const generateVideoPreview = async () => {
   
   try {
     // 获取选中的金句内容
-    const videoPrompt = selectedGoldenSentences.map(s => s.content || s.text || '').join(' ')
     const estimatedDuration = selectedGoldenSentences.reduce((total, sentence) => {
       const duration = Number(sentence.durationSeconds ?? sentence.duration)
       if (Number.isFinite(duration) && duration > 0) {
@@ -5023,42 +5029,15 @@ const generateVideoPreview = async () => {
       return total + fallbackDuration
     }, 0)
     const estimatedDurationSeconds = Math.max(6, Math.min(120, Math.round(estimatedDuration || 15)))
+    const finalDurationText = formatTime(estimatedDurationSeconds)
     
-    // 调用 Seedance API 生成视频
-    const response = await fetch('https://api.seedance.io/v1/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_SEEDANCE_API_KEY' // 需要替换为实际的 API Key
-      },
-      body: JSON.stringify({
-        prompt: videoPrompt,
-        template: videoTemplate.value, // 'digital-human' 或 'waveform'
-        duration: estimatedDurationSeconds,
-        aspect_ratio: '9:16', // 竖屏视频
-        style: 'professional',
-        audio_source: 'podcast', // 使用播客音频
-        subtitles: true,
-        watermark: false
-      })
-    })
-    
-    if (!response.ok) {
-      throw new Error('Seedance API 调用失败')
-    }
-    
-    const result = await response.json()
-    const apiDurationSeconds = parseVideoDurationToSeconds(result.duration)
-    const finalDurationText = formatTime(apiDurationSeconds || estimatedDurationSeconds)
-    
-    // 模拟：实际项目中使用 API 返回的数据
-    // 这里使用模拟数据展示效果
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // 使用本地视频文件作为演示
+    await new Promise(resolve => setTimeout(resolve, 1500))
     
     generatedVideos.value.push({
       id: Date.now(),
-      url: result.video_url || '#',
-      thumbnail: result.thumbnail_url || `https://placehold.co/320x180/FF6B9D/ffffff?text=${encodeURIComponent((selectedGoldenSentences[0]?.content || selectedGoldenSentences[0]?.text || '').substring(0, 20) || 'Video')}`,
+      url: '/src/assets/video.mp4',
+      thumbnail: '/src/assets/video.mp4',
       duration: finalDurationText,
       template: videoTemplate.value,
       sentences: selectedGoldenSentences.map(sentence => ({
@@ -5067,7 +5046,7 @@ const generateVideoPreview = async () => {
         startTime: sentence.startTime,
         endTime: sentence.endTime
       })),
-      seedance_id: result.id // 保存 Seedance 视频 ID
+      seedance_id: `demo_${Date.now()}`
     })
     
     alert('视频生成成功！')
@@ -5825,6 +5804,47 @@ const parseMediaDuration = (durationStr, fallback = 1800) => {
 }
 const totalAudioDuration = ref(parseMediaDuration(currentProjectExport.value.duration)) // 跟随当前作品时长
 let audioPlayInterval = null
+
+// 内容增值区域音频播放器状态
+const isContentAudioPlaying = ref(false)
+const contentAudioProgress = ref(0)
+const contentAudioCurrentTime = ref(0)
+const contentAudioPlayer = ref(null)
+
+const toggleContentAudio = () => {
+  if (!contentAudioPlayer.value) return
+  if (isContentAudioPlaying.value) {
+    contentAudioPlayer.value.pause()
+    isContentAudioPlaying.value = false
+  } else {
+    contentAudioPlayer.value.play()
+    isContentAudioPlaying.value = true
+  }
+}
+
+const updateContentAudioProgress = () => {
+  if (!contentAudioPlayer.value) return
+  const duration = 1935 // 32:15 = 1935 seconds (假数据)
+  contentAudioCurrentTime.value = Math.floor(contentAudioPlayer.value.currentTime)
+  contentAudioProgress.value = (contentAudioCurrentTime.value / duration) * 100
+}
+
+const contentAudioEnded = () => {
+  isContentAudioPlaying.value = false
+  contentAudioCurrentTime.value = 0
+  contentAudioProgress.value = 0
+}
+
+const seekContentAudio = (e) => {
+  if (!contentAudioPlayer.value) return
+  const rect = e.currentTarget.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const percentage = Math.max(0, Math.min(1, x / rect.width))
+  const duration = 1935 // 32:15 = 1935 seconds (假数据)
+  contentAudioCurrentTime.value = Math.floor(duration * percentage)
+  contentAudioProgress.value = percentage * 100
+  contentAudioPlayer.value.currentTime = contentAudioCurrentTime.value
+}
 
 const formatDurationMMSS = (seconds = 0) => {
   const s = Math.max(0, Math.floor(seconds))
